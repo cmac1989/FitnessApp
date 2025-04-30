@@ -16,13 +16,12 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('certifications')->nullable();
             $table->integer('years_experience')->nullable();
-            $table->string('specialties')->nullable();
+            $table->json('specialties')->nullable();
             $table->text('bio')->nullable();
             $table->enum('availability', ['available', 'unavailable']);
             $table->string('location')->nullable();
             $table->timestamps();
-
-    });
+        });
     }
 
     /**
