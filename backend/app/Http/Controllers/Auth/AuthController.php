@@ -41,7 +41,49 @@ class AuthController extends Controller
                 'bio' => $user->bio,
             ],
             'token' => $token,
+        ], 201);
+
+    }
+
+    public function login(Request $request)
+    {
+        $fields = $request->validate([
+            'email' => 'required|string|email',
+            'password' => 'required|string',
         ]);
 
+        // Find user by email
+        $user = User::where('email', $fields['email'])->first();
+
+        // Check if user exists and password matches
+        if (!$user || !Hash::check($fields['password'], $user->password)) {
+            return response()->json([
+                'message' => 'Invalid credentials'
+            ], 401);
+        }
+
+        // Create token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'profile_picture' => $user->profile_picture,
+                'bio' => $user->bio,
+            ],
+            'token' => $token,
+        ], 200);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Logged out successfully'
+        ]);
     }
 }
