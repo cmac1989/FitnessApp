@@ -1,0 +1,12 @@
+{
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "env": {
+        "DB_HOST": "ecommerce.cxo2ya20m42g.us-east-2.rds.amazonaws.com",
+        "DB_PORT": "3306",
+        "DB_DATABASE": "ecommerce",
+        "DB_USERNAME": "admin",
+        "DB_PASSWORD": "vP3LRZLzvSVi0ugG6PSL"
+    }
+}
