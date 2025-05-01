@@ -4,7 +4,7 @@ FROM php:8.2-fpm AS php-fpm
 # Set working directory inside the container
 WORKDIR /var/www
 
-# Install dependencies needed for Laravel and PHP extensions
+# Install PHP extensions
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -14,8 +14,6 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
-    nginx \
-    supervisor \
     && docker-php-ext-install pdo_mysql gd
 
 # Install Composer (PHP package manager)
@@ -30,14 +28,13 @@ RUN composer install --no-dev --optimize-autoloader
 # Stage 2: Final image with nginx + PHP-FPM
 FROM php:8.2-fpm
 
-# Set working directory again
-WORKDIR /var/www
-
-# Install nginx and supervisor for managing both PHP-FPM and nginx
+# Install nginx and supervisor in a separate step to reduce memory spikes
 RUN apt-get update && apt-get install -y \
     nginx \
-    supervisor \
-    && docker-php-ext-install pdo_mysql gd
+    supervisor
+
+# Set working directory again
+WORKDIR /var/www
 
 # Copy the built Laravel app from the first stage
 COPY --from=php-fpm /var/www /var/www
