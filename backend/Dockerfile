@@ -28,14 +28,16 @@ WORKDIR /var/www
 COPY . /var/www
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader && \
+    composer clear-cache
 
 # Copy nginx and supervisor config files
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 
 # Set file permissions
-RUN chown -R www-data:www-data /var/www
+RUN chown -R www-data:www-data /var/www && \
+    chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 # Expose Railway port
 EXPOSE 8080
