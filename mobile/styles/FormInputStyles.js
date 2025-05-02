@@ -16,7 +16,7 @@ const formInputStyles = StyleSheet.create({
         borderColor: '#ccc',
         paddingHorizontal: 10,
         borderRadius: 6,
-        marginBottom: 15,
+        marginBottom: 5,
     },
     roleContainer: {
         flexDirection: 'row',
