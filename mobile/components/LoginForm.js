@@ -1,12 +1,26 @@
-import React, { useState } from 'react';
+import React, {useCallback, useState} from 'react';
 import { View, Text, TextInput } from 'react-native';
 import CustomButton from './CustomButton';
 import TextButton from './TextButton';
 import formInputStyles from '../styles/FormInputStyles';
 import formErrorStyles from '../styles/FormErrorStyles';
 import { validateLoginForm, validateField } from '../src/utils/validation';
+import { userLogin } from '../src/api/auth';
+import {useFocusEffect} from '@react-navigation/native';
 
 const LoginForm = ({ navigation }) => {
+    useFocusEffect(
+        useCallback(() => {
+            // Reset form state when screen comes into focus
+            setUserInfo({
+                email: '',
+                password: '',
+                role: 'client',
+            });
+            setErrors({});
+        }, [])
+    );
+
     const [userInfo, setUserInfo] = useState({
         email: '',
         password: '',
@@ -14,13 +28,18 @@ const LoginForm = ({ navigation }) => {
 
     const [errors, setErrors] = useState({});
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         const validationErrors = validateLoginForm(userInfo);
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
             return;
         }
-        // login logic here
+        try {
+            await userLogin();
+            navigation.navigate('home');
+        } catch(error) {
+            console.error('Login failed:', error.response?.data || error.message);
+        }
     };
 
     return (

@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    procps \
+    lsof \
+    net-tools \
     && docker-php-ext-install pdo_mysql gd
 
 # Install Composer
@@ -27,7 +30,7 @@ COPY . /var/www
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Copy nginx and supervisor config files (we'll create them next)
+# Copy nginx and supervisor config files
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 

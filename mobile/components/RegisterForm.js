@@ -2,7 +2,7 @@ import {Pressable, Text, TextInput, View} from 'react-native';
 import CustomButton from './CustomButton';
 import React, {useState, useCallback} from 'react';
 import formInputStyles from '../styles/FormInputStyles';
-import registerUser from '../src/api/auth';
+import {registerUser} from '../src/api/auth';
 import { useFocusEffect } from '@react-navigation/native';
 import formErrorStyles from '../styles/FormErrorStyles';
 import { validateRegisterForm, validateField } from '../src/utils/validation';

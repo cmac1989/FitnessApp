@@ -11,4 +11,15 @@ const registerUser = async (userData) => {
     }
 };
 
-export default registerUser;
+const userLogin = async (userData) => {
+    try {
+        const response = await api.post('api/login', userData);
+        console.log('User logged in successfully', response.data);
+        return response.data;
+    } catch(error) {
+        console.error('error registering user', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+export { registerUser, userLogin };
