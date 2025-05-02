@@ -6,8 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="3751c058-22a3-47c0-82e9-d0c19bb15231" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/docker/nginx/default.conf" beforeDir="false" afterPath="$PROJECT_DIR$/backend/docker/nginx/default.conf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/supervisord.log" beforeDir="false" afterPath="$PROJECT_DIR$/backend/supervisord.log" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -159,8 +157,8 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/cameronmcrae/Desktop/FitnessApp/backend/routes",
+    "git-widget-placeholder": "dashboardScreens",
+    "last_opened_file_path": "/Users/cameronmcrae/Desktop/FitnessApp/mobile/ios/FitnessTrainer/Fonts",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -173,16 +171,17 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/mobile/ios/FitnessTrainer/Fonts" />
       <recent name="$PROJECT_DIR$/backend/routes" />
       <recent name="$PROJECT_DIR$/backend/app/Models" />
       <recent name="$PROJECT_DIR$/backend/database/migrations" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/mobile/screens/trainer" />
       <recent name="$PROJECT_DIR$/backend/docker" />
       <recent name="$PROJECT_DIR$/backend" />
       <recent name="$PROJECT_DIR$/backend/app/docker" />
       <recent name="$PROJECT_DIR$/mobile/assets/images" />
-      <recent name="$PROJECT_DIR$/mobile/src" />
     </key>
   </component>
   <component name="RunManager">
@@ -209,7 +208,7 @@
       <updated>1745802349816</updated>
       <workItem from="1745802350836" duration="4408000" />
       <workItem from="1745857996334" duration="5619000" />
-      <workItem from="1745944374931" duration="70905000" />
+      <workItem from="1745944374931" duration="79035000" />
     </task>
     <servers />
   </component>
