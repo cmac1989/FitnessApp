@@ -21,44 +21,42 @@ const EditWorkoutScreen = () => {
     };
 
     return (
-        <ScreenWrapper title="Edit Workout">
-            <ScrollView contentContainerStyle={styles.container}>
-                <Text style={styles.title}>Edit Workout</Text>
+        <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.title}>Edit Workout</Text>
 
-                <Text style={styles.label}>Workout Name</Text>
-                <TextInput
-                    style={styles.input}
-                    value={name}
-                    onChangeText={setName}
-                />
+            <Text style={styles.label}>Workout Name</Text>
+            <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+            />
 
-                <Text style={styles.label}>Warm Up</Text>
-                <TextInput
-                    style={[styles.input, styles.multiLine]}
-                    value={warmUp}
-                    onChangeText={setWarmUp}
-                    multiline
-                />
+            <Text style={styles.label}>Warm Up</Text>
+            <TextInput
+                style={[styles.input, styles.multiLine]}
+                value={warmUp}
+                onChangeText={setWarmUp}
+                multiline
+            />
 
-                <Text style={styles.label}>Main Set</Text>
-                <TextInput
-                    style={[styles.input, styles.multiLine]}
-                    value={mainSet}
-                    onChangeText={setMainSet}
-                    multiline
-                />
+            <Text style={styles.label}>Main Set</Text>
+            <TextInput
+                style={[styles.input, styles.multiLine]}
+                value={mainSet}
+                onChangeText={setMainSet}
+                multiline
+            />
 
-                <Text style={styles.label}>Accessories</Text>
-                <TextInput
-                    style={[styles.input, styles.multiLine]}
-                    value={accessories}
-                    onChangeText={setAccessories}
-                    multiline
-                />
+            <Text style={styles.label}>Accessories</Text>
+            <TextInput
+                style={[styles.input, styles.multiLine]}
+                value={accessories}
+                onChangeText={setAccessories}
+                multiline
+            />
 
-                <CustomButton title="Save Changes" onPress={handleSave} />
-            </ScrollView>
-        </ScreenWrapper>
+            <CustomButton title="Save Changes" onPress={handleSave} />
+        </ScrollView>
     );
 };
 

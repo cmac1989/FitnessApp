@@ -19,7 +19,7 @@ const TrainerTabNavigator = () => {
                 tabBarInactiveTintColor: '#888',
                 tabBarStyle: {
                     paddingVertical: 5,
-                    height: 60,
+                    height: 70,
                 },
             }}
         >

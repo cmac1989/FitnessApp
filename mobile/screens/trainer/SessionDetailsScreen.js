@@ -18,41 +18,39 @@ const SessionDetailScreen = () => {
     }
 
     return (
-        <ScreenWrapper title="Session Details">
-            <View style={styles.container}>
-                <Text style={styles.title}>Session Details</Text>
+        <View style={styles.container}>
+            <Text style={styles.title}>Session Details</Text>
 
-                <View style={styles.detailCard}>
-                    <Text style={styles.label}>Client:</Text>
-                    <Text style={styles.value}>{session.client}</Text>
+            <View style={styles.detailCard}>
+                <Text style={styles.label}>Client:</Text>
+                <Text style={styles.value}>{session.client}</Text>
 
-                    <Text style={styles.label}>Date:</Text>
-                    <Text style={styles.value}>{session.date}</Text>
+                <Text style={styles.label}>Date:</Text>
+                <Text style={styles.value}>{session.date}</Text>
 
-                    <Text style={styles.label}>Time:</Text>
-                    <Text style={styles.value}>{session.time}</Text>
+                <Text style={styles.label}>Time:</Text>
+                <Text style={styles.value}>{session.time}</Text>
 
-                    <Text style={styles.label}>Location:</Text>
-                    <Text style={styles.value}>{session.location}</Text>
+                <Text style={styles.label}>Location:</Text>
+                <Text style={styles.value}>{session.location}</Text>
 
-                    {session.workout && (
-                        <>
-                            <Text style={styles.label}>Workout Plan:</Text>
-                            <Text style={styles.value}>{session.workout}</Text>
-                        </>
-                    )}
-                </View>
-
-                <CustomButton
-                    title="Edit Session"
-                    onPress={() => navigation.navigate('EditSession', { session })}
-                />
-                <CustomButton
-                    title="Delete Session"
-                    // onPress={() => navigation.navigate('EditSession', { session })}
-                />
+                {session.workout && (
+                    <>
+                        <Text style={styles.label}>Workout Plan:</Text>
+                        <Text style={styles.value}>{session.workout}</Text>
+                    </>
+                )}
             </View>
-        </ScreenWrapper>
+
+            <CustomButton
+                title="Edit Session"
+                onPress={() => navigation.navigate('EditSession', { session })}
+            />
+            <CustomButton
+                title="Delete Session"
+                // onPress={() => navigation.navigate('EditSession', { session })}
+            />
+        </View>
     );
 };
 //TODO move to separate file

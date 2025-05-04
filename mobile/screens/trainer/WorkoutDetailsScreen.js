@@ -11,40 +11,36 @@ const WorkoutDetailsScreen = () => {
 
     if (!workout) {
         return (
-            <ScreenWrapper title="Workout Details">
-                <View style={styles.container}>
-                    <Text style={styles.errorText}>No workout details available.</Text>
-                </View>
-            </ScreenWrapper>
+            <View style={styles.container}>
+                <Text style={styles.errorText}>No workout details available.</Text>
+            </View>
         );
     }
 
     return (
-        <ScreenWrapper title="Workout Details">
-            <View style={styles.container}>
-                <Text style={styles.title}>{workout.name}</Text>
+        <View style={styles.container}>
+            <Text style={styles.title}>{workout.name}</Text>
 
-                <View style={styles.detailCard}>
-                    <Text style={styles.label}>Warm Up:</Text>
-                    <Text style={styles.value}>{workout.warmUp}</Text>
+            <View style={styles.detailCard}>
+                <Text style={styles.label}>Warm Up:</Text>
+                <Text style={styles.value}>{workout.warmUp}</Text>
 
-                    <Text style={styles.label}>Main Set:</Text>
-                    <Text style={styles.value}>{workout.mainSet}</Text>
+                <Text style={styles.label}>Main Set:</Text>
+                <Text style={styles.value}>{workout.mainSet}</Text>
 
-                    <Text style={styles.label}>Accessories:</Text>
-                    <Text style={styles.value}>{workout.accessories}</Text>
-                </View>
-
-                <CustomButton
-                    title="Edit Workout"
-                    onPress={() => navigation.navigate('EditWorkout', { workout })}
-                />
-                <CustomButton
-                    title="Delete Workout"
-                    // onPress={() => navigation.navigate('EditWorkout', { workout })}
-                />
+                <Text style={styles.label}>Accessories:</Text>
+                <Text style={styles.value}>{workout.accessories}</Text>
             </View>
-        </ScreenWrapper>
+
+            <CustomButton
+                title="Edit Workout"
+                onPress={() => navigation.navigate('EditWorkout', { workout })}
+            />
+            <CustomButton
+                title="Delete Workout"
+                // onPress={() => navigation.navigate('EditWorkout', { workout })}
+            />
+        </View>
     );
 };
 

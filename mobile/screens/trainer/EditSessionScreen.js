@@ -22,41 +22,39 @@ const EditSessionScreen = () => {
     };
 
     return (
-        <ScreenWrapper>
-            <ScrollView contentContainerStyle={styles.container}>
-                <Text style={styles.title}>Edit Session</Text>
+        <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.title}>Edit Session</Text>
 
-                <Text style={styles.label}>Client</Text>
-                <TextInput
-                    style={styles.input}
-                    value={client}
-                    onChangeText={setClient}
-                />
+            <Text style={styles.label}>Client</Text>
+            <TextInput
+                style={styles.input}
+                value={client}
+                onChangeText={setClient}
+            />
 
-                <Text style={styles.label}>Date</Text>
-                <TextInput
-                    style={styles.input}
-                    value={date}
-                    onChangeText={setDate}
-                />
+            <Text style={styles.label}>Date</Text>
+            <TextInput
+                style={styles.input}
+                value={date}
+                onChangeText={setDate}
+            />
 
-                <Text style={styles.label}>Time</Text>
-                <TextInput
-                    style={styles.input}
-                    value={time}
-                    onChangeText={setTime}
-                />
+            <Text style={styles.label}>Time</Text>
+            <TextInput
+                style={styles.input}
+                value={time}
+                onChangeText={setTime}
+            />
 
-                <Text style={styles.label}>Location</Text>
-                <TextInput
-                    style={styles.input}
-                    value={location}
-                    onChangeText={setLocation}
-                />
+            <Text style={styles.label}>Location</Text>
+            <TextInput
+                style={styles.input}
+                value={location}
+                onChangeText={setLocation}
+            />
 
-                <CustomButton title="Save Changes" onPress={handleSave} />
-            </ScrollView>
-        </ScreenWrapper>
+            <CustomButton title="Save Changes" onPress={handleSave} />
+        </ScrollView>
     );
 };
 
