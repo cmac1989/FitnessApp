@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import ScreenWrapper from '../../components/ScreenWrapper';
 
 const ClientDetailsScreen = () => {
     const navigation = useNavigation();
@@ -28,8 +27,14 @@ const ClientDetailsScreen = () => {
                 <Text style={styles.label}>Date:</Text>
                 <Text style={styles.value}>{client.age}</Text>
 
+                <Text style={styles.label}>Gender:</Text>
+                <Text style={styles.value}>{client.age}</Text>
+
                 <Text style={styles.label}>Goals:</Text>
                 <Text style={styles.value}>{client.goals}</Text>
+
+                <Text style={styles.label}>Medical Conditions:</Text>
+                <Text style={styles.value}>{client.medicalConditions}</Text>
 
             </View>
 

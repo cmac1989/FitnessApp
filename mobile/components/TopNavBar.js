@@ -9,7 +9,7 @@ const TopNavBar = ({ title = '' }) => {
     return (
         <SafeAreaView>
             <View style={styles.container}>
-                <TouchableOpacity onPress={() => navigation.navigate('TrainerHome')}>
+                <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
                     <Icon name="person-circle-outline" size={30} color="#333" />
                 </TouchableOpacity>
 

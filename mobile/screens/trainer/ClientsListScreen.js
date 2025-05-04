@@ -16,19 +16,25 @@ const ClientsListScreen = () => {
                     id: 1,
                     name: 'Sarah Connor',
                     age: 32,
+                    gender: 'female',
                     goals: 'lose weight',
+                    medicalConditions: 'fat',
                 },
                 {
                     id: 2,
                     name: 'John Connor',
                     age: 32,
+                    gender: 'male',
                     goals: 'lose weight',
+                    medicalConditions: 'fat',
                 },
                 {
                     id: 3,
                     name: 'Emily Carter',
                     age: 32,
+                    gender: 'female',
                     goals: 'lose weight',
+                    medicalConditions: 'fat',
                 },
             ];
             setClients(mockClients);

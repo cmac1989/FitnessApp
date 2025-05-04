@@ -1,7 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import TrainerTabNavigator from '../components/TrainerTabNavigator';
 
+import TrainerTabNavigator from '../components/TrainerTabNavigator';
 import CreateWorkoutScreen from '../screens/trainer/CreateWorkoutScreen';
 import CreateSessionScreen from '../screens/trainer/CreateSessionScreen';
 import SessionDetailsScreen from '../screens/trainer/SessionDetailsScreen';
@@ -15,23 +15,23 @@ const Stack = createStackNavigator();
 
 const TrainerStackNavigator = () => {
     return (
-        <Stack.Navigator screenOptions={{ headerShown: true }}>
-            {/* Tab Navigator lives here */}
+        <Stack.Navigator>
+            {/* Tabs */}
             <Stack.Screen
-                name="TrainerTabs"
+                name="Back"
                 component={TrainerTabNavigator}
                 options={{ headerShown: false }}
             />
 
-            {/* Screens accessible from within tabs */}
-            <Stack.Screen name="CreateWorkout" component={CreateWorkoutScreen} />
-            <Stack.Screen name="CreateSession" component={CreateSessionScreen} />
-            <Stack.Screen name="SessionDetail" component={SessionDetailsScreen} />
-            <Stack.Screen name="ClientDetails" component={ClientDetailsScreen} />
-            <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} />
-            <Stack.Screen name="EditSession" component={EditSessionScreen} />
-            <Stack.Screen name="EditWorkout" component={EditWorkoutScreen} />
-            <Stack.Screen name="Messages" component={MessagesScreen} />
+            {/* Stack screens on top of tabs */}
+            <Stack.Screen name="CreateWorkout" options={{ title: 'Create Workout' }} component={CreateWorkoutScreen} />
+            <Stack.Screen name="CreateSession" options={{ title: 'Create Session' }} component={CreateSessionScreen} />
+            <Stack.Screen name="SessionDetail" options={{ title: 'Session Details' }} component={SessionDetailsScreen} />
+            <Stack.Screen name="ClientDetails" options={{ title: 'Client Details' }} component={ClientDetailsScreen} />
+            <Stack.Screen name="WorkoutDetails" options={{ title: 'Workout Details' }} component={WorkoutDetailsScreen} />
+            <Stack.Screen name="EditSession" options={{ title: 'Edit Session' }} component={EditSessionScreen} />
+            <Stack.Screen name="EditWorkout" options={{ title: 'Edit Workout' }} component={EditWorkoutScreen} />
+            <Stack.Screen name="Messages" options={{ title: 'Messages' }} component={MessagesScreen} />
         </Stack.Navigator>
     );
 };
