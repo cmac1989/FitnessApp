@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
+import ScreenWrapper from '../../components/ScreenWrapper';
 
 const SessionsScreen = () => {
     const navigation = useNavigation();
@@ -42,21 +43,23 @@ const SessionsScreen = () => {
     );
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Upcoming Sessions</Text>
+        <ScreenWrapper title="Sessions">
+            <View style={styles.container}>
+                <Text style={styles.title}>Upcoming Sessions</Text>
 
-            <FlatList
-                data={sessions}
-                keyExtractor={(item) => item.id}
-                renderItem={renderSessionItem}
-                contentContainerStyle={styles.listContainer}
-            />
+                <FlatList
+                    data={sessions}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderSessionItem}
+                    contentContainerStyle={styles.listContainer}
+                />
 
-            <CustomButton
-                title="Schedule New Session"
-                onPress={() => navigation.navigate('CreateSession')}
-            />
-        </View>
+                <CustomButton
+                    title="Schedule New Session"
+                    onPress={() => navigation.navigate('CreateSession')}
+                />
+            </View>
+        </ScreenWrapper>
     );
 };
 

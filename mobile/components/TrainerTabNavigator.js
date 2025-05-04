@@ -5,8 +5,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import TrainerDashboardScreen from '../screens/trainer/TrainerDashboardScreen';
 import SessionsScreen from '../screens/trainer/SessionsScreen';
 import ClientsListScreen from '../screens/trainer/ClientsListScreen';
-import CreateWorkoutScreen from '../screens/trainer/CreateWorkoutScreen';
 import ProfileSettingsScreen from '../screens/trainer/ProfileSettingsScreen';
+import WorkoutListScreen from '../screens/trainer/WorkoutListScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -14,6 +14,7 @@ const TrainerTabNavigator = () => {
     return (
         <Tab.Navigator
             screenOptions={{
+                headerShown: false,
                 tabBarActiveTintColor: '#007bff',
                 tabBarInactiveTintColor: '#888',
                 tabBarStyle: {
@@ -51,7 +52,7 @@ const TrainerTabNavigator = () => {
             />
             <Tab.Screen
                 name="Workout"
-                component={CreateWorkoutScreen}
+                component={WorkoutListScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => (
                         <Icon name="barbell-outline" color={color} size={24} />

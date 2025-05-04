@@ -4,52 +4,41 @@ import CustomButton from '../../components/CustomButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 
-const SessionDetailScreen = () => {
+const ClientDetailsScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
-    const { session } = route.params;
+    const { clients: client } = route.params;
 
-    if (!session) {
+    if (!client) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>No session details available.</Text>
-            </View>
+            <ScreenWrapper title="Client Details">
+                <View style={styles.container}>
+                    <Text style={styles.errorText}>No session details available.</Text>
+                </View>
+            </ScreenWrapper>
         );
     }
 
     return (
-        <ScreenWrapper title="Session Details">
+        <ScreenWrapper title="Client Details">
             <View style={styles.container}>
-                <Text style={styles.title}>Session Details</Text>
+                <Text style={styles.title}>Client Details</Text>
 
                 <View style={styles.detailCard}>
                     <Text style={styles.label}>Client:</Text>
-                    <Text style={styles.value}>{session.client}</Text>
+                    <Text style={styles.value}>{client.name}</Text>
 
                     <Text style={styles.label}>Date:</Text>
-                    <Text style={styles.value}>{session.date}</Text>
+                    <Text style={styles.value}>{client.age}</Text>
 
-                    <Text style={styles.label}>Time:</Text>
-                    <Text style={styles.value}>{session.time}</Text>
+                    <Text style={styles.label}>Goals:</Text>
+                    <Text style={styles.value}>{client.goals}</Text>
 
-                    <Text style={styles.label}>Location:</Text>
-                    <Text style={styles.value}>{session.location}</Text>
-
-                    {session.workout && (
-                        <>
-                            <Text style={styles.label}>Workout Plan:</Text>
-                            <Text style={styles.value}>{session.workout}</Text>
-                        </>
-                    )}
                 </View>
 
                 <CustomButton
-                    title="Edit Session"
-                    onPress={() => navigation.navigate('EditSession', { session })}
-                />
-                <CustomButton
-                    title="Delete Session"
-                    // onPress={() => navigation.navigate('EditSession', { session })}
+                    title="Message"
+                    onPress={() => navigation.navigate('Messages', { client })}
                 />
             </View>
         </ScreenWrapper>
@@ -93,4 +82,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default SessionDetailScreen;
+export default ClientDetailsScreen;

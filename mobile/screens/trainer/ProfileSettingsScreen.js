@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import CustomButton from '../../components/CustomButton';
+import {useNavigation} from '@react-navigation/native';
+import ScreenWrapper from '../../components/ScreenWrapper';
 
 const ProfileSettingsScreen = () => {
+    const navigation = useNavigation();
     // Mock profile info — eventually you'd fetch this from your API
     const [profile, setProfile] = useState({
         name: 'Jordan Lee',
         email: 'jordan.trainer@example.com',
-        specialty: 'Strength Training',
+        certifications: 'Animal Flow',
+        experience: '14 years',
+        specialties: 'Strength Training',
+        bio: 'I am a coach',
+        availability: 'full-time',
+        location: 'Canada',
     });
 
     const handleSaveChanges = () => {
@@ -18,40 +26,80 @@ const ProfileSettingsScreen = () => {
     const handleLogout = () => {
         // Add logout logic later
         Alert.alert('Logged Out', 'You have been logged out.');
+        navigation.navigate('Home');
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.title}>Profile Settings</Text>
+        <ScreenWrapper title="Profile">
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.title}>Profile Settings</Text>
 
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-                style={styles.input}
-                value={profile.name}
-                onChangeText={(text) => setProfile(prev => ({ ...prev, name: text }))}
-            />
+                <Text style={styles.label}>Name</Text>
+                <TextInput
+                    style={styles.input}
+                    value={profile.name}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, name: text }))}
+                />
 
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-                style={styles.input}
-                value={profile.email}
-                onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
-                keyboardType="email-address"
-            />
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                    style={styles.input}
+                    value={profile.email}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
+                    keyboardType="email-address"
+                />
 
-            <Text style={styles.label}>Specialty</Text>
-            <TextInput
-                style={styles.input}
-                value={profile.specialty}
-                onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
-            />
+                <Text style={styles.label}>Certifications</Text>
+                <TextInput
+                    style={styles.input}
+                    value={profile.certifications}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
+                    keyboardType="email-address"
+                />
 
-            <CustomButton title="Save Changes" onPress={handleSaveChanges} />
+                <Text style={styles.label}>Years Experience</Text>
+                <TextInput
+                    style={styles.input}
+                    value={profile.experience}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
+                    keyboardType="email-address"
+                />
 
-            <View style={styles.divider} />
+                <Text style={styles.label}>Specialties</Text>
+                <TextInput
+                    style={styles.input}
+                    value={profile.specialties}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
+                />
 
-            <CustomButton title="Log Out" onPress={handleLogout} color="#ff4d4d" />
-        </ScrollView>
+                <Text style={styles.label}>Bio</Text>
+                <TextInput
+                    style={styles.input}
+                    value={profile.bio}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
+                />
+
+                <Text style={styles.label}>Availability</Text>
+                <TextInput
+                    style={styles.input}
+                    value={profile.availability}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
+                />
+
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                    style={styles.input}
+                    value={profile.location}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
+                />
+
+                <CustomButton title="Save Changes" onPress={handleSaveChanges} />
+
+                <View style={styles.divider} />
+
+                <CustomButton title="Log Out" onPress={handleLogout} color="#ff4d4d" />
+            </ScrollView>
+        </ScreenWrapper>
     );
 };
 

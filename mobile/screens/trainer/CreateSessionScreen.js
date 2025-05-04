@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation } from '@react-navigation/native';
+import ScreenWrapper from "../../components/ScreenWrapper";
 
 const CreateSessionScreen = () => {
     const navigation = useNavigation();
@@ -27,46 +28,48 @@ const CreateSessionScreen = () => {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.title}>Create New Session</Text>
+        <ScreenWrapper title="New Session">
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.title}>Create New Session</Text>
 
-            <Text style={styles.label}>Client Name</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Enter client name"
-                value={sessionInfo.client}
-                onChangeText={text => setSessionInfo(prev => ({ ...prev, client: text }))}
-            />
+                <Text style={styles.label}>Client Name</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Enter client name"
+                    value={sessionInfo.client}
+                    onChangeText={text => setSessionInfo(prev => ({ ...prev, client: text }))}
+                />
 
-            <Text style={styles.label}>Date</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD"
-                value={sessionInfo.date}
-                onChangeText={text => setSessionInfo(prev => ({ ...prev, date: text }))}
-            />
+                <Text style={styles.label}>Date</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="YYYY-MM-DD"
+                    value={sessionInfo.date}
+                    onChangeText={text => setSessionInfo(prev => ({ ...prev, date: text }))}
+                />
 
-            <Text style={styles.label}>Time</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="HH:MM AM/PM"
-                value={sessionInfo.time}
-                onChangeText={text => setSessionInfo(prev => ({ ...prev, time: text }))}
-            />
+                <Text style={styles.label}>Time</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="HH:MM AM/PM"
+                    value={sessionInfo.time}
+                    onChangeText={text => setSessionInfo(prev => ({ ...prev, time: text }))}
+                />
 
-            <Text style={styles.label}>Location</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Enter location"
-                value={sessionInfo.location}
-                onChangeText={text => setSessionInfo(prev => ({ ...prev, location: text }))}
-            />
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Enter location"
+                    value={sessionInfo.location}
+                    onChangeText={text => setSessionInfo(prev => ({ ...prev, location: text }))}
+                />
 
-            <CustomButton
-                title="Create Session"
-                onPress={handleCreateSession}
-            />
-        </ScrollView>
+                <CustomButton
+                    title="Create Session"
+                    onPress={handleCreateSession}
+                />
+            </ScrollView>
+        </ScreenWrapper>
     );
 };
 
