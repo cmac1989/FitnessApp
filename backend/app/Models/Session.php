@@ -30,10 +30,3 @@ class Session extends Model
         return $this->belongsTo(User::class, 'trainer_id');
     }
 }
-
-//$table->foreignId('client_id')->constrained('users')->onDelete('cascade');
-//$table->foreignId('trainer_id')->constrained('users')->onDelete('cascade');
-//$table->foreignId('workout_id')->nullable()->constrained('workouts')->onDelete('set null');
-//$table->timestamp('scheduled_at');
-//$table->enum('status', ['pending', 'confirmed', 'completed', 'cancelled'])->default('pending');
-//$table->text('notes')->nullable();

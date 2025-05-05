@@ -6,6 +6,7 @@ import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import TrainerStackNavigator from './navigation/TrainerStackNavigator';
+import ClientStackNavigator from "./navigation/ClientStackNavigator";
 
 const Stack = createStackNavigator();
 
@@ -21,6 +22,13 @@ const App = () => {
                 <Stack.Screen
                     name="TrainerHome"
                     component={TrainerStackNavigator}
+                    options={{ headerShown: false, title: 'Home' }}
+                />
+
+                {/* Client's whole stack lives here */}
+                <Stack.Screen
+                    name="ClientHome"
+                    component={ClientStackNavigator}
                     options={{ headerShown: false, title: 'Home' }}
                 />
             </Stack.Navigator>

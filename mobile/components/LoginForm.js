@@ -7,7 +7,7 @@ import formErrorStyles from '../styles/FormErrorStyles';
 import { validateLoginForm, validateField } from '../src/utils/validation';
 import { userLogin } from '../src/api/auth';
 import {useFocusEffect} from '@react-navigation/native';
-import {saveToken} from "../src/services/authService";
+import {saveToken} from '../src/services/authService';
 
 const LoginForm = ({ navigation }) => {
     useFocusEffect(
@@ -45,7 +45,7 @@ const LoginForm = ({ navigation }) => {
                 if (response.user.role === 'trainer') {
                     navigation.navigate('TrainerHome');
                 } else {
-                    navigation.navigate('ClientDashboard');
+                    navigation.navigate('ClientHome');
                 }
             } else {
                 // Add more detailed error handling

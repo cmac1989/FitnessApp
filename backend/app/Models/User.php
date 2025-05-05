@@ -43,6 +43,16 @@ class User extends Authenticatable
         return $this->hasOne(ClientProfile::class);
     }
 
+    public function clients()
+    {
+        return $this->hasMany(ClientProfile::class, 'trainer_id');
+    }
+
+    public function trainingSession()
+    {
+        return $this->hasMany(TrainingSession::class, 'client_id');
+    }
+
     public function clientSessions()
     {
         return $this->hasMany(Session::class, 'client_id');
