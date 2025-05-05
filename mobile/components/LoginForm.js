@@ -7,6 +7,7 @@ import formErrorStyles from '../styles/FormErrorStyles';
 import { validateLoginForm, validateField } from '../src/utils/validation';
 import { userLogin } from '../src/api/auth';
 import {useFocusEffect} from '@react-navigation/native';
+import {saveToken} from "../src/services/authService";
 
 const LoginForm = ({ navigation }) => {
     useFocusEffect(
@@ -15,7 +16,6 @@ const LoginForm = ({ navigation }) => {
             setUserInfo({
                 email: '',
                 password: '',
-                role: 'client',
             });
             setErrors({});
         }, [])
@@ -34,14 +34,43 @@ const LoginForm = ({ navigation }) => {
             setErrors(validationErrors);
             return;
         }
-        navigation.navigate('TrainerHome');
-        // try {
-        //     await userLogin();
-        //     navigation.navigate('Home');
-        // } catch(error) {
-        //     console.error('Login failed:', error.response?.data || error.message);
-        // }
+
+        try {
+            const response = await userLogin({ email: userInfo.email, password: userInfo.password });
+
+            // Check if response contains a token and save it
+            if (response && response.token) {
+                await saveToken(response.token);
+
+                if (response.user.role === 'trainer') {
+                    navigation.navigate('TrainerHome');
+                } else {
+                    navigation.navigate('ClientDashboard');
+                }
+            } else {
+                // Add more detailed error handling
+                setErrors(prev => ({
+                    ...prev,
+                    general: 'Invalid login credentials. Please check your email and password.',
+                }));
+            }
+        } catch (error) {
+            console.error('Login failed:', error.response || error.message || error);  // Detailed log
+
+            if (error.response?.status === 401) {
+                setErrors(prev => ({
+                    ...prev,
+                    general: error.response?.data?.message || 'Invalid credentials.',
+                }));
+            } else {
+                setErrors(prev => ({
+                    ...prev,
+                    general: 'Login failed, please try again later.',
+                }));
+            }
+        }
     };
+
 
     return (
         <View style={formInputStyles.container}>
@@ -80,6 +109,10 @@ const LoginForm = ({ navigation }) => {
             <Text style={formErrorStyles.errorText}>
                 {errors.password ? errors.password : ' '}
             </Text>
+
+            {errors.general ? (
+                <Text style={formErrorStyles.errorText}>{errors.general}</Text>
+            ) : null}
 
             <CustomButton
                 title="Login"

@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-nati
 import CustomButton from '../../components/CustomButton';
 import {useNavigation} from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import {userLogout} from "../../src/api/auth";
 
 const ProfileSettingsScreen = () => {
     const navigation = useNavigation();
@@ -23,10 +24,15 @@ const ProfileSettingsScreen = () => {
         Alert.alert('Profile Updated', 'Your changes have been saved.');
     };
 
-    const handleLogout = () => {
-        // Add logout logic later
-        Alert.alert('Logged Out', 'You have been logged out.');
-        navigation.navigate('Home');
+    const handleLogout = async () => {
+        try {
+            await userLogout();
+            Alert.alert('Logged Out', 'You have been logged out.');
+            navigation.navigate('Home');
+        } catch (error) {
+            console.error('error logging out', error);
+            Alert.alert('Error', 'Something went wrong logging out.');
+        }
     };
 
     return (

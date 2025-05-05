@@ -24,7 +24,7 @@ const TrainerTabNavigator = () => {
             }}
         >
             <Tab.Screen
-                name="Dashboard"
+                name="TrainerDashboard"
                 component={TrainerDashboardScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => (
