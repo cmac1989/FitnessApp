@@ -6,10 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="3751c058-22a3-47c0-82e9-d0c19bb15231" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Models/ClientProfile.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Models/ClientProfile.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Models/Session.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Models/Session.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Models/User.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Models/User.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/SessionController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/TrainingSessionController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/TrainerDashboardController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/TrainerDashboardController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Models/TrainingSession.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Models/TrainingSession.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/api.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/.package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -214,11 +217,23 @@
       <workItem from="1745802350836" duration="4408000" />
       <workItem from="1745857996334" duration="5619000" />
       <workItem from="1745944374931" duration="103402000" />
-      <workItem from="1746393597240" duration="25507000" />
+      <workItem from="1746393597240" duration="35932000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/mobile/src/api/user.js</url>
+          <line>5</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

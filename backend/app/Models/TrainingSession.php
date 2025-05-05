@@ -17,8 +17,17 @@ class TrainingSession extends Model
         'status',
     ];
 
+    public function workout()
+    {
+        return $this->belongsTo(Workout::class);
+    }
+
     public function client()
     {
         return $this->belongsTo(User::class, 'client_id');
+    }
+    public function trainer()
+    {
+        return $this->belongsTo(User::class, 'trainer_id');
     }
 }

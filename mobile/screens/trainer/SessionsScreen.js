@@ -1,36 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable } from 'react-native';
+import {View, Text, FlatList, StyleSheet, Pressable, Alert, ActivityIndicator} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import {getAllSessions} from "../../src/api/trainingSession";
 
 const SessionsScreen = () => {
     const navigation = useNavigation();
+    const [sessions, setSessions] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock session data — replace with API call later
-    const [sessions, setSessions] = useState([
-        {
-            id: '1',
-            client: 'Alex Johnson',
-            date: '2025-05-03',
-            time: '10:00 AM',
-            location: 'Gym A',
-        },
-        {
-            id: '2',
-            client: 'Maria Smith',
-            date: '2025-05-03',
-            time: '2:00 PM',
-            location: 'Virtual',
-        },
-        {
-            id: '3',
-            client: 'Liam Chen',
-            date: '2025-05-04',
-            time: '9:00 AM',
-            location: 'Gym B',
-        },
-    ]);
+    const fetchSessions = async () => {
+        try {
+            const data = await getAllSessions();
+            console.log('Fetched sessions:', data);
+
+            const formattedSessions = data.map(session => ({
+                id: session.id.toString(),
+                client: session.client ? session.client.name : 'Unknown',
+                date: session.scheduled_at.substring(0, 10),
+                time: session.scheduled_at.substring(11, 16),
+                location: session.location,
+            }));
+
+            setSessions(formattedSessions);
+        } catch(error) {
+            console.error('Could not load sessions', error);
+            Alert.alert('Error', 'Could not load sessions.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchSessions();
+    }, []);
 
     const renderSessionItem = ({ item }) => (
         <Pressable onPress={() => navigation.navigate('SessionDetail', { session: item })}>
@@ -41,6 +45,13 @@ const SessionsScreen = () => {
             </View>
         </Pressable>
     );
+    if (loading) {
+        return (
+            <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color="#000" />
+            </View>
+        );
+    }
 
     return (
         <ScreenWrapper title="Sessions">

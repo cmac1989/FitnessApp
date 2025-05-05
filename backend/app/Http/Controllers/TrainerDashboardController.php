@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClientProfile;
-use App\Models\Session;
+use App\Models\TrainingSession;
 use App\Models\Workout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -18,7 +18,7 @@ class TrainerDashboardController extends Controller
 
         $clientCount = ClientProfile::where('trainer_id', $trainerId)->count();
 
-        $sessionsTodayCount = Session::where('trainer_id', $trainerId)
+        $sessionsTodayCount = TrainingSession::where('trainer_id', $trainerId)
             ->whereDate('scheduled_at', today())
             ->count();
 

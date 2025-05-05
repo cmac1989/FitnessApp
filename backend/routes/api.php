@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\SessionController;
+use App\Http\Controllers\TrainingSessionController;
 use App\Http\Controllers\TrainerDashboardController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 
@@ -16,6 +17,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('trainer')->group(function () {
         Route::get('/stats', [TrainerDashboardController::class, 'getStats']);
-        Route::get('/training-sessions', [SessionController::class, 'index']);
+
+        Route::get('/training-sessions', [TrainingSessionController::class, 'index']);
+        Route::post('/create-training-session', [TrainingSessionController::class, 'store']);
+
+        Route::get('/clients', [UserController::class, 'clients']);
     });
 });
