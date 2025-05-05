@@ -1,4 +1,4 @@
-import {Pressable, Text, TextInput, View} from 'react-native';
+import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import CustomButton from './CustomButton';
 import React, {useState, useCallback} from 'react';
 import formInputStyles from '../styles/FormInputStyles';
@@ -28,6 +28,8 @@ const RegisterForm = ({ navigation }) => {
         password: '',
         password_confirmation: '',
         role: 'client',
+        profile_picture: '',
+        bio: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -48,7 +50,7 @@ const RegisterForm = ({ navigation }) => {
     };
 
     return (
-        <View style={formInputStyles.container}>
+        <ScrollView style={formInputStyles.container}>
             <Text style={formInputStyles.label}>Name</Text>
             <TextInput
                 style={formInputStyles.input}
@@ -153,11 +155,31 @@ const RegisterForm = ({ navigation }) => {
                 ))}
             </View>
 
+            <Text style={formInputStyles.label}>Profile Picture (URL)</Text>
+            <TextInput
+                style={formInputStyles.input}
+                placeholder="https://example.com/profile.jpg"
+                value={userInfo.profile_picture}
+                onChangeText={text =>
+                    setUserInfo(prev => ({ ...prev, profile_picture: text }))
+                }
+            />
+            <Text style={formInputStyles.label}>Bio</Text>
+            <TextInput
+                style={formInputStyles.input}
+                placeholder="Tell us a little about yourself..."
+                value={userInfo.bio}
+                onChangeText={text =>
+                    setUserInfo(prev => ({ ...prev, bio: text }))
+                }
+            />
+
+
             <CustomButton
                 title="Register"
                 onPress={handleRegister}
             />
-        </View>
+        </ScrollView>
     );
 };
 

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://fitnessapp-production-c2d0.up.railway.app',
+    baseURL: 'http://192.168.40.48:8000',
     timeout: 5000,
     headers: {
         'Content-Type': 'application/json',
