@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation } from '@react-navigation/native';
@@ -12,7 +12,6 @@ const CreateSessionScreen = () => {
     const [open, setOpen] = useState(false);
     const [value, setValue] = useState(null);
 
-    // fetch clients once
     useEffect(() => {
         getClients()
             .then(data => {
@@ -37,6 +36,7 @@ const CreateSessionScreen = () => {
         }
 
         try {
+            console.log('Creating session with:', sessionInfo);
             await createSession(sessionInfo);
             Alert.alert('Success', 'Session created!');
             navigation.goBack();

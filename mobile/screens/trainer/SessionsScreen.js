@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {View, Text, FlatList, StyleSheet, Pressable, Alert, ActivityIndicator} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import {getAllSessions} from "../../src/api/trainingSession";
+import {getAllSessions} from '../../src/api/trainingSession';
 
 const SessionsScreen = () => {
     const navigation = useNavigation();
@@ -32,12 +32,14 @@ const SessionsScreen = () => {
         }
     };
 
-    useEffect(() => {
-        fetchSessions();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchSessions();
+        }, [])
+    );
 
     const renderSessionItem = ({ item }) => (
-        <Pressable onPress={() => navigation.navigate('SessionDetail', { session: item })}>
+        <Pressable onPress={() => navigation.navigate('SessionDetail', { session: item, refreshSession: fetchSessions })}>
             <View style={styles.sessionCard}>
                 <Text style={styles.sessionTitle}>{item.client}</Text>
                 <Text style={styles.sessionDetail}>{item.date} at {item.time}</Text>

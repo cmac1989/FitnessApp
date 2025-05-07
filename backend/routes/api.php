@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/training-sessions', [TrainingSessionController::class, 'index']);
         Route::post('/create-training-session', [TrainingSessionController::class, 'store']);
+        Route::delete('/training-session/{id}', [TrainingSessionController::class, 'destroy']);
 
         Route::get('/clients', [UserController::class, 'clients']);
     });

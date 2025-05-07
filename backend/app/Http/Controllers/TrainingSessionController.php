@@ -48,9 +48,17 @@ class TrainingSessionController extends Controller
         return response()->json(['message' => 'Session created successfully'], 201);
     }
 
-
-
     //update sessions
 
     //delete sessions
+    public function destroy($id) {
+        $session = TrainingSession::find($id);
+
+        if(!$session) {
+            return response()->json(['message' => 'Session not found'], 404);
+        }
+
+        $session->delete();
+        return response()->json(['message' => 'Session deleted successfully']);
+    }
 }

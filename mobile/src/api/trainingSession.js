@@ -9,3 +9,8 @@ export const createSession = async (sessionData) => {
     const response = await api.post('api/trainer/create-training-session', sessionData);
     return response.data;
 };
+
+export const deleteSession = async (id) => {
+    const response = await api.delete(`/api/trainer/training-session/${id}`);
+    return response.data;
+};
