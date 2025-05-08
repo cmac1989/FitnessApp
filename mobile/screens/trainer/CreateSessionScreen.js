@@ -5,12 +5,23 @@ import { useNavigation } from '@react-navigation/native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { createSession } from '../../src/api/trainingSession';
 import { getClients } from '../../src/api/user';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import moment from 'moment';
 
 const CreateSessionScreen = () => {
     const navigation = useNavigation();
     const [clients, setClients] = useState([]);
     const [open, setOpen] = useState(false);
     const [value, setValue] = useState(null);
+
+    const [sessionInfo, setSessionInfo] = useState({
+        client_id: null,
+        client_name: '',  // ⭐️ added client_name
+        scheduled_at: '',
+        location: '',
+    });
+
+    const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
     useEffect(() => {
         getClients()
@@ -21,12 +32,6 @@ const CreateSessionScreen = () => {
             })
             .catch(err => console.error('Failed to load clients', err));
     }, []);
-
-    const [sessionInfo, setSessionInfo] = useState({
-        client_id: null,
-        scheduled_at: '',
-        location: '',
-    });
 
     const handleCreateSession = async () => {
         const { client_id, scheduled_at, location } = sessionInfo;
@@ -46,6 +51,23 @@ const CreateSessionScreen = () => {
         }
     };
 
+    const showDatePicker = () => {
+        setDatePickerVisibility(true);
+    };
+
+    const hideDatePicker = () => {
+        setDatePickerVisibility(false);
+    };
+
+    const handleConfirm = (date) => {
+        const formattedDate = moment(date).format('YYYY-MM-DD HH:mm:ss');
+        setSessionInfo(prev => ({
+            ...prev,
+            scheduled_at: formattedDate,
+        }));
+        hideDatePicker();
+    };
+
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>Create New Session</Text>
@@ -56,24 +78,36 @@ const CreateSessionScreen = () => {
                 value={value}
                 items={clients}
                 setOpen={setOpen}
-                setValue={val => {
-                    setValue(val);
-                    setSessionInfo(prev => ({ ...prev, client_id: val }));
-                }}
+                setValue={setValue}
                 setItems={setClients}
                 placeholder="Select a client…"
+                onChangeValue={(val) => {
+                    const selectedClient = clients.find(c => c.value === val);
+                    setSessionInfo(prev => ({
+                        ...prev,
+                        client_id: val,
+                        client_name: selectedClient ? selectedClient.label : ''
+                    }));
+                }}
                 style={styles.input}
                 dropDownContainerStyle={styles.dropdown}
             />
+
 
             <Text style={styles.label}>Date & Time</Text>
             <TextInput
                 style={styles.input}
                 placeholder="YYYY-MM-DD HH:MM:SS"
                 value={sessionInfo.scheduled_at}
-                onChangeText={text =>
-                    setSessionInfo(prev => ({ ...prev, scheduled_at: text }))
-                }
+                onFocus={showDatePicker}
+            />
+
+            <DateTimePickerModal
+                isVisible={isDatePickerVisible}
+                mode="datetime"
+                onConfirm={handleConfirm}
+                onCancel={hideDatePicker}
+                date={sessionInfo.scheduled_at ? new Date(sessionInfo.scheduled_at) : new Date()}
             />
 
             <Text style={styles.label}>Location</Text>

@@ -10,6 +10,9 @@ import WorkoutDetailsScreen from '../screens/trainer/WorkoutDetailsScreen';
 import EditSessionScreen from '../screens/trainer/EditSessionScreen';
 import EditWorkoutScreen from '../screens/trainer/EditWorkoutScreen';
 import MessagesScreen from '../screens/trainer/MessagesScreen';
+import ClientProfileScreen from "../screens/client/ClientProfileScreen";
+import TrainerProfileScreen from "../screens/trainer/TrainerProfileScreen";
+import ProfileSettingsScreen from "../screens/client/ProfileSettingsScreen";
 
 const Stack = createStackNavigator();
 
@@ -24,6 +27,10 @@ const TrainerStackNavigator = () => {
             />
 
             {/* Stack screens on top of tabs */}
+            <Stack.Screen name="ProfileEdit" options={{ title: 'Edit Profile' }} component={ProfileSettingsScreen} />
+            <Stack.Screen name="TrainerProfileScreen" options={{ title: 'My Profile' }} component={TrainerProfileScreen} />
+            <Stack.Screen name="ClientProfileScreen" options={{ title: 'My Profile' }} component={ClientProfileScreen} />
+
             <Stack.Screen name="CreateWorkout" options={{ title: 'Create Workout' }} component={CreateWorkoutScreen} />
             <Stack.Screen name="CreateSession" options={{ title: 'Create Session' }} component={CreateSessionScreen} />
             <Stack.Screen name="SessionDetail" options={{ title: 'Session Details' }} component={SessionDetailsScreen} />

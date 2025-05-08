@@ -58,6 +58,11 @@ class User extends Authenticatable
         return $this->hasMany(Session::class, 'client_id');
     }
 
+    public function trainerProfile()
+    {
+        return $this->hasOne(TrainerProfile::class); // Assuming the trainer profile is a separate table
+    }
+
     public function progressLogs()
     {
         return $this->hasMany(ProgressLog::class, 'client_id');

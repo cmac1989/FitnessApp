@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ClientProfileController;
+use App\Http\Controllers\TrainerProfileController;
 use App\Http\Controllers\TrainingSessionController;
 use App\Http\Controllers\TrainerDashboardController;
 use App\Http\Controllers\UserController;
@@ -14,6 +16,7 @@ Route::get('/test', function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [UserController::class, 'getUserProfile']);
 
     Route::prefix('trainer')->group(function () {
         Route::get('/stats', [TrainerDashboardController::class, 'getStats']);
@@ -22,6 +25,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/create-training-session', [TrainingSessionController::class, 'store']);
         Route::delete('/training-session/{id}', [TrainingSessionController::class, 'destroy']);
 
-        Route::get('/clients', [UserController::class, 'clients']);
+        Route::get('/clients', [ClientProfileController::class, 'clients']);
+
+        Route::get('/trainer-profile', [TrainerProfileController::class, 'getTrainerProfile']);
     });
 });

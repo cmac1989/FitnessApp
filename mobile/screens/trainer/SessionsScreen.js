@@ -39,7 +39,7 @@ const SessionsScreen = () => {
     );
 
     const renderSessionItem = ({ item }) => (
-        <Pressable onPress={() => navigation.navigate('SessionDetail', { session: item, refreshSession: fetchSessions })}>
+        <Pressable onPress={() => navigation.navigate('SessionDetail', { session: item })}>
             <View style={styles.sessionCard}>
                 <Text style={styles.sessionTitle}>{item.client}</Text>
                 <Text style={styles.sessionDetail}>{item.date} at {item.time}</Text>

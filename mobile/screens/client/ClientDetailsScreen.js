@@ -24,19 +24,20 @@ const ClientDetailsScreen = () => {
                 <Text style={styles.label}>Client:</Text>
                 <Text style={styles.value}>{client.name}</Text>
 
-                <Text style={styles.label}>Date:</Text>
-                <Text style={styles.value}>{client.age}</Text>
+                <Text style={styles.label}>Age:</Text>
+                <Text style={styles.value}>{client.client_profile.age}</Text>
 
                 <Text style={styles.label}>Gender:</Text>
-                <Text style={styles.value}>{client.age}</Text>
+                <Text style={styles.value}>{client.client_profile?.gender ?? 'N/A'}</Text>
 
                 <Text style={styles.label}>Goals:</Text>
-                <Text style={styles.value}>{client.goals}</Text>
+                <Text style={styles.value}>{client.client_profile?.fitness_goals ?? 'N/A'}</Text>
 
                 <Text style={styles.label}>Medical Conditions:</Text>
-                <Text style={styles.value}>{client.medicalConditions}</Text>
+                <Text style={styles.value}>{client.client_profile?.medical_conditions ?? 'N/A'}</Text>
 
             </View>
+
 
             <CustomButton
                 title="Message"

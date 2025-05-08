@@ -7,6 +7,8 @@ import SessionsScreen from '../screens/trainer/SessionsScreen';
 import ClientsListScreen from '../screens/trainer/ClientsListScreen';
 import ProfileSettingsScreen from '../screens/trainer/ProfileSettingsScreen';
 import WorkoutListScreen from '../screens/trainer/WorkoutListScreen';
+import ProfileScreen from "../screens/ProfileScreen";
+import TrainerProfileScreen from "../screens/trainer/TrainerProfileScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -61,7 +63,7 @@ const TrainerTabNavigator = () => {
             />
             <Tab.Screen
                 name="Profile"
-                component={ProfileSettingsScreen}
+                component={TrainerProfileScreen}  // <- not ProfileScreen
                 options={{
                     tabBarIcon: ({ color, size }) => (
                         <Icon name="person-outline" color={color} size={24} />

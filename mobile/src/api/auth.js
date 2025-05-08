@@ -1,5 +1,5 @@
 import api from './api';
-import {removeToken} from "../services/authService";
+import {removeToken} from '../services/authService';
 
 const registerUser = async (userData) => {
     try {

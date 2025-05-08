@@ -24,4 +24,5 @@ class TrainerProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
+
 }
