@@ -49,6 +49,26 @@ class TrainingSessionController extends Controller
     }
 
     //update sessions
+    public function update(Request $request, $id) {
+        $trainingSession = TrainingSession::find($id);
+
+        if(!$trainingSession) {
+            return response()->json(['message' => 'Training session not found'], 404);
+        }
+
+        $validatedData = $request->validate([
+            'location' => 'nullable|string',
+            'status' => 'nullable|string',
+            'scheduled_at' => 'nullable|date'
+        ]);
+
+        $trainingSession->update($validatedData);
+
+        return response()->json([
+            'message' => 'Training session updated successfully',
+            'training_session' => $trainingSession
+        ]);
+    }
 
     //delete sessions
     public function destroy($id) {

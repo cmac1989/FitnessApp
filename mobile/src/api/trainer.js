@@ -13,3 +13,8 @@ export const getTrainerProfile = async (token) => {
     });
     return response.data;
 };
+
+export const updateTrainerProfile = async (id, trainerData) => {
+    const response = await api.patch(`api/trainer/trainer-profile/${id}`, trainerData);
+    return response.data;
+};

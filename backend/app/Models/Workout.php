@@ -10,9 +10,12 @@ class Workout extends Model
         'user_id',
         'title',
         'description',
+        'workout_list',
         'difficulty',
         'duration'
     ];
+
+    public $timestamps = true;
 
     public function user()
     {

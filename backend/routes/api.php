@@ -5,6 +5,7 @@ use App\Http\Controllers\TrainerProfileController;
 use App\Http\Controllers\TrainingSessionController;
 use App\Http\Controllers\TrainerDashboardController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WorkoutController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 
@@ -21,12 +22,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('trainer')->group(function () {
         Route::get('/stats', [TrainerDashboardController::class, 'getStats']);
 
-        Route::get('/training-sessions', [TrainingSessionController::class, 'index']);
-        Route::post('/create-training-session', [TrainingSessionController::class, 'store']);
-        Route::delete('/training-session/{id}', [TrainingSessionController::class, 'destroy']);
+        Route::apiResource('training-sessions', TrainingSessionController::class)->only(['index', 'store', 'update', 'destroy']);
 
         Route::get('/clients', [ClientProfileController::class, 'clients']);
 
         Route::get('/trainer-profile', [TrainerProfileController::class, 'getTrainerProfile']);
+        Route::patch('/trainer-profile/{id}', [TrainerProfileController::class, 'update']);
+
+        Route::apiResource('workouts', WorkoutController::class)->only(['store', 'update', 'destroy']);
+        Route::get('/workouts/', [WorkoutController::class, 'getTrainerWorkouts']);
+        Route::get('/workouts/{id}', [WorkoutController::class, 'getTrainerWorkout']);
+
     });
 });

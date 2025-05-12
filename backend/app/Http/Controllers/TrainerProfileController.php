@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TrainerProfile;
 use Illuminate\Http\Request;
 
 class TrainerProfileController extends Controller
@@ -36,6 +37,30 @@ class TrainerProfileController extends Controller
             'location' => $trainerProfile->location,
             'bio' => $trainer->bio, // From the user profile
             'profile_picture' => $trainer->profile_picture, // From the user profile
+        ]);
+    }
+
+    public function update(Request $request, $id) {
+        $trainerProfile = TrainerProfile::find($id);
+
+        if (!$trainerProfile) {
+            return response()->json(['message' => 'Trainer profile not found'], 404);
+        }
+
+        $validatedData = $request->validate([
+            'certifications' => 'nullable|string',
+            'years_experience' => 'nullable|integer',
+            'specialties' => 'nullable|string',
+            'availability' => 'nullable|string',
+            'location' => 'nullable|string',
+            'bio' => 'nullable|string'
+        ]);
+
+        $trainerProfile->update($validatedData);
+
+        return response()->json([
+            'message' => 'Trainer profile updated successfully',
+            'profile' => $trainerProfile
         ]);
     }
 

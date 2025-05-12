@@ -6,11 +6,16 @@ export const getAllSessions = async () => {
 };
 
 export const createSession = async (sessionData) => {
-    const response = await api.post('api/trainer/create-training-session', sessionData);
+    const response = await api.post('api/trainer/training-sessions', sessionData);
+    return response.data;
+};
+
+export const updateSession = async (id, sessionData) => {
+    const response = await api.patch(`api/trainer/training-sessions/${id}`, sessionData);
     return response.data;
 };
 
 export const deleteSession = async (id) => {
-    const response = await api.delete(`/api/trainer/training-session/${id}`);
+    const response = await api.delete(`/api/trainer/training-sessions/${id}`);
     return response.data;
 };
