@@ -64,7 +64,7 @@ const TrainerDashboardScreen = () => {
                     />
                     <CustomButton
                         title="Messages"
-                        // onPress={() => navigation.navigate('Messages')}
+                        onPress={() => navigation.navigate('MessageList')}
                     />
                 </View>
             </ScrollView>

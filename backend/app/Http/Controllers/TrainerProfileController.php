@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\TrainerProfile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class TrainerProfileController extends Controller
 {
@@ -41,27 +43,64 @@ class TrainerProfileController extends Controller
     }
 
     public function update(Request $request, $id) {
-        $trainerProfile = TrainerProfile::find($id);
+
+        $trainer = User::find(auth()->id());
+        $trainerProfile = $trainer->trainerProfile;
+
+        \Log::info('Trainer Profile q' . $trainerProfile);
 
         if (!$trainerProfile) {
             return response()->json(['message' => 'Trainer profile not found'], 404);
         }
 
+        // Validate the incoming data
         $validatedData = $request->validate([
+            'name' => 'nullable|string',
             'certifications' => 'nullable|string',
             'years_experience' => 'nullable|integer',
             'specialties' => 'nullable|string',
             'availability' => 'nullable|string',
             'location' => 'nullable|string',
-            'bio' => 'nullable|string'
+            'bio' => 'nullable|string' // Bio will be updated in users table
         ]);
 
-        $trainerProfile->update($validatedData);
+        // Start a transaction to ensure atomic updates
+        DB::beginTransaction();
 
-        return response()->json([
-            'message' => 'Trainer profile updated successfully',
-            'profile' => $trainerProfile
-        ]);
+        try {
+            // Update the trainer profile (trainer_profiles table)
+            $trainerProfile->update([
+                'certifications' => $validatedData['certifications'] ?? $trainerProfile->certifications,
+                'years_experience' => $validatedData['years_experience'] ?? $trainerProfile->years_experience,
+                'specialties' => $validatedData['specialties'] ?? $trainerProfile->specialties,
+                'availability' => $validatedData['availability'] ?? $trainerProfile->availability,
+                'location' => $validatedData['location'] ?? $trainerProfile->location,
+            ]);
+
+            // Also update the bio in the users table if provided
+            if (isset($validatedData['bio']) || isset($validatedData['name'])) {
+                $trainer = $trainerProfile->user; // Assuming trainerProfile has a 'user' relationship
+                $trainer->update([
+                    'bio' => $validatedData['bio'] ?? $trainer->bio,
+                    'name' => $validatedData['name'] ?? $trainer->name,
+                ]);
+            }
+
+            // Commit the transaction
+            DB::commit();
+
+            // Return a success response
+            return response()->json([
+                'message' => 'Trainer profile updated successfully',
+                'profile' => $trainerProfile
+            ]);
+
+        } catch (\Exception $e) {
+            // If something goes wrong, rollback the transaction
+            DB::rollBack();
+            return response()->json(['error' => 'Failed to update trainer profile'], 500);
+        }
     }
+
 
 }

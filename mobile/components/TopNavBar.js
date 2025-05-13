@@ -16,10 +16,10 @@ const TopNavBar = ({ title = '' }) => {
                 <Text style={styles.title}>{title}</Text>
 
                 <View style={styles.rightIcons}>
-                    <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
+                    <TouchableOpacity onPress={() => navigation.navigate('MessageList')}>
                         <Icon name="chatbubble-ellipses-outline" size={28} color="#333" style={styles.iconSpacing} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => console.log('Notifications')}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
                         <Icon name="notifications-outline" size={28} color="#333" />
                     </TouchableOpacity>
                 </View>

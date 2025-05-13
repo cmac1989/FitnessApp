@@ -60,7 +60,7 @@ class User extends Authenticatable
 
     public function trainerProfile()
     {
-        return $this->hasOne(TrainerProfile::class); // Assuming the trainer profile is a separate table
+        return $this->hasOne(TrainerProfile::class, 'user_id'); // Assuming the trainer profile is a separate table
     }
 
     public function progressLogs()

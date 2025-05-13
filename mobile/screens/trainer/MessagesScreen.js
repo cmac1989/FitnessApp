@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
+} from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
 
 const MessagesScreen = () => {
     const route = useRoute();
-    const { client } = route.params;
+    const client = route.params?.client;
 
     const [messages, setMessages] = useState([
         { id: '1', text: 'Hey there! Excited for our next session?' },
-        { id: '2', text: 'Yes! Can we focus on core workouts this time?' }
+        { id: '2', text: 'Yes! Can we focus on core workouts this time?' },
     ]);
     const [newMessage, setNewMessage] = useState('');
 
@@ -33,7 +41,9 @@ const MessagesScreen = () => {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={90}
         >
-            <Text style={styles.title}>Messages with {client.name}</Text>
+            <Text style={styles.title}>
+                Messages {client ? `with ${client.name}` : ''}
+            </Text>
 
             <FlatList
                 data={messages}

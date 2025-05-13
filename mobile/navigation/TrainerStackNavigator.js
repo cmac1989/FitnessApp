@@ -12,7 +12,9 @@ import EditWorkoutScreen from '../screens/trainer/EditWorkoutScreen';
 import MessagesScreen from '../screens/trainer/MessagesScreen';
 import ClientProfileScreen from "../screens/client/ClientProfileScreen";
 import TrainerProfileScreen from "../screens/trainer/TrainerProfileScreen";
-import ProfileSettingsScreen from "../screens/client/ProfileSettingsScreen";
+import ProfileSettingsScreen from "../screens/trainer/ProfileSettingsScreen";
+import MessagesListScreen from "../screens/trainer/MessagesListScreen";
+import NotificationsScreen from "../screens/trainer/NotificationsScreen";
 
 const Stack = createStackNavigator();
 
@@ -39,6 +41,8 @@ const TrainerStackNavigator = () => {
             <Stack.Screen name="EditSession" options={{ title: 'Edit Session' }} component={EditSessionScreen} />
             <Stack.Screen name="EditWorkout" options={{ title: 'Edit Workout' }} component={EditWorkoutScreen} />
             <Stack.Screen name="Messages" options={{ title: 'Messages' }} component={MessagesScreen} />
+            <Stack.Screen name="MessageList" options={{ title: 'Message List' }} component={MessagesListScreen} />
+            <Stack.Screen name="Notifications" options={{ title: 'Notifications' }} component={NotificationsScreen} />
         </Stack.Navigator>
     );
 };

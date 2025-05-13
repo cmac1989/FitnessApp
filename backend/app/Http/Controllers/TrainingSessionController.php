@@ -62,6 +62,9 @@ class TrainingSessionController extends Controller
             'scheduled_at' => 'nullable|date'
         ]);
 
+        \Log::info('Updating trainer with:', $validatedData);
+
+
         $trainingSession->update($validatedData);
 
         return response()->json([

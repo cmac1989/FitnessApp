@@ -9,26 +9,27 @@ const TrainerProfileScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchTrainerProfile = async () => {
-            try {
-                const token = await AsyncStorage.getItem('auth_token');
-                if (!token) {
-                    return;
-                }
-
-                const response = await getTrainerProfile(token);
-                setTrainer(response);
-                console.log(response);
-            } catch (err) {
-                setError('Failed to load profile');
-            } finally {
-                setLoading(false);
+    const fetchTrainerProfile = async () => {
+        try {
+            const token = await AsyncStorage.getItem('auth_token');
+            if (!token) {
+                return;
             }
-        };
+
+            const response = await getTrainerProfile(token);
+            setTrainer(response);
+            console.log(response);
+        } catch (err) {
+            setError('Failed to load profile');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
 
         fetchTrainerProfile();
-    }, []);
+    }, [trainer]);
 
     if (loading) {
         return (
