@@ -4,7 +4,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import dashboardStyles from '../../styles/DashboardStyles';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import {getTrainerStats} from "../../src/api/trainer";
+import {getTrainerStats} from '../../src/api/trainer';
 
 const TrainerDashboardScreen = () => {
     const navigation = useNavigation();
@@ -20,7 +20,7 @@ const TrainerDashboardScreen = () => {
             const fetchStats = async () => {
                 try {
                     const data = await getTrainerStats();
-                    setStats(data)
+                    setStats(data);
                 } catch(error) {
                     console.error('Error fetching trainer stats', error);
                 }

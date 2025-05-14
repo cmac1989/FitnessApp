@@ -1,12 +1,10 @@
-import {TouchableOpacity, Text, StyleSheet, SafeAreaView} from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 const CustomButton = ({ title, onPress, style, textStyle }) => {
     return (
-        <SafeAreaView style={styles.container}>
-            <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
-                <Text style={[styles.buttonText, textStyle]}>{title}</Text>
-            </TouchableOpacity>
-        </SafeAreaView>
+        <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
+            <Text style={[styles.buttonText, textStyle]}>{title}</Text>
+        </TouchableOpacity>
     );
 };
 
@@ -17,8 +15,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         borderRadius: 8,
         alignItems: 'center',
-        marginTop: 5,
-        marginBottom: 5,
+        justifyContent: 'center',
+        marginTop: 10,
     },
     buttonText: {
         color: '#fff',
@@ -26,4 +24,5 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
 });
+
 export default CustomButton;

@@ -8,6 +8,7 @@ import { validateLoginForm, validateField } from '../src/utils/validation';
 import { userLogin } from '../src/api/auth';
 import {useFocusEffect} from '@react-navigation/native';
 import {saveToken} from '../src/services/authService';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginForm = ({ navigation }) => {
     useFocusEffect(
@@ -41,6 +42,18 @@ const LoginForm = ({ navigation }) => {
             // Check if response contains a token and save it
             if (response && response.token) {
                 await saveToken(response.token);
+
+                // Store user data in AsyncStorage
+                const userData = {
+                    id: response.user.id,
+                    name: response.user.name,
+                    email: response.user.email,
+                    role: response.user.role,
+                    profile_picture: response.user.profile_picture,
+                    bio: response.user.bio,
+                };
+
+                await AsyncStorage.setItem('user', JSON.stringify(userData));
 
                 if (response.user.role === 'trainer') {
                     navigation.navigate('TrainerHome');

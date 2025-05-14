@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTrainerProfile } from '../../src/api/trainer';
 import ScreenWrapper from "../../components/ScreenWrapper";
+import {useFocusEffect} from "@react-navigation/native";
 
 const TrainerProfileScreen = ({ navigation }) => {
     const [trainer, setTrainer] = useState(null);
@@ -26,10 +27,11 @@ const TrainerProfileScreen = ({ navigation }) => {
         }
     };
 
-    useEffect(() => {
-
-        fetchTrainerProfile();
-    }, [trainer]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchTrainerProfile();
+        }, [])
+    );
 
     if (loading) {
         return (

@@ -1,37 +1,80 @@
-import React, { useState } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    TextInput,
-    KeyboardAvoidingView,
-    Platform,
-} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
+import { fetchMessagesWithUser, sendMessage } from '../../src/api/message';
 
 const MessagesScreen = () => {
     const route = useRoute();
     const client = route.params?.client;
+    const userId = 4; // TODO: replace with AsyncStorage or state later
+    const flatListRef = useRef(null);
 
-    const [messages, setMessages] = useState([
-        { id: '1', text: 'Hey there! Excited for our next session?' },
-        { id: '2', text: 'Yes! Can we focus on core workouts this time?' },
-    ]);
+    const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
 
-    const handleSend = () => {
+    // Fetch messages when component mounts or client changes
+    useEffect(() => {
+        if (client) {
+            const loadMessages = async () => {
+                try {
+                    const response = await fetchMessagesWithUser(client.id);
+                    setMessages(response);
+                } catch (error) {
+                    console.error('Failed to fetch messages:', error);
+                }
+            };
+            loadMessages();
+        }
+    }, [client]);
+
+    // Send a new message
+    const handleSend = async () => {
         if (newMessage.trim() === '') return;
 
-        const newMsg = { id: Date.now().toString(), text: newMessage };
-        setMessages(prev => [...prev, newMsg]);
-        setNewMessage('');
+        const message = {
+            sender_id: userId,
+            receiver_id: client.id,
+            trainer_id: userId, // assuming sender is always the trainer
+            content: newMessage,
+            scheduled_at: null,
+        };
+
+        try {
+            const response = await sendMessage(message);
+
+            // Append new message from response or create a local fallback message
+            const newMsg = {
+                id: response.message?.id || new Date().getTime(),
+                sender_id: userId,
+                receiver_id: client.id,
+                content: newMessage,
+                created_at: new Date(),
+            };
+
+            setMessages(prev => [...prev, newMsg]);
+            setNewMessage('');
+
+            // Scroll to bottom
+            setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        } catch (error) {
+            console.error('Failed to send message:', error);
+        }
     };
 
     const renderItem = ({ item }) => (
-        <View style={styles.messageBubble}>
-            <Text style={styles.messageText}>{item.text}</Text>
+        <View
+            style={[
+                styles.messageBubble,
+                item.sender_id === userId ? styles.myMessage : styles.theirMessage,
+            ]}
+        >
+            <Text style={styles.messageText}>{item.content}</Text>
+            <Text style={styles.timestamp}>
+                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
         </View>
     );
 
@@ -46,10 +89,13 @@ const MessagesScreen = () => {
             </Text>
 
             <FlatList
+                ref={flatListRef}
                 data={messages}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item.id.toString()}
                 renderItem={renderItem}
                 contentContainerStyle={styles.messagesList}
+                style={{ flex: 1 }}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             />
 
             <View style={styles.inputContainer}>
@@ -59,7 +105,12 @@ const MessagesScreen = () => {
                     value={newMessage}
                     onChangeText={setNewMessage}
                 />
-                <CustomButton title="Send" onPress={handleSend} />
+                <CustomButton
+                    title="Send"
+                    onPress={handleSend}
+                    style={styles.sendButton}
+                    disabled={newMessage.trim() === ''}
+                />
             </View>
         </KeyboardAvoidingView>
     );
@@ -80,21 +131,35 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     messageBubble: {
-        backgroundColor: '#e0e0e0',
         padding: 12,
         borderRadius: 10,
         marginBottom: 10,
-        alignSelf: 'flex-start',
         maxWidth: '80%',
+    },
+    myMessage: {
+        backgroundColor: '#cfe9ff',
+        alignSelf: 'flex-end',
+    },
+    theirMessage: {
+        backgroundColor: '#e0e0e0',
+        alignSelf: 'flex-start',
     },
     messageText: {
         fontSize: 16,
     },
+    timestamp: {
+        fontSize: 12,
+        color: '#555',
+        marginTop: 4,
+        alignSelf: 'flex-end',
+    },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
-        gap: 10,
+        justifyContent: 'space-between',
+        paddingTop: 10,
+        paddingBottom: 40,
+        borderColor: '#ddd',
     },
     input: {
         flex: 1,
@@ -104,6 +169,16 @@ const styles = StyleSheet.create({
         borderColor: '#ddd',
         borderWidth: 1,
         fontSize: 16,
+        marginRight: 10,
+        marginTop: 10,
+    },
+    sendButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        backgroundColor: '#6200EE',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });
 
