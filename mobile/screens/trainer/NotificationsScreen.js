@@ -1,45 +1,68 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-
-const dummyNotifications = [
-    {
-        id: '1',
-        type: 'message',
-        content: 'Jordan Smith sent you a new message.',
-        timestamp: '2m ago',
-    },
-    {
-        id: '2',
-        type: 'session_reminder',
-        content: 'Upcoming session with Alex Lee at 5:00 PM.',
-        timestamp: '30m ago',
-    },
-    {
-        id: '3',
-        type: 'workout_complete',
-        content: 'Taylor Kim completed their workout.',
-        timestamp: '1h ago',
-    },
-];
+import {getUserNotifications, markNotificationsAsRead} from '../../src/api/notification';
+import {useFocusEffect} from '@react-navigation/native';
 
 const NotificationsScreen = () => {
-    const [notifications, setNotifications] = useState(dummyNotifications);
+    const [notifications, setNotifications] = useState([]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchNotifications();
+            clearNotifications();
+        }, [])
+    );
+
+    const clearNotifications = async () => {
+        try {
+            await markNotificationsAsRead();
+        } catch (error) {
+            console.error('Error clearing notifications', error);
+        }
+    };
+
+    const fetchNotifications = async () => {
+        try {
+            const data = await getUserNotifications();
+            setNotifications(data);
+        } catch(error) {
+            console.error('Error fetching notifications', error);
+        }
+    };
 
     const handleNotificationPress = (notification) => {
         console.log('Tapped notification:', notification);
-        // You could navigate somewhere based on type, e.g.
-        // if (notification.type === 'message') navigation.navigate('MessagesScreen')
+        // Navigation logic based on notification.type could go here
     };
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity
-            style={styles.notificationItem}
-            onPress={() => handleNotificationPress(item)}
-        >
-            <Text style={styles.notificationContent}>{item.content}</Text>
-            <Text style={styles.timestamp}>{item.timestamp}</Text>
-        </TouchableOpacity>
-    );
+    const renderItem = ({ item }) => {
+        const isRead = item.read_at !== null;
+
+        return (
+            <TouchableOpacity
+                style={[
+                    styles.notificationItem,
+                    isRead ? styles.readNotification : styles.unreadNotification,
+                ]}
+                onPress={() => handleNotificationPress(item)}
+            >
+                <View style={styles.row}>
+                    {!isRead && <View style={styles.unreadDot} />}
+                    <Text
+                        style={[
+                            styles.notificationContent,
+                            !isRead && styles.unreadNotificationContent,
+                        ]}
+                    >
+                        {item.type}
+                    </Text>
+                </View>
+                <Text style={styles.timestamp}>
+                    {item.data?.title || item.data?.trainer || 'No details available'}
+                </Text>
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -47,7 +70,7 @@ const NotificationsScreen = () => {
 
             <FlatList
                 data={notifications}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.id.toString()}
                 renderItem={renderItem}
                 contentContainerStyle={styles.listContent}
             />
@@ -77,14 +100,36 @@ const styles = StyleSheet.create({
         borderColor: '#ddd',
         borderWidth: 1,
     },
+    readNotification: {
+        backgroundColor: '#f0f0f0',
+        borderColor: '#ccc',
+    },
+    unreadNotification: {
+        backgroundColor: '#ffffff',
+        borderColor: '#444',
+    },
     notificationContent: {
         fontSize: 16,
         fontWeight: '500',
+    },
+    unreadNotificationContent: {
+        fontWeight: 'bold',
     },
     timestamp: {
         fontSize: 13,
         color: '#777',
         marginTop: 5,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    unreadDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#ff4d4d',
+        marginRight: 8,
     },
 });
 

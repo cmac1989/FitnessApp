@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
@@ -117,12 +118,32 @@ class MessageController extends Controller
         ]);
     }
 
+    public function markAllAsRead()
+    {
+        $updatedCount = Message::where('receiver_id', Auth::id())
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        Log::info("Updated messages count: $updatedCount");
+
+        return response()->json([
+            'success' => true,
+            'updated_count' => $updatedCount,
+            'message' => 'All messages marked as read.'
+        ]);
+    }
+
+
     // Get count of unread messages for authenticated user
     public function countUnreadMessages()
     {
+        Log::info('Authenticated User ID: ' . Auth::id());
+
         $count = Message::where('receiver_id', Auth::id())
             ->whereNull('read_at')
             ->count();
+
+        Log::info('Unread message count: ' . $count);
 
         return response()->json(['unread_count' => $count]);
     }

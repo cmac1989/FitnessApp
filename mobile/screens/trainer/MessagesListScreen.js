@@ -31,13 +31,14 @@ const MessagesListScreen = () => {
         setLoading(true);
 
         try {
-            const data = await fetchConversations();  // if your API accepts user ID, pass it here
+            const data = await fetchConversations();
             console.log('Fetched conversations:', data);
 
             const formatted = data.map(item => ({
                 id: item.user.id,
                 client: { name: item.user.name },
                 lastMessage: item.last_message.content,
+                readAt: item.last_message.read_at, // assuming your API sends this
             }));
 
             setConversations(formatted);
@@ -64,15 +65,39 @@ const MessagesListScreen = () => {
         navigation.navigate('Messages', { client: { id: clientId, name: clientName } });
     };
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity
-            style={styles.messageItem}
-            onPress={() => handleOpenChat(item.id, item.client.name)}
-        >
-            <Text style={styles.clientName}>{item.client.name}</Text>
-            <Text style={styles.lastMessage}>{item.lastMessage}</Text>
-        </TouchableOpacity>
-    );
+    const renderItem = ({ item }) => {
+        const isUnread = !item.readAt;
+
+        return (
+            <TouchableOpacity
+                style={[
+                    styles.messageItem,
+                    isUnread ? styles.unreadMessage : styles.readMessage
+                ]}
+                onPress={() => handleOpenChat(item.id, item.client.name)}
+            >
+                <View style={styles.row}>
+                    {isUnread && <View style={styles.unreadDot} />}
+                    <Text
+                        style={[
+                            styles.clientName,
+                            isUnread && styles.unreadClientName
+                        ]}
+                    >
+                        {item.client.name}
+                    </Text>
+                </View>
+                <Text
+                    style={[
+                        styles.lastMessage,
+                        isUnread && styles.unreadLastMessage
+                    ]}
+                >
+                    {item.lastMessage}
+                </Text>
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -118,7 +143,7 @@ const styles = StyleSheet.create({
     },
     clientName: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '500',
     },
     lastMessage: {
         fontSize: 14,
@@ -129,6 +154,33 @@ const styles = StyleSheet.create({
         color: 'red',
         fontSize: 16,
         marginTop: 20,
+    },
+    readMessage: {
+        backgroundColor: '#f0f0f0',
+        borderColor: '#ccc',
+    },
+    unreadMessage: {
+        backgroundColor: '#ffffff',
+        borderColor: '#444',
+    },
+    unreadClientName: {
+        fontWeight: 'bold',
+        color: '#111',
+    },
+    unreadLastMessage: {
+        fontWeight: '600',
+        color: '#222',
+    },
+    unreadDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#ff4d4d',
+        marginRight: 8,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
 });
 

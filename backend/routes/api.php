@@ -10,6 +10,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkoutController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use Illuminate\Support\Facades\Log;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -36,18 +37,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/workouts/{id}', [WorkoutController::class, 'getTrainerWorkout']);
         //TODO hook all the below up to the front end
         Route::get('/messages', [MessageController::class, 'index']);
+        Route::get('/messages/unread-count', [MessageController::class, 'countUnreadMessages']);
         Route::get('/messages/conversations', [MessageController::class, 'getLatestMessagesPerConversation']);
         Route::get('/messages/{otherUserId}', [MessageController::class, 'getMessagesWithUser']);
+        Route::post('/messages/mark-as-read', [MessageController::class, 'markAllAsRead']);
 
         Route::post('/messages', [MessageController::class, 'sendMessage']);
+
+
         Route::post('/messages/{messageId}/read', [MessageController::class, 'markAsRead']);
-        Route::get('/messages/unread-count', [MessageController::class, 'countUnreadMessages']);
 
         Route::get('/notifications', [NotificationController::class, 'index']);
-        Route::get('/notifications/{id}', [NotificationController::class, 'show']);
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-        Route::get('/notifications/unread/count', [NotificationController::class, 'unreadCount']);
-        Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAllAsRead']);
+        Route::get('/notifications/{id}', [NotificationController::class, 'show']);
         //TODO dont know if i'll need this
         Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     });
