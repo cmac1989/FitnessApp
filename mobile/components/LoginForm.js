@@ -34,12 +34,13 @@ const LoginForm = ({ navigation }) => {
             setErrors(validationErrors);
             return;
         }
-        try {
-            await userLogin();
-            navigation.navigate('home');
-        } catch(error) {
-            console.error('Login failed:', error.response?.data || error.message);
-        }
+        navigation.navigate('TrainerHome');
+        // try {
+        //     await userLogin();
+        //     navigation.navigate('Home');
+        // } catch(error) {
+        //     console.error('Login failed:', error.response?.data || error.message);
+        // }
     };
 
     return (
