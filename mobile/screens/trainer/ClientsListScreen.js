@@ -2,42 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import dashboardStyles from '../../styles/DashboardStyles';
-import ScreenWrapper from "../../components/ScreenWrapper";
+import ScreenWrapper from '../../components/ScreenWrapper';
+import {getClients} from '../../src/api/user';
 
 const ClientsListScreen = () => {
     const navigation = useNavigation();
     const [clients, setClients] = useState([]);
 
     useEffect(() => {
-        // Simulated API call — replace with your backend fetch later
-        const fetchClients = async () => {
-            const mockClients = [
-                {
-                    id: 1,
-                    name: 'Sarah Connor',
-                    age: 32,
-                    gender: 'female',
-                    goals: 'lose weight',
-                    medicalConditions: 'fat',
-                },
-                {
-                    id: 2,
-                    name: 'John Connor',
-                    age: 32,
-                    gender: 'male',
-                    goals: 'lose weight',
-                    medicalConditions: 'fat',
-                },
-                {
-                    id: 3,
-                    name: 'Emily Carter',
-                    age: 32,
-                    gender: 'female',
-                    goals: 'lose weight',
-                    medicalConditions: 'fat',
-                },
-            ];
-            setClients(mockClients);
+        const fetchClients = async() => {
+            try {
+                const data = await getClients();
+                console.log('fetched clients', data);
+                setClients(data);
+            } catch(error) {
+                console.error('There was a problem fetching clients', error);
+            }
         };
 
         fetchClients();

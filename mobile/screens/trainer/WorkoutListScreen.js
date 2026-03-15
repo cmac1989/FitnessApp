@@ -1,35 +1,37 @@
-import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import React, {useCallback, useEffect, useState} from 'react';
 import { View, FlatList, Pressable, Text, StyleSheet } from 'react-native';
 import dashboardStyles from '../../styles/DashboardStyles';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import {getTrainerWorkouts} from '../../src/api/workout';
 
 const WorkoutListScreen = () => {
     const navigation = useNavigation();
     const [workouts, setWorkouts] = useState([]);
 
-    useEffect(() => {
-        // Simulated API call — replace with your backend fetch later
-        const fetchWorkouts = async () => {
-            const mockWorkouts = [
-                { id: '1', name: 'Upper Body Strength', warmUp: 'Jump rope', mainSet: 'Bench press, Pull-ups', accessories: 'Triceps dips' },
-                { id: '2', name: 'Lower Body Blast', warmUp: 'Dynamic stretches', mainSet: 'Squats, Deadlifts', accessories: 'Leg curls' },
-                { id: '3', name: 'HIIT Burner', warmUp: 'Light jog', mainSet: 'Sprints, Burpees', accessories: 'Plank holds' },
-                { id: '4', name: 'Mobility Focus', warmUp: 'Foam rolling', mainSet: 'Dynamic mobility drills', accessories: 'Band work' },
-            ];
-            setWorkouts(mockWorkouts);
-        };
+    const fetchWorkouts = async () => {
+        try {
+            const data = await getTrainerWorkouts();
+            setWorkouts(data);
+            console.log('trainer workouts', workouts);
+        } catch(error) {
+            console.error('error fetching workouts', error);
+        }
+    };
 
-        fetchWorkouts();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchWorkouts();
+        }, [])
+    );
 
     const renderWorkout = ({ item }) => (
         <Pressable
             style={dashboardStyles.statCard}
             onPress={() => navigation.navigate('WorkoutDetails', { workout: item })}
         >
-            <Text style={dashboardStyles.statValue}>{item.name}</Text>
+            <Text style={dashboardStyles.statValue}>{item.title}</Text>
         </Pressable>
     );
 

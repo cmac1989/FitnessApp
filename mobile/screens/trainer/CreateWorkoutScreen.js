@@ -2,27 +2,47 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import dashboardStyles from '../../styles/DashboardStyles';
-import ScreenWrapper from '../../components/ScreenWrapper';
+import { createWorkout } from '../../src/api/workout';
+import {useNavigation} from "@react-navigation/native";
 
-const CreateWorkoutScreen = () => {
-    const [workoutName, setWorkoutName] = useState('');
+const CreateWorkoutScreen = ({ userId }) => {
+    const navigation = useNavigation();
+    const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [exercises, setExercises] = useState('');
+    const [workoutList, setWorkoutList] = useState('');
+    const [difficulty, setDifficulty] = useState('');
+    const [duration, setDuration] = useState('');
 
-    const handleCreateWorkout = () => {
-        console.log('Workout Created:', { workoutName, description, exercises });
-        // Call API to save workout later
+    const handleCreateWorkout = async () => {
+        const workoutData = {
+            user_id: userId,
+            title,
+            description,
+            workout_list: workoutList,
+            difficulty,
+            duration,
+        };
+
+        try {
+            await createWorkout(workoutData);
+            console.log('Workout created successfully!');
+
+            navigation.goBack();
+        } catch (error) {
+            console.error('Could not create workout', error);
+        }
     };
+
     return (
         <ScrollView contentContainerStyle={dashboardStyles.container}>
             <Text style={dashboardStyles.title}>Create New Workout</Text>
 
-            <Text style={dashboardStyles.sectionTitle}>Workout Name</Text>
+            <Text style={dashboardStyles.sectionTitle}>Workout Title</Text>
             <TextInput
                 style={dashboardStyles.input}
-                placeholder="Enter workout name"
-                value={workoutName}
-                onChangeText={setWorkoutName}
+                placeholder="Enter workout title"
+                value={title}
+                onChangeText={setTitle}
             />
 
             <Text style={dashboardStyles.sectionTitle}>Description</Text>
@@ -34,13 +54,29 @@ const CreateWorkoutScreen = () => {
                 multiline
             />
 
-            <Text style={dashboardStyles.sectionTitle}>Exercises (comma separated)</Text>
+            <Text style={dashboardStyles.sectionTitle}>Workout List</Text>
             <TextInput
-                style={[dashboardStyles.input, { height: 80 }]}
-                placeholder="e.g., Push Ups, Squats, Burpees"
-                value={exercises}
-                onChangeText={setExercises}
-                multiline
+                style={dashboardStyles.input}
+                placeholder="e.g., A1 asdf"
+                value={workoutList}
+                onChangeText={setWorkoutList}
+            />
+
+            <Text style={dashboardStyles.sectionTitle}>Difficulty Level</Text>
+            <TextInput
+                style={dashboardStyles.input}
+                placeholder="e.g., Beginner, Intermediate, Advanced"
+                value={difficulty}
+                onChangeText={setDifficulty}
+            />
+
+            <Text style={dashboardStyles.sectionTitle}>Duration (minutes)</Text>
+            <TextInput
+                style={dashboardStyles.input}
+                placeholder="Enter duration in minutes"
+                value={duration}
+                onChangeText={setDuration}
+                keyboardType="numeric"
             />
 
             <CustomButton title="Create Workout" onPress={handleCreateWorkout} />

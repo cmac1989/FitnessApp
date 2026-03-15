@@ -43,9 +43,24 @@ class User extends Authenticatable
         return $this->hasOne(ClientProfile::class);
     }
 
+    public function clients()
+    {
+        return $this->hasMany(ClientProfile::class, 'trainer_id');
+    }
+
+    public function trainingSession()
+    {
+        return $this->hasMany(TrainingSession::class, 'client_id');
+    }
+
     public function clientSessions()
     {
         return $this->hasMany(Session::class, 'client_id');
+    }
+
+    public function trainerProfile()
+    {
+        return $this->hasOne(TrainerProfile::class, 'user_id'); // Assuming the trainer profile is a separate table
     }
 
     public function progressLogs()
@@ -71,5 +86,10 @@ class User extends Authenticatable
      public function trainerMessages()
      {
          return $this->hasMany(Message::class, 'trainer_id');
+     }
+
+     public function notifications()
+     {
+         return $this->hasMany(Notification::class, 'user_id');
      }
 }

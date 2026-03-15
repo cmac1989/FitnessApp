@@ -1,15 +1,68 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
-import ScreenWrapper from '../../components/ScreenWrapper';
+import { deleteWorkout, getTrainerWorkout } from '../../src/api/workout';
 
 const WorkoutDetailsScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { workout } = route.params;
 
-    if (!workout) {
+    const [currentWorkout, setCurrentWorkout] = useState(workout);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Trigger refetch when screen is focused or workout data changes
+    useFocusEffect(
+        React.useCallback(() => {
+            if (workout) {
+                fetchWorkout(workout.id);  // Re-fetch when the screen is focused
+            }
+        }, [workout]) // Re-fetch on workout change or screen focus
+    );
+
+    const fetchWorkout = async (workoutId) => {
+        try {
+            setIsLoading(true);
+            const fetchedWorkout = await getTrainerWorkout(workoutId);
+            setCurrentWorkout(fetchedWorkout);
+            setIsLoading(false);
+        } catch (error) {
+            console.error('Could not grab workout', error);
+            setIsLoading(false);
+        }
+    };
+
+    const deleteWorkoutHandler = async (id) => {
+        try {
+            await deleteWorkout(id);
+            Alert.alert('Success', 'Workout deleted successfully.');
+            navigation.goBack(); // Go back to the previous screen
+        } catch (error) {
+            console.error('Failed to delete workout', error);
+            Alert.alert('Error', 'Failed to delete workout. Please try again.');
+        }
+    };
+
+    const updateWorkoutHandler = async () => {
+        try {
+            // Navigate to the edit screen or do the update logic here
+            navigation.navigate('EditWorkout', { workout: currentWorkout });
+        } catch (error) {
+            console.error('Failed to update workout', error);
+            Alert.alert('Error', 'Failed to update workout. Please try again.');
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <View style={styles.container}>
+                <Text style={styles.errorText}>Loading...</Text>
+            </View>
+        );
+    }
+
+    if (!currentWorkout) {
         return (
             <View style={styles.container}>
                 <Text style={styles.errorText}>No workout details available.</Text>
@@ -19,26 +72,26 @@ const WorkoutDetailsScreen = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>{workout.name}</Text>
+            <Text style={styles.title}>{currentWorkout.title}</Text>
 
             <View style={styles.detailCard}>
-                <Text style={styles.label}>Warm Up:</Text>
-                <Text style={styles.value}>{workout.warmUp}</Text>
+                <Text style={styles.label}>Description:</Text>
+                <Text style={styles.value}>{currentWorkout.description}</Text>
 
-                <Text style={styles.label}>Main Set:</Text>
-                <Text style={styles.value}>{workout.mainSet}</Text>
+                <Text style={styles.label}>Duration:</Text>
+                <Text style={styles.value}>{currentWorkout.duration}</Text>
 
-                <Text style={styles.label}>Accessories:</Text>
-                <Text style={styles.value}>{workout.accessories}</Text>
+                <Text style={styles.label}>Workout:</Text>
+                <Text style={styles.value}>{currentWorkout.workout_list}</Text>
             </View>
 
             <CustomButton
                 title="Edit Workout"
-                onPress={() => navigation.navigate('EditWorkout', { workout })}
+                onPress={updateWorkoutHandler}
             />
             <CustomButton
                 title="Delete Workout"
-                // onPress={() => navigation.navigate('EditWorkout', { workout })}
+                onPress={() => deleteWorkoutHandler(currentWorkout.id)}
             />
         </View>
     );

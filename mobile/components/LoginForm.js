@@ -7,15 +7,16 @@ import formErrorStyles from '../styles/FormErrorStyles';
 import { validateLoginForm, validateField } from '../src/utils/validation';
 import { userLogin } from '../src/api/auth';
 import {useFocusEffect} from '@react-navigation/native';
+import {saveToken} from '../src/services/authService';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginForm = ({ navigation }) => {
     useFocusEffect(
         useCallback(() => {
             // Reset form state when screen comes into focus
             setUserInfo({
-                email: '',
-                password: '',
-                role: 'client',
+                email: 'w@w.com',
+                password: 'password',
             });
             setErrors({});
         }, [])
@@ -34,14 +35,55 @@ const LoginForm = ({ navigation }) => {
             setErrors(validationErrors);
             return;
         }
-        navigation.navigate('TrainerHome');
-        // try {
-        //     await userLogin();
-        //     navigation.navigate('Home');
-        // } catch(error) {
-        //     console.error('Login failed:', error.response?.data || error.message);
-        // }
+
+        try {
+            const response = await userLogin({ email: userInfo.email, password: userInfo.password });
+
+            // Check if response contains a token and save it
+            if (response && response.token) {
+                await saveToken(response.token);
+
+                // Store user data in AsyncStorage
+                const userData = {
+                    id: response.user.id,
+                    name: response.user.name,
+                    email: response.user.email,
+                    role: response.user.role,
+                    profile_picture: response.user.profile_picture,
+                    bio: response.user.bio,
+                };
+
+                await AsyncStorage.setItem('user', JSON.stringify(userData));
+
+                if (response.user.role === 'trainer') {
+                    navigation.navigate('TrainerHome');
+                } else {
+                    navigation.navigate('ClientHome');
+                }
+            } else {
+                // Add more detailed error handling
+                setErrors(prev => ({
+                    ...prev,
+                    general: 'Invalid login credentials. Please check your email and password.',
+                }));
+            }
+        } catch (error) {
+            console.error('Login failed:', error.response || error.message || error);  // Detailed log
+
+            if (error.response?.status === 401) {
+                setErrors(prev => ({
+                    ...prev,
+                    general: error.response?.data?.message || 'Invalid credentials.',
+                }));
+            } else {
+                setErrors(prev => ({
+                    ...prev,
+                    general: 'Login failed, please try again later.',
+                }));
+            }
+        }
     };
+
 
     return (
         <View style={formInputStyles.container}>
@@ -80,6 +122,10 @@ const LoginForm = ({ navigation }) => {
             <Text style={formErrorStyles.errorText}>
                 {errors.password ? errors.password : ' '}
             </Text>
+
+            {errors.general ? (
+                <Text style={formErrorStyles.errorText}>{errors.general}</Text>
+            ) : null}
 
             <CustomButton
                 title="Login"

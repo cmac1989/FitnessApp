@@ -2,57 +2,91 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
-import ScreenWrapper from '../../components/ScreenWrapper';
+import { updateWorkout } from '../../src/api/workout';
 
 const EditWorkoutScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { workout } = route.params;
 
-    const [name, setName] = useState(workout.name);
-    const [warmUp, setWarmUp] = useState(workout.warmUp);
-    const [mainSet, setMainSet] = useState(workout.mainSet);
-    const [accessories, setAccessories] = useState(workout.accessories);
+    // States to store the input values
+    const [title, setTitle] = useState(workout.title || ''); // Match 'title'
+    const [description, setDescription] = useState(workout.description || ''); // Match 'description'
+    const [workoutList, setWorkoutList] = useState(workout.workout_list || ''); // Match 'workout_list'
+    const [difficulty, setDifficulty] = useState(workout.difficulty || ''); // Match 'difficulty'
+    const [duration, setDuration] = useState(workout.duration?.toString() || ''); // Match 'duration' (ensure it's a string for TextInput)
 
+    // The handler to update workout
+    const updateWorkoutHandler = async () => {
+        // Prepare the workout data
+        const updatedData = {
+            title,
+            description,
+            workout_list: workoutList,
+            difficulty,
+            duration: parseInt(duration, 10), // Ensure duration is an integer
+        };
+
+        try {
+            // Call the updateWorkout API function to update the workout
+            const updated = await updateWorkout(workout.id, updatedData);
+
+            // Show success message
+            Alert.alert('Success', 'Workout updated successfully.');
+
+            // Optionally, navigate back or to a different screen
+            navigation.goBack();
+        } catch (error) {
+            console.error('Failed to update workout', error);
+            Alert.alert('Error', 'Failed to update workout. Please try again.');
+        }
+    };
+
+    // Save button logic
     const handleSave = () => {
-        // Here you'd make your API call to update the workout
-        Alert.alert('Success', 'Workout details updated.');
-        navigation.goBack();
+        updateWorkoutHandler();
     };
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>Edit Workout</Text>
 
-            <Text style={styles.label}>Workout Name</Text>
+            <Text style={styles.label}>Workout Title</Text>
             <TextInput
                 style={styles.input}
-                value={name}
-                onChangeText={setName}
+                value={title}
+                onChangeText={setTitle}
             />
 
-            <Text style={styles.label}>Warm Up</Text>
+            <Text style={styles.label}>Description</Text>
             <TextInput
                 style={[styles.input, styles.multiLine]}
-                value={warmUp}
-                onChangeText={setWarmUp}
+                value={description}
+                onChangeText={setDescription}
                 multiline
             />
 
-            <Text style={styles.label}>Main Set</Text>
+            <Text style={styles.label}>Workout List</Text>
             <TextInput
                 style={[styles.input, styles.multiLine]}
-                value={mainSet}
-                onChangeText={setMainSet}
+                value={workoutList}
+                onChangeText={setWorkoutList}
                 multiline
             />
 
-            <Text style={styles.label}>Accessories</Text>
+            <Text style={styles.label}>Difficulty</Text>
             <TextInput
-                style={[styles.input, styles.multiLine]}
-                value={accessories}
-                onChangeText={setAccessories}
-                multiline
+                style={styles.input}
+                value={difficulty}
+                onChangeText={setDifficulty}
+            />
+
+            <Text style={styles.label}>Duration (in minutes)</Text>
+            <TextInput
+                style={styles.input}
+                value={duration}
+                onChangeText={setDuration}
+                keyboardType="numeric" // Ensures only numbers can be input
             />
 
             <CustomButton title="Save Changes" onPress={handleSave} />

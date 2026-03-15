@@ -1,4 +1,4 @@
-import {Pressable, Text, TextInput, View} from 'react-native';
+import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import CustomButton from './CustomButton';
 import React, {useState, useCallback} from 'react';
 import formInputStyles from '../styles/FormInputStyles';
@@ -28,6 +28,8 @@ const RegisterForm = ({ navigation }) => {
         password: '',
         password_confirmation: '',
         role: 'client',
+        profile_picture: '',
+        bio: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -48,7 +50,7 @@ const RegisterForm = ({ navigation }) => {
     };
 
     return (
-        <View style={formInputStyles.container}>
+        <ScrollView style={formInputStyles.container}>
             <Text style={formInputStyles.label}>Name</Text>
             <TextInput
                 style={formInputStyles.input}
@@ -153,11 +155,113 @@ const RegisterForm = ({ navigation }) => {
                 ))}
             </View>
 
+            {userInfo.role === 'client' && (
+                <>
+                    <Text style={formInputStyles.label}>Age</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="Your age"
+                        keyboardType="numeric"
+                        value={userInfo.age}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, age: text }))
+                        }
+                    />
+
+                    <Text style={formInputStyles.label}>Gender (M/F/O)</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="Gender"
+                        value={userInfo.gender}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, gender: text }))
+                        }
+                    />
+
+                    <Text style={formInputStyles.label}>Fitness Goal</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="What’s your fitness goal?"
+                        value={userInfo.fitness_goals}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, fitness_goals: text }))
+                        }
+                    />
+
+                    <Text style={formInputStyles.label}>Medical Conditions</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="List any conditions"
+                        value={userInfo.medical_conditions}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, medical_conditions: text }))
+                        }
+                    />
+                </>
+            )}
+
+            {userInfo.role === 'trainer' && (
+                <>
+                    <Text style={formInputStyles.label}>Certifications</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="Certifications (comma separated)"
+                        value={userInfo.certifications}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, certifications: text }))
+                        }
+                    />
+
+                    <Text style={formInputStyles.label}>Years of Experience</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="Years"
+                        keyboardType="numeric"
+                        value={userInfo.years_experience}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, years_experience: text }))
+                        }
+                    />
+
+                    <Text style={formInputStyles.label}>Specialties</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="Specialties (comma separated)"
+                        value={userInfo.specialties}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, specialties: text }))
+                        }
+                    />
+
+                    <Text style={formInputStyles.label}>Availability</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="Available times/days"
+                        value={userInfo.availability}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, availability: text }))
+                        }
+                    />
+
+                    <Text style={formInputStyles.label}>Location</Text>
+                    <TextInput
+                        style={formInputStyles.input}
+                        placeholder="Your city / region"
+                        value={userInfo.location}
+                        onChangeText={text =>
+                            setUserInfo(prev => ({ ...prev, location: text }))
+                        }
+                    />
+                </>
+            )}
+
+
+
             <CustomButton
                 title="Register"
                 onPress={handleRegister}
             />
-        </View>
+        </ScrollView>
     );
 };
 

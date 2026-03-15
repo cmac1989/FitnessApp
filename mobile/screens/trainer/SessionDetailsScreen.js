@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import {View, Text, StyleSheet, Alert} from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import {deleteSession} from "../../src/api/trainingSession";
 
 const SessionDetailScreen = () => {
     const navigation = useNavigation();
@@ -16,6 +17,17 @@ const SessionDetailScreen = () => {
             </View>
         );
     }
+
+    const handleDeleteSession = async (sessionId) => {
+        console.log('sessionId', sessionId);
+        try {
+            await deleteSession(sessionId);
+            Alert.alert('Deleted', 'Session successfully removed.');
+            navigation.goBack();
+        } catch(error) {
+            console.error('Could not delete session', error);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -48,8 +60,9 @@ const SessionDetailScreen = () => {
             />
             <CustomButton
                 title="Delete Session"
-                // onPress={() => navigation.navigate('EditSession', { session })}
+                onPress={() => handleDeleteSession(session.id)}
             />
+
         </View>
     );
 };

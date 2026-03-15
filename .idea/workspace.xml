@@ -6,8 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="3751c058-22a3-47c0-82e9-d0c19bb15231" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/supervisord.log" beforeDir="false" afterPath="$PROJECT_DIR$/backend/supervisord.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/supervisord.pid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/MessageController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/MessageController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/api.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -143,6 +143,9 @@
       <path value="$PROJECT_DIR$/backend/vendor/symfony/yaml" />
       <path value="$PROJECT_DIR$/backend/vendor/symfony/http-kernel" />
       <path value="$PROJECT_DIR$/backend/vendor/laravel/sanctum" />
+      <path value="$PROJECT_DIR$/backend/vendor/psr/cache" />
+      <path value="$PROJECT_DIR$/backend/vendor/doctrine/deprecations" />
+      <path value="$PROJECT_DIR$/backend/vendor/doctrine/dbal" />
     </include_path>
   </component>
   <component name="ProjectColorInfo">{
@@ -159,8 +162,8 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;dashboardScreens&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/cameronmcrae/Desktop/FitnessApp/mobile/ios/FitnessTrainer/Fonts&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;backendAuth&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/cameronmcrae/Desktop/FitnessApp/mobile/screens/client&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -173,17 +176,18 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/mobile/screens/client" />
       <recent name="$PROJECT_DIR$/mobile/ios/FitnessTrainer/Fonts" />
       <recent name="$PROJECT_DIR$/backend/routes" />
       <recent name="$PROJECT_DIR$/backend/app/Models" />
       <recent name="$PROJECT_DIR$/backend/database/migrations" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/mobile/src" />
       <recent name="$PROJECT_DIR$/mobile/screens/trainer" />
       <recent name="$PROJECT_DIR$/backend/docker" />
       <recent name="$PROJECT_DIR$/backend" />
       <recent name="$PROJECT_DIR$/backend/app/docker" />
-      <recent name="$PROJECT_DIR$/mobile/assets/images" />
     </key>
   </component>
   <component name="RunManager">
@@ -211,7 +215,9 @@
       <workItem from="1745802350836" duration="4408000" />
       <workItem from="1745857996334" duration="5619000" />
       <workItem from="1745944374931" duration="103402000" />
-      <workItem from="1746393597240" duration="2448000" />
+      <workItem from="1746393597240" duration="63001000" />
+      <workItem from="1746760195654" duration="43237000" />
+      <workItem from="1747138300878" duration="43310000" />
     </task>
     <servers />
   </component>
