@@ -17,8 +17,20 @@ const RegisterForm = ({ navigation }) => {
                 password: '',
                 password_confirmation: '',
                 role: 'client',
+                profile_picture: '',
+                bio: '',
+                age: '',
+                gender: '',
+                fitness_goals: '',
+                medical_conditions: '',
+                certifications: '',
+                years_experience: '',
+                specialties: '',
+                availability: '',
+                location: '',
             });
             setErrors({});
+            setGeneralError('');
         }, [])
     );
 
@@ -29,23 +41,43 @@ const RegisterForm = ({ navigation }) => {
         password_confirmation: '',
         role: 'client',
         profile_picture: '',
-        bio: ''
+        bio: '',
+        age: '',
+        gender: '',
+        fitness_goals: '',
+        medical_conditions: '',
+        certifications: '',
+        years_experience: '',
+        specialties: '',
+        availability: '',
+        location: '',
     });
 
     const [errors, setErrors] = useState({});
+    const [generalError, setGeneralError] = useState('');
 
     const handleRegister = async () => {
         const validationErrors = validateRegisterForm(userInfo);
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
+            setGeneralError('');
             return;
         }
         try {
-            console.log('USER INFO', userInfo);
+            setGeneralError('');
             await registerUser(userInfo);
             navigation.navigate('Login');
         } catch (error) {
-            console.error('Registration failed:', error.response?.data || error.message);
+            const backendErrors = error.validationErrors || {};
+            const flattenedErrors = Object.fromEntries(
+                Object.entries(backendErrors).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
+            );
+
+            if (Object.keys(flattenedErrors).length > 0) {
+                setErrors(prev => ({ ...prev, ...flattenedErrors }));
+            }
+
+            setGeneralError(error.message || 'Registration failed. Please try again.');
         }
     };
 
@@ -133,6 +165,21 @@ const RegisterForm = ({ navigation }) => {
                 {errors.password_confirmation ? errors.password_confirmation : ' '}
             </Text>
 
+            <Text style={formInputStyles.label}>Bio</Text>
+            <TextInput
+                style={formInputStyles.input}
+                placeholder="Tell us a little about yourself"
+                value={userInfo.bio}
+                onChangeText={text => {
+                    setUserInfo(prev => ({ ...prev, bio: text }));
+                    setErrors(prev => ({ ...prev, bio: null }));
+                }}
+                multiline
+            />
+            <Text style={formErrorStyles.errorText}>
+                {errors.bio ? errors.bio : ' '}
+            </Text>
+
             <Text style={formInputStyles.label}>Select your role:</Text>
             <View style={formInputStyles.roleContainer}>
                 {['client', 'trainer'].map((role) => (
@@ -154,6 +201,9 @@ const RegisterForm = ({ navigation }) => {
                     </Pressable>
                 ))}
             </View>
+            <Text style={formErrorStyles.errorText}>
+                {errors.role ? errors.role : ' '}
+            </Text>
 
             {userInfo.role === 'client' && (
                 <>
@@ -167,6 +217,9 @@ const RegisterForm = ({ navigation }) => {
                             setUserInfo(prev => ({ ...prev, age: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.age ? errors.age : ' '}
+                    </Text>
 
                     <Text style={formInputStyles.label}>Gender (M/F/O)</Text>
                     <TextInput
@@ -177,6 +230,9 @@ const RegisterForm = ({ navigation }) => {
                             setUserInfo(prev => ({ ...prev, gender: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.gender ? errors.gender : ' '}
+                    </Text>
 
                     <Text style={formInputStyles.label}>Fitness Goal</Text>
                     <TextInput
@@ -187,6 +243,9 @@ const RegisterForm = ({ navigation }) => {
                             setUserInfo(prev => ({ ...prev, fitness_goals: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.fitness_goals ? errors.fitness_goals : ' '}
+                    </Text>
 
                     <Text style={formInputStyles.label}>Medical Conditions</Text>
                     <TextInput
@@ -197,6 +256,9 @@ const RegisterForm = ({ navigation }) => {
                             setUserInfo(prev => ({ ...prev, medical_conditions: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.medical_conditions ? errors.medical_conditions : ' '}
+                    </Text>
                 </>
             )}
 
@@ -205,12 +267,15 @@ const RegisterForm = ({ navigation }) => {
                     <Text style={formInputStyles.label}>Certifications</Text>
                     <TextInput
                         style={formInputStyles.input}
-                        placeholder="Certifications (comma separated)"
+                        placeholder="Certifications"
                         value={userInfo.certifications}
                         onChangeText={text =>
                             setUserInfo(prev => ({ ...prev, certifications: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.certifications ? errors.certifications : ' '}
+                    </Text>
 
                     <Text style={formInputStyles.label}>Years of Experience</Text>
                     <TextInput
@@ -222,6 +287,9 @@ const RegisterForm = ({ navigation }) => {
                             setUserInfo(prev => ({ ...prev, years_experience: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.years_experience ? errors.years_experience : ' '}
+                    </Text>
 
                     <Text style={formInputStyles.label}>Specialties</Text>
                     <TextInput
@@ -232,6 +300,9 @@ const RegisterForm = ({ navigation }) => {
                             setUserInfo(prev => ({ ...prev, specialties: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.specialties ? errors.specialties : ' '}
+                    </Text>
 
                     <Text style={formInputStyles.label}>Availability</Text>
                     <TextInput
@@ -242,6 +313,9 @@ const RegisterForm = ({ navigation }) => {
                             setUserInfo(prev => ({ ...prev, availability: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.availability ? errors.availability : ' '}
+                    </Text>
 
                     <Text style={formInputStyles.label}>Location</Text>
                     <TextInput
@@ -252,10 +326,15 @@ const RegisterForm = ({ navigation }) => {
                             setUserInfo(prev => ({ ...prev, location: text }))
                         }
                     />
+                    <Text style={formErrorStyles.errorText}>
+                        {errors.location ? errors.location : ' '}
+                    </Text>
                 </>
             )}
 
-
+            <Text style={formErrorStyles.errorText}>
+                {generalError ? generalError : ' '}
+            </Text>
 
             <CustomButton
                 title="Register"

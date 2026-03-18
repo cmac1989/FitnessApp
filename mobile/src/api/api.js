@@ -2,7 +2,8 @@ import axios from 'axios';
 import {getToken} from '../services/authService';
 
 const api = axios.create({
-    baseURL: 'http://192.168.40.48:8000',
+    // baseURL: 'http://192.168.40.48:8000',
+    baseURL: 'http://192.168.2.152:8000',
     timeout: 5000,
     withCredentials: true,
     headers: {

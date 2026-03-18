@@ -16,9 +16,9 @@ class TrainerProfile extends Model
         'location'
     ];
 
-    protected $casts = [
-        'specialties' => 'array',
-    ];
+//    protected $casts = [
+//        'specialties' => 'array',
+//    ];
 
     public function user()
     {

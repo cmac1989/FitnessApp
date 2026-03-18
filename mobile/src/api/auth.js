@@ -8,7 +8,14 @@ const registerUser = async (userData) => {
         return response.data;
     } catch(error) {
         console.log('error registering user', error.response?.data || error.message);
-        throw error;
+
+        const validationErrors = error.response?.data?.errors;
+        const message = error.response?.data?.message || 'Registration failed. Please try again.';
+
+        const formattedError = new Error(message);
+        formattedError.validationErrors = validationErrors || null;
+
+        throw formattedError;
     }
 };
 

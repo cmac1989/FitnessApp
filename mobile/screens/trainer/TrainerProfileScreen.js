@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useCallback} from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTrainerProfile } from '../../src/api/trainer';
@@ -18,8 +18,13 @@ const TrainerProfileScreen = ({ navigation }) => {
             }
 
             const response = await getTrainerProfile(token);
-            setTrainer(response);
-            console.log(response);
+
+            setTrainer({
+                ...response,
+                specialties: Array.isArray(response.specialties)
+                    ? response.specialties.join(', ')
+                    : response.specialties,
+            });
         } catch (err) {
             setError('Failed to load profile');
         } finally {

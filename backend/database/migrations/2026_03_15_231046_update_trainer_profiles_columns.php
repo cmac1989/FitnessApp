@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -9,8 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // No action needed.
-        // workout_sessions already contains scheduled_at.
+        // trainer_id already exists on workout_sessions
     }
 
     /**
@@ -18,6 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // No action needed.
+        // no-op
     }
 };

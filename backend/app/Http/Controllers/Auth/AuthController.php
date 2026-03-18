@@ -37,10 +37,10 @@ class AuthController extends Controller
 
         $trainerRules = [
             'certifications' => 'nullable|string',
-            'years_experience' => 'nullable|integer',
-            'specialties' => 'nullable|string',
-            'availability' => 'nullable|string',
-            'location' => 'nullable|string',
+            'years_experience' => 'nullable|integer|min:0',
+            'specialties' => 'nullable|string|max:1000',
+            'availability' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
         ];
 
         // Validate common fields first
@@ -104,6 +104,13 @@ class AuthController extends Controller
                     'profile_picture' => $user->profile_picture,
                     'bio' => $user->bio,
                 ],
+                'trainer_profile' => $user->role === 'trainer' ? [
+                    'certifications' => $user->trainerProfile?->certifications,
+                    'years_experience' => $user->trainerProfile?->years_experience,
+                    'specialties' => $user->trainerProfile?->specialties,
+                    'availability' => $user->trainerProfile?->availability,
+                    'location' => $user->trainerProfile?->location,
+                ] : null,
                 'token' => $token,
             ], 201);
 

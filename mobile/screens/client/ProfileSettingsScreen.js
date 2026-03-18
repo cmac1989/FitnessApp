@@ -1,26 +1,74 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import {useNavigation} from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import {userLogout} from "../../src/api/auth";
+import {userLogout} from '../../src/api/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getTrainerProfile, updateTrainerProfile} from '../../src/api/trainer';
 
 const ProfileSettingsScreen = () => {
     const navigation = useNavigation();
-    // Mock profile info — eventually you'd fetch this from your API
+
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     const [profile, setProfile] = useState({
-        name: 'Jordan Lee',
-        email: 'jordan.trainer@example.com',
-        certifications: 'Animal Flow',
-        experience: '14 years',
-        specialties: 'Strength Training',
-        bio: 'I am a coach',
-        availability: 'full-time',
-        location: 'Canada',
+        id: '',
+        name: '',
+        email: '',
+        certifications: '',
+        years_experience: '',
+        specialties: '',
+        bio: '',
+        availability: '',
+        location: '',
     });
 
-    const handleSaveChanges = () => {
-        // Add API call here later
+    const fetchTrainerProfile = async () => {
+        try {
+            const token = await AsyncStorage.getItem('auth_token');
+            if (!token) {return;}
+
+            const response = await getTrainerProfile(token);
+            const profileData = response.data || response;
+
+            setProfile({
+                ...profileData,
+                years_experience: profileData.years_experience?.toString() || '',
+                specialties: Array.isArray(profileData.specialties)
+                    ? profileData.specialties.join(', ')
+                    : (profileData.specialties || ''),
+                availability: profileData.availability || '',
+                location: profileData.location || '',
+                certifications: profileData.certifications || '',
+                bio: profileData.bio || '',
+            });
+        } catch (err) {
+            console.error('Error fetching profile:', err);
+            setError('Failed to load profile');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTrainerProfile();
+    }, []);
+
+    const handleSaveChanges = async () => {
+        try {
+            await updateTrainerProfile(profile.id, {
+                ...profile,
+                years_experience: profile.years_experience === '' ? null : parseInt(profile.years_experience, 10),
+            });
+            // eslint-disable-next-line no-catch-shadow,no-shadow
+        } catch(error) {
+            console.error('Cannot update profile', error);
+            Alert.alert('Error', 'Could not update profile.');
+            return;
+        }
+
+        navigation.goBack();
         Alert.alert('Profile Updated', 'Your changes have been saved.');
     };
 
@@ -30,7 +78,7 @@ const ProfileSettingsScreen = () => {
             Alert.alert('Logged Out', 'You have been logged out.');
             navigation.navigate('Home');
         } catch (error) {
-            console.error('error logging out', error);
+            console.error('Error logging out:', error);
             Alert.alert('Error', 'Something went wrong logging out.');
         }
     };
@@ -53,50 +101,50 @@ const ProfileSettingsScreen = () => {
                     value={profile.email}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
                     keyboardType="email-address"
+                    editable={false}
                 />
 
                 <Text style={styles.label}>Certifications</Text>
                 <TextInput
                     style={styles.input}
                     value={profile.certifications}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
-                    keyboardType="email-address"
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, certifications: text }))}
                 />
 
                 <Text style={styles.label}>Years Experience</Text>
                 <TextInput
                     style={styles.input}
-                    value={profile.experience}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
-                    keyboardType="email-address"
+                    value={profile.years_experience}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, years_experience: text }))}
+                    keyboardType="numeric"
                 />
 
                 <Text style={styles.label}>Specialties</Text>
                 <TextInput
                     style={styles.input}
                     value={profile.specialties}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialties: text }))}
                 />
 
                 <Text style={styles.label}>Bio</Text>
                 <TextInput
                     style={styles.input}
                     value={profile.bio}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
                 />
 
                 <Text style={styles.label}>Availability</Text>
                 <TextInput
                     style={styles.input}
                     value={profile.availability}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, availability: text }))}
                 />
 
                 <Text style={styles.label}>Location</Text>
                 <TextInput
                     style={styles.input}
                     value={profile.location}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialty: text }))}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, location: text }))}
                 />
 
                 <CustomButton title="Save Changes" onPress={handleSaveChanges} />
@@ -109,8 +157,7 @@ const ProfileSettingsScreen = () => {
     );
 };
 
-//TODO store in its own file
-
+// Styles
 const styles = StyleSheet.create({
     container: {
         padding: 20,

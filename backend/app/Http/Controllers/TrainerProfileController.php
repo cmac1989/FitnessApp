@@ -55,13 +55,13 @@ class TrainerProfileController extends Controller
 
         // Validate the incoming data
         $validatedData = $request->validate([
-            'name' => 'nullable|string',
-            'certifications' => 'nullable|string',
-            'years_experience' => 'nullable|integer',
-            'specialties' => 'nullable|string',
-            'availability' => 'nullable|string',
-            'location' => 'nullable|string',
-            'bio' => 'nullable|string' // Bio will be updated in users table
+            'name' => 'nullable|string|max:255',
+            'certifications' => 'nullable|string|max:255',
+            'years_experience' => 'nullable|integer|min:0',
+            'specialties' => 'nullable|string|max:1000',
+            'availability' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'bio' => 'nullable|string|max:500',
         ]);
 
         // Start a transaction to ensure atomic updates
@@ -92,7 +92,18 @@ class TrainerProfileController extends Controller
             // Return a success response
             return response()->json([
                 'message' => 'Trainer profile updated successfully',
-                'profile' => $trainerProfile
+                'profile' => [
+                    'id' => $trainer->id,
+                    'name' => $trainer->name,
+                    'email' => $trainer->email,
+                    'certifications' => $trainerProfile->certifications,
+                    'years_experience' => $trainerProfile->years_experience,
+                    'specialties' => $trainerProfile->specialties,
+                    'availability' => $trainerProfile->availability,
+                    'location' => $trainerProfile->location,
+                    'bio' => $trainer->bio,
+                    'profile_picture' => $trainer->profile_picture,
+                ],
             ]);
 
         } catch (\Exception $e) {
