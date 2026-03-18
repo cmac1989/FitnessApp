@@ -2,11 +2,10 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-import SessionsScreen from '../screens/trainer/SessionsScreen';
-import ClientsListScreen from '../screens/trainer/ClientsListScreen';
-import ProfileSettingsScreen from '../screens/trainer/ProfileSettingsScreen';
-import WorkoutListScreen from '../screens/trainer/WorkoutListScreen';
 import ClientDashboardScreen from '../screens/client/ClientDashboardScreen';
+import ClientSessionsScreen from '../screens/client/ClientSessionsScreen';
+import ClientWorkoutListScreen from '../screens/client/ClientWorkoutListScreen';
+import ClientProfileScreen from '../screens/client/ClientProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -28,43 +27,34 @@ const ClientTabNavigator = () => {
                 component={ClientDashboardScreen}
                 options={{
                     tabBarLabel: 'Home',
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color }) => (
                         <Icon name="home-outline" color={color} size={24} />
                     ),
                 }}
             />
             <Tab.Screen
-                name="Clients"
-                component={ClientsListScreen}
-                options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <Icon name="people-outline" color={color} size={24} />
-                    ),
-                }}
-            />
-            <Tab.Screen
                 name="Sessions"
-                component={SessionsScreen}
+                component={ClientSessionsScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color }) => (
                         <Icon name="calendar-outline" color={color} size={24} />
                     ),
                 }}
             />
             <Tab.Screen
                 name="Workout"
-                component={WorkoutListScreen}
+                component={ClientWorkoutListScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color }) => (
                         <Icon name="barbell-outline" color={color} size={24} />
                     ),
                 }}
             />
             <Tab.Screen
                 name="Profile"
-                component={ProfileSettingsScreen}
+                component={ClientProfileScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color }) => (
                         <Icon name="person-outline" color={color} size={24} />
                     ),
                 }}
