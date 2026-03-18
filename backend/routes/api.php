@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClientDashboardController;
 use App\Http\Controllers\ClientProfileController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
@@ -21,6 +22,10 @@ Route::get('/test', function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [UserController::class, 'getUserProfile']);
+
+    Route::prefix('client')->group(function () {
+        Route::get('/stats', [ClientDashboardController::class, 'getStats']);
+    });
 
     Route::prefix('trainer')->group(function () {
         Route::get('/stats', [TrainerDashboardController::class, 'getStats']);

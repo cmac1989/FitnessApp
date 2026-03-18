@@ -24,4 +24,15 @@ api.interceptors.request.use(
     }
 );
 
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        if (error.response?.status === 401) {
+            const { removeToken } = await import('../services/authService');
+            await removeToken();
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default api;
