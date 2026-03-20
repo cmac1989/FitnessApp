@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\ClientDashboardController;
 use App\Http\Controllers\ClientProfileController;
+use App\Http\Controllers\ClientSessionController;
+use App\Http\Controllers\ClientWorkoutController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TrainerProfileController;
@@ -25,6 +27,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('client')->group(function () {
         Route::get('/stats', [ClientDashboardController::class, 'getStats']);
+        Route::get('/sessions', [ClientSessionController::class, 'index']);
+        Route::get('/sessions/{id}', [ClientSessionController::class, 'show']);
+        Route::get('/workouts', [ClientWorkoutController::class, 'index']);
+        Route::get('/workouts/{id}', [ClientWorkoutController::class, 'show']);
+        Route::get('/profile', [ClientProfileController::class, 'getProfile']);
+        Route::patch('/profile/{id}', [ClientProfileController::class, 'updateProfile']);
     });
 
     Route::prefix('trainer')->group(function () {
