@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.php$\")",
+      "Bash(grep -r \"TODO\\\\|FIXME\\\\|BUG\\\\|broken\\\\|missing\" /c/Users/CameronMcRae/Documents/Github/github/FitnessApp/backend --include=*.php)"
+    ]
+  }
+}

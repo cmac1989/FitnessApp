@@ -1,10 +1,10 @@
 import axios from 'axios';
-import {getToken} from '../services/authService';
+import { getToken, removeToken, removeUser } from '../services/authService';
+import { API_BASE_URL } from '../config';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8000',
-    timeout: 5000,
-    withCredentials: true,
+    baseURL: API_BASE_URL,
+    timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -18,17 +18,15 @@ api.interceptors.request.use(
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         if (error.response?.status === 401) {
-            const { removeToken } = await import('../services/authService');
             await removeToken();
+            await removeUser();
         }
         return Promise.reject(error);
     }

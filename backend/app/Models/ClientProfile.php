@@ -11,11 +11,11 @@ class ClientProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'trainer_id',
         'age',
         'gender',
         'fitness_goals',
-        'medical_conditions'
-
+        'medical_conditions',
     ];
 
     public function user() {
