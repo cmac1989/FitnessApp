@@ -27,6 +27,7 @@ const ClientTabNavigator = () => {
                 name="ClientDashboard"
                 component={ClientDashboardScreen}
                 options={{
+                    tabBarLabel: 'Home',
                     tabBarIcon: ({ color, size }) => (
                         <Icon name="home-outline" color={color} size={24} />
                     ),
