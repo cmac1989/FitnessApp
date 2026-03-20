@@ -27,13 +27,19 @@ const ProfileSettingsScreen = () => {
     const fetchTrainerProfile = async () => {
         try {
             const token = await AsyncStorage.getItem('auth_token');
-            if (!token) {return;}
+            if (!token) { return; }
 
             const response = await getTrainerProfile(token);
-
             const profileData = response.data || response;
 
-            setProfile(profileData);
+            // Convert specialties array to comma-separated string for the TextInput
+            setProfile({
+                ...profileData,
+                specialties: Array.isArray(profileData.specialties)
+                    ? profileData.specialties.join(', ')
+                    : profileData.specialties ?? '',
+                years_experience: profileData.years_experience?.toString() ?? '',
+            });
         } catch (err) {
             console.error('Error fetching profile:', err);
             setError('Failed to load profile');
@@ -51,12 +57,17 @@ const ProfileSettingsScreen = () => {
             await updateTrainerProfile(profile.id, {
                 ...profile,
                 years_experience: parseInt(profile.years_experience) || 0,
+                specialties: profile.specialties
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean),
             });
-        } catch(error) {
+            navigation.goBack();
+            Alert.alert('Profile Updated', 'Your changes have been saved.');
+        } catch (error) {
             console.error('Cannot update profile', error);
+            Alert.alert('Error', 'Failed to save changes.');
         }
-        navigation.goBack();
-        Alert.alert('Profile Updated', 'Your changes have been saved.');
     };
 
     const handleLogout = async () => {
@@ -100,7 +111,8 @@ const ProfileSettingsScreen = () => {
                 <Text style={styles.label}>Years Experience</Text>
                 <TextInput
                     style={styles.input}
-                    value={profile.years_experience.toString()}
+                    // value={profile.years_experience.toString()}
+                    value={profile.years_experience?.toString() ?? ''}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, years_experience: text }))}
                 />
 

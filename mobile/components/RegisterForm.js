@@ -6,6 +6,7 @@ import {registerUser} from '../src/api/auth';
 import { useFocusEffect } from '@react-navigation/native';
 import formErrorStyles from '../styles/FormErrorStyles';
 import { validateRegisterForm, validateField } from '../src/utils/validation';
+import { Picker } from '@react-native-picker/picker';
 
 const RegisterForm = ({ navigation }) => {
     useFocusEffect(
@@ -26,7 +27,7 @@ const RegisterForm = ({ navigation }) => {
                 certifications: '',
                 years_experience: '',
                 specialties: '',
-                availability: '',
+                availability: 'available',
                 location: '',
             });
             setErrors({});
@@ -49,12 +50,22 @@ const RegisterForm = ({ navigation }) => {
         certifications: '',
         years_experience: '',
         specialties: '',
-        availability: '',
+        availability: 'available',
         location: '',
     });
 
     const [errors, setErrors] = useState({});
     const [generalError, setGeneralError] = useState('');
+
+    const normalizeTrainerPayload = (data) => ({
+        ...data,
+        years_experience: data.years_experience === '' ? null : parseInt(data.years_experience, 10),
+        specialties: data.specialties
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean),
+        availability: data.availability,
+    });
 
     const handleRegister = async () => {
         const validationErrors = validateRegisterForm(userInfo);
@@ -65,7 +76,16 @@ const RegisterForm = ({ navigation }) => {
         }
         try {
             setGeneralError('');
-            await registerUser(userInfo);
+            setErrors({});
+
+            const payload = userInfo.role === 'trainer'
+                ? normalizeTrainerPayload(userInfo)
+                : {
+                    ...userInfo,
+                    years_experience: userInfo.years_experience === '' ? null : parseInt(userInfo.years_experience, 10),
+                };
+
+            await registerUser(payload);
             navigation.navigate('Login');
         } catch (error) {
             const backendErrors = error.validationErrors || {};
@@ -74,10 +94,18 @@ const RegisterForm = ({ navigation }) => {
             );
 
             if (Object.keys(flattenedErrors).length > 0) {
-                setErrors(prev => ({ ...prev, ...flattenedErrors }));
+                setErrors(prev => ({...prev, ...flattenedErrors}));
+                setGeneralError('Please fix the errors below.');
+            } else {
+                setGeneralError(error.message || 'Registration failed. Please try again.');
             }
 
-            setGeneralError(error.message || 'Registration failed. Please try again.');
+            console.error('Registration failed:', {
+                message: error.message,
+                status: error.status,
+                validationErrors: error.validationErrors,
+                raw: error.raw,
+            });
         }
     };
 
@@ -294,7 +322,7 @@ const RegisterForm = ({ navigation }) => {
                     <Text style={formInputStyles.label}>Specialties</Text>
                     <TextInput
                         style={formInputStyles.input}
-                        placeholder="Specialties (comma separated)"
+                        placeholder="Strength Training, Weight Loss"
                         value={userInfo.specialties}
                         onChangeText={text =>
                             setUserInfo(prev => ({ ...prev, specialties: text }))
@@ -305,14 +333,26 @@ const RegisterForm = ({ navigation }) => {
                     </Text>
 
                     <Text style={formInputStyles.label}>Availability</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="Available times/days"
-                        value={userInfo.availability}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, availability: text }))
-                        }
-                    />
+                    <View style={formInputStyles.roleContainer}>
+                        {['available', 'unavailable'].map((option) => (
+                            <Pressable
+                                key={option}
+                                onPress={() => setUserInfo(prev => ({ ...prev, availability: option }))}
+                                style={({ pressed }) => [
+                                    formInputStyles.roleButton,
+                                    userInfo.availability === option && formInputStyles.activeRoleButton,
+                                    pressed && formInputStyles.pressedButton,
+                                ]}
+                            >
+                                <Text style={[
+                                    formInputStyles.roleButtonText,
+                                    userInfo.availability === option && formInputStyles.activeRoleButtonText,
+                                ]}>
+                                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                                </Text>
+                            </Pressable>
+                        ))}
+                    </View>
                     <Text style={formErrorStyles.errorText}>
                         {errors.availability ? errors.availability : ' '}
                     </Text>
@@ -343,5 +383,4 @@ const RegisterForm = ({ navigation }) => {
         </ScrollView>
     );
 };
-
 export default RegisterForm;

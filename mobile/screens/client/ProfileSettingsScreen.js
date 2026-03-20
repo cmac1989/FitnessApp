@@ -61,7 +61,6 @@ const ProfileSettingsScreen = () => {
                 ...profile,
                 years_experience: profile.years_experience === '' ? null : parseInt(profile.years_experience, 10),
             });
-            // eslint-disable-next-line no-catch-shadow,no-shadow
         } catch(error) {
             console.error('Cannot update profile', error);
             Alert.alert('Error', 'Could not update profile.');

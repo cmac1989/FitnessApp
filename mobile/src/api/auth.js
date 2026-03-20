@@ -7,13 +7,19 @@ const registerUser = async (userData) => {
         console.log('User registered successfully:', response.data);
         return response.data;
     } catch(error) {
-        console.log('error registering user', error.response?.data || error.message);
+        const status = error.response?.status;
+        const data = error.response?.data || {};
 
-        const validationErrors = error.response?.data?.errors;
-        const message = error.response?.data?.message || 'Registration failed. Please try again.';
+        console.log('error registering user', {
+            status,
+            message: data.message || error.message,
+            errors: data.errors || null,
+        });
 
-        const formattedError = new Error(message);
-        formattedError.validationErrors = validationErrors || null;
+        const formattedError = new Error(data.message || 'Registration failed. Please try again.');
+        formattedError.status = status;
+        formattedError.validationErrors = data.errors || null;
+        formattedError.raw = data;
 
         throw formattedError;
     }

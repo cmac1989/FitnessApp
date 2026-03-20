@@ -15,7 +15,12 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        Log::info('Register request payload:', $request->all());
+        Log::info('Register request received', [
+            'email' => $request->input('email'),
+            'role' => $request->input('role'),
+            'has_name' => filled($request->input('name')),
+            'fields' => array_keys($request->all()),
+        ]);
 
         // Common validation rules
         $commonRules = [
@@ -36,21 +41,30 @@ class AuthController extends Controller
         ];
 
         $trainerRules = [
-            'certifications' => 'nullable|string',
+            'certifications' => 'nullable|string|max:255',
             'years_experience' => 'nullable|integer|min:0',
-            'specialties' => 'nullable|string|max:1000',
+            'specialties' => 'nullable|array',
+            'specialties.*' => 'nullable|string|max:1000',
             'availability' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
         ];
 
-        // Validate common fields first
-        $fields = $request->validate($commonRules);
+        try {
+            $fields = $request->validate($commonRules);
 
-        // Validate role-specific fields
-        if ($request->role === 'client') {
-            $fields += $request->validate($clientRules);
-        } elseif ($request->role === 'trainer') {
-            $fields += $request->validate($trainerRules);
+            if ($request->role === 'client') {
+                $fields += $request->validate($clientRules);
+            } elseif ($request->role === 'trainer') {
+                $fields += $request->validate($trainerRules);
+            }
+        } catch (ValidationException $e) {
+            Log::warning('Registration validation failed', [
+                'email' => $request->input('email'),
+                'role' => $request->input('role'),
+                'errors' => $e->errors(),
+            ]);
+
+            throw $e;
         }
 
         DB::beginTransaction();
@@ -91,6 +105,7 @@ class AuthController extends Controller
 
             DB::commit();
 
+            $user->load('trainerProfile');
             // Generate token
             $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -116,6 +131,14 @@ class AuthController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            Log::error('Registration failed with exception', [
+                'email' => $fields['email'] ?? null,
+                'role' => $fields['role'] ?? null,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'message' => 'Registration failed',
                 'error' => $e->getMessage(),

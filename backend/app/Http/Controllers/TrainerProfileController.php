@@ -58,7 +58,8 @@ class TrainerProfileController extends Controller
             'name' => 'nullable|string|max:255',
             'certifications' => 'nullable|string|max:255',
             'years_experience' => 'nullable|integer|min:0',
-            'specialties' => 'nullable|string|max:1000',
+            'specialties' => 'nullable|array',
+            'specialties.*' => 'nullable|string|max:1000',
             'availability' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'bio' => 'nullable|string|max:500',
@@ -79,10 +80,10 @@ class TrainerProfileController extends Controller
 
             // Also update the bio in the users table if provided
             if (isset($validatedData['bio']) || isset($validatedData['name'])) {
-                $trainer = $trainerProfile->user; // Assuming trainerProfile has a 'user' relationship
-                $trainer->update([
-                    'bio' => $validatedData['bio'] ?? $trainer->bio,
-                    'name' => $validatedData['name'] ?? $trainer->name,
+                $user = $trainerProfile->user;
+                $user->update([
+                    'bio' => $validatedData['bio'] ?? $user->bio,
+                    'name' => $validatedData['name'] ?? $user->name,
                 ]);
             }
 
@@ -93,16 +94,16 @@ class TrainerProfileController extends Controller
             return response()->json([
                 'message' => 'Trainer profile updated successfully',
                 'profile' => [
-                    'id' => $trainer->id,
-                    'name' => $trainer->name,
-                    'email' => $trainer->email,
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
                     'certifications' => $trainerProfile->certifications,
                     'years_experience' => $trainerProfile->years_experience,
                     'specialties' => $trainerProfile->specialties,
                     'availability' => $trainerProfile->availability,
                     'location' => $trainerProfile->location,
-                    'bio' => $trainer->bio,
-                    'profile_picture' => $trainer->profile_picture,
+                    'bio' => $user->bio,
+                    'profile_picture' => $user->profile_picture,
                 ],
             ]);
 
@@ -112,6 +113,4 @@ class TrainerProfileController extends Controller
             return response()->json(['error' => 'Failed to update trainer profile'], 500);
         }
     }
-
-
 }

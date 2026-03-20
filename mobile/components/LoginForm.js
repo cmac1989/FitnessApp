@@ -15,8 +15,8 @@ const LoginForm = ({ navigation }) => {
         useCallback(() => {
             // Reset form state when screen comes into focus
             setUserInfo({
-                email: 'w@w.com',
-                password: 'password',
+                email: 'trainer@example.com',
+                password: 'Test1234!',
             });
             setErrors({});
         }, [])
