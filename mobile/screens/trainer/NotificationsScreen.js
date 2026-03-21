@@ -1,10 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import {getUserNotifications, markNotificationsAsRead} from '../../src/api/notification';
 import {useFocusEffect} from '@react-navigation/native';
 
 const NotificationsScreen = () => {
     const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -22,11 +23,14 @@ const NotificationsScreen = () => {
     };
 
     const fetchNotifications = async () => {
+        setLoading(true);
         try {
             const data = await getUserNotifications();
             setNotifications(data);
         } catch(error) {
             console.error('Error fetching notifications', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -64,16 +68,31 @@ const NotificationsScreen = () => {
         );
     };
 
+    const renderEmpty = () => {
+        if (loading) return null;
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>No Notifications</Text>
+                <Text style={styles.emptySubtitle}>You're all caught up. Notifications will appear here.</Text>
+            </View>
+        );
+    };
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Notifications</Text>
 
-            <FlatList
-                data={notifications}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderItem}
-                contentContainerStyle={styles.listContent}
-            />
+            {loading ? (
+                <ActivityIndicator size="large" color="#007bff" style={styles.loader} />
+            ) : (
+                <FlatList
+                    data={notifications}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={renderEmpty}
+                />
+            )}
         </View>
     );
 };
@@ -130,6 +149,30 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         backgroundColor: '#ff4d4d',
         marginRight: 8,
+    },
+    loader: {
+        marginTop: 40,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: 60,
+        paddingHorizontal: 30,
+    },
+    emptyIcon: {
+        fontSize: 52,
+        marginBottom: 16,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#333',
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: '#888',
+        textAlign: 'center',
+        lineHeight: 20,
     },
 });
 

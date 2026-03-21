@@ -5,6 +5,10 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+// Suppress deprecation notices from vendor code (e.g. PDO::MYSQL_ATTR_SSL_CA in PHP 8.5)
+// These would otherwise corrupt JSON API responses by prepending HTML to the body.
+error_reporting(E_ALL & ~E_DEPRECATED);
+
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;

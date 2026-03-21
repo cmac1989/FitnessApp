@@ -39,46 +39,46 @@ const LoginForm = ({ navigation }) => {
         try {
             const response = await userLogin({ email: userInfo.email, password: userInfo.password });
 
-            // Check if response contains a token and save it
-            if (response && response.token) {
-                await saveToken(response.token);
+            if (!response?.token || !response?.user) {
+                setErrors(prev => ({ ...prev, general: 'Unexpected response from server. Please try again.' }));
+                return;
+            }
 
-                // Store user data in AsyncStorage
-                const userData = {
-                    id: response.user.id,
-                    name: response.user.name,
-                    email: response.user.email,
-                    role: response.user.role,
-                    profile_picture: response.user.profile_picture,
-                    bio: response.user.bio,
-                };
+            await saveToken(response.token);
 
-                await AsyncStorage.setItem('user', JSON.stringify(userData));
+            const userData = {
+                id: response.user.id,
+                name: response.user.name,
+                email: response.user.email,
+                role: response.user.role,
+                profile_picture: response.user.profile_picture,
+                bio: response.user.bio,
+            };
 
-                if (response.user.role === 'trainer') {
-                    navigation.navigate('TrainerHome');
-                } else {
-                    navigation.navigate('ClientHome');
-                }
+            await AsyncStorage.setItem('user', JSON.stringify(userData));
+
+            if (response.user.role === 'trainer') {
+                navigation.navigate('TrainerHome');
             } else {
-                // Add more detailed error handling
-                setErrors(prev => ({
-                    ...prev,
-                    general: 'Invalid login credentials. Please check your email and password.',
-                }));
+                navigation.navigate('ClientHome');
             }
         } catch (error) {
-            console.error('Login failed:', error.response || error.message || error);  // Detailed log
+            console.error('Login failed:', error.response?.data || error.message);
 
             if (error.response?.status === 401) {
                 setErrors(prev => ({
                     ...prev,
-                    general: error.response?.data?.message || 'Invalid credentials.',
+                    general: 'Incorrect email or password.',
+                }));
+            } else if (error.response) {
+                setErrors(prev => ({
+                    ...prev,
+                    general: error.response.data?.message || 'Login failed. Please try again.',
                 }));
             } else {
                 setErrors(prev => ({
                     ...prev,
-                    general: 'Login failed, please try again later.',
+                    general: 'Cannot connect to server. Check your connection.',
                 }));
             }
         }

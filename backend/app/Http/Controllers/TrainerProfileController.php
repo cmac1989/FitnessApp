@@ -45,13 +45,8 @@ class TrainerProfileController extends Controller
     public function update(Request $request, $id) {
 
         $trainer = User::find(auth()->id());
-        $trainerProfile = $trainer->trainerProfile;
-
-        \Log::info('Trainer Profile q' . $trainerProfile);
-
-        if (!$trainerProfile) {
-            return response()->json(['message' => 'Trainer profile not found'], 404);
-        }
+        $trainerProfile = $trainer->trainerProfile
+            ?? TrainerProfile::create(['user_id' => $trainer->id]);
 
         // Validate the incoming data
         $validatedData = $request->validate([
@@ -78,9 +73,9 @@ class TrainerProfileController extends Controller
                 'location' => $validatedData['location'] ?? $trainerProfile->location,
             ]);
 
-            // Also update the bio in the users table if provided
+            // Also update the bio/name in the users table if provided
+            $user = $trainer;
             if (isset($validatedData['bio']) || isset($validatedData['name'])) {
-                $user = $trainerProfile->user;
                 $user->update([
                     'bio' => $validatedData['bio'] ?? $user->bio,
                     'name' => $validatedData['name'] ?? $user->name,

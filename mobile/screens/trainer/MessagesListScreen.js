@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { fetchConversations } from '../../src/api/message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,7 +45,7 @@ const MessagesListScreen = () => {
             setError(null);
         } catch (err) {
             console.error('Failed to fetch conversations:', err);
-            setError('Failed to load conversations. Please try again later.');
+            setError('Failed to load messages. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -99,20 +99,33 @@ const MessagesListScreen = () => {
         );
     };
 
+    const renderEmpty = () => (
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No Messages</Text>
+            <Text style={styles.emptySubtitle}>When a client messages you, it will appear here.</Text>
+        </View>
+    );
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Messages</Text>
 
             {loading ? (
-                <Text>Loading...</Text>
+                <ActivityIndicator size="large" color="#007bff" style={styles.loader} />
             ) : error ? (
-                <Text style={styles.errorText}>{error}</Text>
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={loadConversations}>
+                        <Text style={styles.retryButtonText}>Try Again</Text>
+                    </TouchableOpacity>
+                </View>
             ) : (
                 <FlatList
                     data={conversations}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={renderItem}
                     contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={renderEmpty}
                 />
             )}
         </View>
@@ -181,6 +194,42 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    loader: {
+        marginTop: 40,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: 60,
+        paddingHorizontal: 30,
+    },
+    emptyIcon: {
+        fontSize: 52,
+        marginBottom: 16,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#333',
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: '#888',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    retryButton: {
+        marginTop: 16,
+        backgroundColor: '#007bff',
+        paddingVertical: 10,
+        paddingHorizontal: 28,
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '600',
     },
 });
 

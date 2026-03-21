@@ -32,6 +32,7 @@ const userLogin = async (userData) => {
         return response.data;
     } catch(error) {
         console.error('error logging in user', error.response?.data || error.message);
+        throw error;
     }
 };
 

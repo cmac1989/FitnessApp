@@ -41,8 +41,11 @@ const ProfileSettingsScreen = () => {
                 years_experience: profileData.years_experience?.toString() ?? '',
             });
         } catch (err) {
-            console.error('Error fetching profile:', err);
-            setError('Failed to load profile');
+            if (err.response?.status !== 404) {
+                console.error('Error fetching profile:', err);
+                setError('Failed to load profile');
+            }
+            // 404 just means no profile yet — let the user fill it in
         } finally {
             setLoading(false);
         }
