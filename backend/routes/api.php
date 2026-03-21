@@ -26,16 +26,39 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'getUserProfile']);
 
     Route::prefix('client')->group(function () {
-        Route::get('/stats', [ClientDashboardController::class, 'getStats']);
+        Route::get('/dashboard', [ClientDashboardController::class, 'getDashboard']);
+        Route::get('/stats', [ClientDashboardController::class, 'getStats']); // alias
         Route::get('/sessions', [ClientSessionController::class, 'index']);
         Route::get('/sessions/{id}', [ClientSessionController::class, 'show']);
         Route::get('/workouts', [ClientWorkoutController::class, 'index']);
         Route::get('/workouts/{id}', [ClientWorkoutController::class, 'show']);
         Route::get('/profile', [ClientProfileController::class, 'getProfile']);
         Route::patch('/profile/{id}', [ClientProfileController::class, 'updateProfile']);
+
+        // Goals
+        Route::get('/goal', [ClientDashboardController::class, 'getGoal']);
+        Route::post('/goal', [ClientDashboardController::class, 'setGoal']);
+        Route::patch('/goal/{id}', [ClientDashboardController::class, 'updateGoal']);
+
+        // Metrics
+        Route::post('/metrics', [ClientDashboardController::class, 'logMetric']);
+        Route::get('/metrics/{type}', [ClientDashboardController::class, 'getMetrics']);
+
+        // Messages — order matters: specific routes before wildcards
+        Route::get('/messages/conversations', [MessageController::class, 'getLatestMessagesPerConversation']);
+        Route::post('/messages/mark-as-read', [MessageController::class, 'markAllAsRead']);
+        Route::get('/messages/{otherUserId}', [MessageController::class, 'getMessagesWithUser']);
+        Route::post('/messages', [MessageController::class, 'sendMessage']);
+
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAllAsRead']);
+        Route::get('/notifications/{id}', [NotificationController::class, 'show']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     });
 
     Route::prefix('trainer')->group(function () {
+        Route::get('/dashboard', [TrainerDashboardController::class, 'getDashboard']);
         Route::get('/stats', [TrainerDashboardController::class, 'getStats']);
 
         Route::apiResource('training-sessions', TrainingSessionController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -48,16 +71,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('workouts', WorkoutController::class)->only(['store', 'update', 'destroy']);
         Route::get('/workouts/', [WorkoutController::class, 'getTrainerWorkouts']);
         Route::get('/workouts/{id}', [WorkoutController::class, 'getTrainerWorkout']);
-        //TODO hook all the below up to the front end
-        Route::get('/messages', [MessageController::class, 'index']);
+
+        // Messages — order matters: specific routes before wildcards
         Route::get('/messages/unread-count', [MessageController::class, 'countUnreadMessages']);
         Route::get('/messages/conversations', [MessageController::class, 'getLatestMessagesPerConversation']);
-        Route::get('/messages/{otherUserId}', [MessageController::class, 'getMessagesWithUser']);
         Route::post('/messages/mark-as-read', [MessageController::class, 'markAllAsRead']);
-
+        Route::get('/messages/{otherUserId}', [MessageController::class, 'getMessagesWithUser']);
+        Route::get('/messages', [MessageController::class, 'index']);
         Route::post('/messages', [MessageController::class, 'sendMessage']);
-
-
         Route::post('/messages/{messageId}/read', [MessageController::class, 'markAsRead']);
 
         Route::get('/notifications', [NotificationController::class, 'index']);
@@ -65,7 +86,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAllAsRead']);
         Route::get('/notifications/{id}', [NotificationController::class, 'show']);
-        //TODO dont know if i'll need this
         Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     });
 });
