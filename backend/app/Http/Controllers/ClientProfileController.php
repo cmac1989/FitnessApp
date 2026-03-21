@@ -27,13 +27,11 @@ class ClientProfileController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $clientProfile = ClientProfile::with('trainer')
-            ->where('user_id', $user->id)
-            ->first();
+        $clientProfile = ClientProfile::firstOrCreate(
+            ['user_id' => $user->id]
+        );
 
-        if (!$clientProfile) {
-            return response()->json(['error' => 'Client profile not found'], 404);
-        }
+        $clientProfile->load('trainer');
 
         return response()->json([
             'id'                 => $user->id,
@@ -43,6 +41,7 @@ class ClientProfileController extends Controller
             'gender'             => $clientProfile->gender,
             'fitness_goals'      => $clientProfile->fitness_goals,
             'medical_conditions' => $clientProfile->medical_conditions,
+            'trainer_id'         => $clientProfile->trainer_id,
             'trainer_name'       => $clientProfile->trainer?->name,
         ]);
     }
@@ -55,11 +54,9 @@ class ClientProfileController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $clientProfile = ClientProfile::where('user_id', $user->id)->first();
-
-        if (!$clientProfile) {
-            return response()->json(['error' => 'Profile not found'], 404);
-        }
+        $clientProfile = ClientProfile::firstOrCreate(
+            ['user_id' => $user->id]
+        );
 
         $validated = $request->validate([
             'name'               => 'nullable|string|max:255',
@@ -95,6 +92,8 @@ class ClientProfileController extends Controller
                     'gender'             => $clientProfile->gender,
                     'fitness_goals'      => $clientProfile->fitness_goals,
                     'medical_conditions' => $clientProfile->medical_conditions,
+                    'trainer_id'         => $clientProfile->trainer_id,
+                    'trainer_name'       => $clientProfile->trainer?->name,
                 ],
             ]);
         } catch (\Exception $e) {
