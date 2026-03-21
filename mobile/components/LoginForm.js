@@ -1,33 +1,26 @@
-import React, {useCallback, useState} from 'react';
-import { View, Text, TextInput } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 import CustomButton from './CustomButton';
 import TextButton from './TextButton';
-import formInputStyles from '../styles/FormInputStyles';
-import formErrorStyles from '../styles/FormErrorStyles';
 import { validateLoginForm, validateField } from '../src/utils/validation';
 import { userLogin } from '../src/api/auth';
-import {useFocusEffect} from '@react-navigation/native';
-import {saveToken} from '../src/services/authService';
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from '@react-navigation/native';
+import { saveToken } from '../src/services/authService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../src/theme';
 
 const LoginForm = ({ navigation }) => {
+    const { theme } = useTheme();
+
+    const [userInfo, setUserInfo] = useState({ email: '', password: '' });
+    const [errors, setErrors] = useState({});
+
     useFocusEffect(
         useCallback(() => {
-            // Reset form state when screen comes into focus
-            setUserInfo({
-                email: 'trainer@example.com',
-                password: 'Test1234!',
-            });
+            setUserInfo({ email: 'trainer@example.com', password: 'Test1234!' });
             setErrors({});
         }, [])
     );
-
-    const [userInfo, setUserInfo] = useState({
-        email: '',
-        password: '',
-    });
-
-    const [errors, setErrors] = useState({});
 
     const handleLogin = async () => {
         const validationErrors = validateLoginForm(userInfo);
@@ -66,31 +59,24 @@ const LoginForm = ({ navigation }) => {
             console.error('Login failed:', error.response?.data || error.message);
 
             if (error.response?.status === 401) {
-                setErrors(prev => ({
-                    ...prev,
-                    general: 'Incorrect email or password.',
-                }));
+                setErrors(prev => ({ ...prev, general: 'Incorrect email or password.' }));
             } else if (error.response) {
-                setErrors(prev => ({
-                    ...prev,
-                    general: error.response.data?.message || 'Login failed. Please try again.',
-                }));
+                setErrors(prev => ({ ...prev, general: error.response.data?.message || 'Login failed. Please try again.' }));
             } else {
-                setErrors(prev => ({
-                    ...prev,
-                    general: 'Cannot connect to server. Check your connection.',
-                }));
+                setErrors(prev => ({ ...prev, general: 'Cannot connect to server. Check your connection.' }));
             }
         }
     };
 
+    const styles = makeStyles(theme);
 
     return (
-        <View style={formInputStyles.container}>
-            <Text style={formInputStyles.label}>Email</Text>
+        <View style={styles.container}>
+            <Text style={styles.label}>Email</Text>
             <TextInput
-                style={formInputStyles.input}
+                style={styles.input}
                 placeholder="Enter your email"
+                placeholderTextColor={theme.placeholder}
                 value={userInfo.email}
                 onChangeText={text => {
                     setUserInfo(prev => ({ ...prev, email: text }));
@@ -100,15 +86,15 @@ const LoginForm = ({ navigation }) => {
                 keyboardType="email-address"
                 textContentType="emailAddress"
                 autoComplete="email"
+                autoCapitalize="none"
             />
-            <Text style={formErrorStyles.errorText}>
-                {errors.email ? errors.email : ' '}
-            </Text>
+            {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : <View style={styles.errorSpacer} />}
 
-            <Text style={formInputStyles.label}>Password</Text>
+            <Text style={styles.label}>Password</Text>
             <TextInput
-                style={formInputStyles.input}
+                style={styles.input}
                 placeholder="Enter your password"
+                placeholderTextColor={theme.placeholder}
                 secureTextEntry
                 value={userInfo.password}
                 onChangeText={text => {
@@ -119,27 +105,63 @@ const LoginForm = ({ navigation }) => {
                 textContentType="password"
                 autoComplete="password"
             />
-            <Text style={formErrorStyles.errorText}>
-                {errors.password ? errors.password : ' '}
-            </Text>
+            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : <View style={styles.errorSpacer} />}
 
-            {errors.general ? (
-                <Text style={formErrorStyles.errorText}>{errors.general}</Text>
-            ) : null}
+            {errors.general ? <Text style={styles.errorText}>{errors.general}</Text> : null}
 
-            <CustomButton
-                title="Login"
-                onPress={handleLogin}
-            />
-            <View style={formInputStyles.registerContainer}>
-                <Text style={formInputStyles.registerText}>Not a registered user?</Text>
+            <CustomButton title="Login" onPress={handleLogin} />
+
+            <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>Not registered yet?</Text>
                 <TextButton
-                    title=" Click here to sign up"
+                    title=" Sign up here"
                     onPress={() => navigation.navigate('Register')}
                 />
             </View>
         </View>
     );
 };
+
+const makeStyles = (theme) => StyleSheet.create({
+    container: {
+        width: '85%',
+    },
+    label: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.textSecondary,
+        marginBottom: 6,
+        marginTop: 14,
+    },
+    input: {
+        height: 48,
+        borderWidth: 1,
+        borderColor: theme.inputBorder,
+        backgroundColor: theme.inputBackground,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        fontSize: 16,
+        color: theme.text,
+    },
+    errorText: {
+        color: theme.error,
+        fontSize: 13,
+        marginTop: 4,
+        marginBottom: 2,
+    },
+    errorSpacer: {
+        height: 18,
+    },
+    registerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 16,
+    },
+    registerText: {
+        fontSize: 15,
+        color: theme.textSecondary,
+    },
+});
 
 export default LoginForm;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
+import { useTheme } from '../src/theme';
 import ClientTabNavigator from '../components/ClientTabNavigator';
 import ClientSessionDetailScreen from '../screens/client/ClientSessionDetailScreen';
 import ClientWorkoutDetailsScreen from '../screens/client/ClientWorkoutDetailsScreen';
@@ -9,8 +10,25 @@ import MessagesScreen from '../screens/client/MessagesScreen';
 const Stack = createStackNavigator();
 
 const ClientStackNavigator = () => {
+    const { theme } = useTheme();
+
+    const headerOptions = {
+        headerStyle: {
+            backgroundColor: theme.navBar,
+            shadowColor: theme.navBarBorder,
+            elevation: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.navBarBorder,
+        },
+        headerTintColor: theme.navBarText,
+        headerTitleStyle: {
+            fontWeight: '600',
+            color: theme.navBarText,
+        },
+    };
+
     return (
-        <Stack.Navigator>
+        <Stack.Navigator screenOptions={headerOptions}>
             <Stack.Screen
                 name="Back"
                 component={ClientTabNavigator}

@@ -1,11 +1,14 @@
-import React, {useState, useCallback} from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
+import CustomButton from '../../components/CustomButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTrainerProfile } from '../../src/api/trainer';
-import ScreenWrapper from "../../components/ScreenWrapper";
-import {useFocusEffect} from "@react-navigation/native";
+import ScreenWrapper from '../../components/ScreenWrapper';
+import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from '../../src/theme';
 
 const TrainerProfileScreen = ({ navigation }) => {
+    const { theme } = useTheme();
     const [trainer, setTrainer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -19,10 +22,8 @@ const TrainerProfileScreen = ({ navigation }) => {
                 setError('not_setup');
                 return;
             }
-
             const response = await getTrainerProfile(token);
             const profileData = response.data || response;
-
             setTrainer({
                 ...profileData,
                 specialties: Array.isArray(profileData.specialties)
@@ -46,11 +47,15 @@ const TrainerProfileScreen = ({ navigation }) => {
         }, [])
     );
 
+    const styles = makeStyles(theme);
+
     if (loading) {
         return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#007bff" />
-            </View>
+            <ScreenWrapper title="Profile">
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color={theme.accent} />
+                </View>
+            </ScreenWrapper>
         );
     }
 
@@ -62,12 +67,10 @@ const TrainerProfileScreen = ({ navigation }) => {
                     <Text style={styles.emptySubtitle}>
                         Complete your trainer profile so clients can find you.
                     </Text>
-                    <TouchableOpacity
-                        style={styles.button}
+                    <CustomButton
+                        title="Set Up Profile"
                         onPress={() => navigation.navigate('ProfileEdit')}
-                    >
-                        <Text style={styles.buttonText}>Set Up Profile</Text>
-                    </TouchableOpacity>
+                    />
                 </View>
             </ScreenWrapper>
         );
@@ -78,9 +81,7 @@ const TrainerProfileScreen = ({ navigation }) => {
             <ScreenWrapper title="Profile">
                 <View style={styles.centered}>
                     <Text style={styles.errorText}>Failed to load profile.</Text>
-                    <TouchableOpacity style={styles.retryButton} onPress={fetchTrainerProfile}>
-                        <Text style={styles.retryButtonText}>Try Again</Text>
-                    </TouchableOpacity>
+                    <CustomButton title="Try Again" onPress={fetchTrainerProfile} />
                 </View>
             </ScreenWrapper>
         );
@@ -92,49 +93,50 @@ const TrainerProfileScreen = ({ navigation }) => {
                 <Text style={styles.header}>Trainer Profile</Text>
 
                 <View style={styles.card}>
-                    <ProfileItem label="Name" value={trainer.name} />
-                    <ProfileItem label="Email" value={trainer.email} />
-                    <ProfileItem label="Certifications" value={trainer.certifications} />
-                    <ProfileItem label="Years of Experience" value={trainer.years_experience} />
-                    <ProfileItem label="Specialties" value={trainer.specialties} />
-                    <ProfileItem label="Availability" value={trainer.availability} />
-                    <ProfileItem label="Location" value={trainer.location} />
-                    <ProfileItem label="Bio" value={trainer.bio} />
+                    <ProfileItem label="Name" value={trainer.name} theme={theme} />
+                    <ProfileItem label="Email" value={trainer.email} theme={theme} />
+                    <ProfileItem label="Certifications" value={trainer.certifications} theme={theme} />
+                    <ProfileItem label="Years of Experience" value={trainer.years_experience} theme={theme} />
+                    <ProfileItem label="Specialties" value={trainer.specialties} theme={theme} />
+                    <ProfileItem label="Availability" value={trainer.availability} theme={theme} />
+                    <ProfileItem label="Location" value={trainer.location} theme={theme} />
+                    <ProfileItem label="Bio" value={trainer.bio} theme={theme} />
                 </View>
 
-                <TouchableOpacity
-                    style={styles.button}
+                <CustomButton
+                    title="Edit Profile"
                     onPress={() => navigation.navigate('ProfileEdit')}
-                >
-                    <Text style={styles.buttonText}>Edit Profile</Text>
-                </TouchableOpacity>
+                />
             </ScrollView>
         </ScreenWrapper>
     );
 };
 
-const ProfileItem = ({ label, value }) => (
-    <View style={styles.item}>
-        <Text style={styles.itemLabel}>{label}</Text>
-        <Text style={styles.itemValue}>{value || 'N/A'}</Text>
-    </View>
-);
+const ProfileItem = ({ label, value, theme }) => {
+    const styles = makeStyles(theme);
+    return (
+        <View style={styles.item}>
+            <Text style={styles.itemLabel}>{label}</Text>
+            <Text style={styles.itemValue}>{value || 'N/A'}</Text>
+        </View>
+    );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     container: {
         padding: 20,
-        backgroundColor: '#f4f4f4',
+        backgroundColor: theme.background,
         paddingBottom: 40,
     },
     header: {
         fontSize: 28,
         fontWeight: 'bold',
         marginBottom: 25,
-        color: '#333',
+        color: theme.text,
         textAlign: 'center',
     },
     card: {
-        backgroundColor: '#fff',
+        backgroundColor: theme.card,
         borderRadius: 12,
         padding: 20,
         marginBottom: 30,
@@ -148,29 +150,26 @@ const styles = StyleSheet.create({
         marginBottom: 18,
     },
     itemLabel: {
-        fontSize: 16,
+        fontSize: 13,
         fontWeight: '600',
-        color: '#555',
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     itemValue: {
-        fontSize: 17,
-        color: '#222',
+        fontSize: 16,
+        color: theme.text,
         marginTop: 4,
     },
     button: {
-        backgroundColor: '#007bff',
+        backgroundColor: theme.accent,
         padding: 14,
         borderRadius: 10,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 3,
     },
     buttonText: {
         color: '#fff',
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '600',
     },
     centered: {
@@ -178,41 +177,27 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 30,
+        backgroundColor: theme.background,
     },
     errorText: {
-        fontSize: 18,
-        color: 'red',
+        fontSize: 17,
+        color: theme.error,
         marginBottom: 16,
         textAlign: 'center',
-    },
-    emptyIcon: {
-        fontSize: 60,
-        marginBottom: 16,
     },
     emptyTitle: {
         fontSize: 22,
         fontWeight: '700',
-        color: '#333',
+        color: theme.text,
         marginBottom: 10,
         textAlign: 'center',
     },
     emptySubtitle: {
         fontSize: 15,
-        color: '#666',
+        color: theme.textSecondary,
         textAlign: 'center',
         marginBottom: 28,
         lineHeight: 22,
-    },
-    retryButton: {
-        backgroundColor: '#007bff',
-        paddingVertical: 12,
-        paddingHorizontal: 32,
-        borderRadius: 10,
-    },
-    retryButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
     },
 });
 

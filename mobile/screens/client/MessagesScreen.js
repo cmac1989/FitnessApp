@@ -2,20 +2,24 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import { useTheme } from '../../src/theme';
 
 const MessagesScreen = () => {
     const route = useRoute();
     const { client } = route.params;
+    const { theme } = useTheme();
 
     const [messages, setMessages] = useState([
         { id: '1', text: 'Hey there! Excited for our next session?' },
-        { id: '2', text: 'Yes! Can we focus on core workouts this time?' }
+        { id: '2', text: 'Yes! Can we focus on core workouts this time?' },
     ]);
     const [newMessage, setNewMessage] = useState('');
 
+    const styles = makeStyles(theme);
+
     const handleSend = () => {
         if (newMessage.trim() === '') return;
-
         const newMsg = { id: Date.now().toString(), text: newMessage };
         setMessages(prev => [...prev, newMsg]);
         setNewMessage('');
@@ -28,49 +32,46 @@ const MessagesScreen = () => {
     );
 
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={90}
-        >
-            <Text style={styles.title}>Messages with {client.name}</Text>
-
-            <FlatList
-                data={messages}
-                keyExtractor={item => item.id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.messagesList}
-            />
-
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChangeText={setNewMessage}
+        <ScreenWrapper title={`Messages with ${client.name}`}>
+            <KeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={90}
+            >
+                <FlatList
+                    data={messages}
+                    keyExtractor={item => item.id}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.messagesList}
+                    style={styles.flex}
                 />
-                <CustomButton title="Send" onPress={handleSend} />
-            </View>
-        </KeyboardAvoidingView>
+
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Type your message..."
+                        placeholderTextColor={theme.placeholder}
+                        value={newMessage}
+                        onChangeText={setNewMessage}
+                    />
+                    <CustomButton title="Send" onPress={handleSend} />
+                </View>
+            </KeyboardAvoidingView>
+        </ScreenWrapper>
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
+const makeStyles = (theme) => StyleSheet.create({
+    flex: {
         flex: 1,
-        backgroundColor: '#f8f8f8',
-        padding: 20,
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 20,
+        backgroundColor: theme.background,
     },
     messagesList: {
-        paddingBottom: 20,
+        padding: 20,
+        paddingBottom: 10,
     },
     messageBubble: {
-        backgroundColor: '#e0e0e0',
+        backgroundColor: theme.theirMessageBubble,
         padding: 12,
         borderRadius: 10,
         marginBottom: 10,
@@ -79,21 +80,26 @@ const styles = StyleSheet.create({
     },
     messageText: {
         fontSize: 16,
+        color: theme.text,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
+        padding: 12,
         gap: 10,
+        borderTopWidth: 1,
+        borderTopColor: theme.divider,
+        backgroundColor: theme.card,
     },
     input: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: theme.inputBackground,
         padding: 12,
         borderRadius: 8,
-        borderColor: '#ddd',
+        borderColor: theme.inputBorder,
         borderWidth: 1,
         fontSize: 16,
+        color: theme.text,
     },
 });
 

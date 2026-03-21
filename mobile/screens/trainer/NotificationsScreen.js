@@ -1,9 +1,11 @@
-import React, {useEffect, useState} from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import {getUserNotifications, markNotificationsAsRead} from '../../src/api/notification';
-import {useFocusEffect} from '@react-navigation/native';
+import { getUserNotifications, markNotificationsAsRead } from '../../src/api/notification';
+import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from '../../src/theme';
 
 const NotificationsScreen = () => {
+    const { theme } = useTheme();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -27,7 +29,7 @@ const NotificationsScreen = () => {
         try {
             const data = await getUserNotifications();
             setNotifications(data);
-        } catch(error) {
+        } catch (error) {
             console.error('Error fetching notifications', error);
         } finally {
             setLoading(false);
@@ -36,12 +38,12 @@ const NotificationsScreen = () => {
 
     const handleNotificationPress = (notification) => {
         console.log('Tapped notification:', notification);
-        // Navigation logic based on notification.type could go here
     };
+
+    const styles = makeStyles(theme);
 
     const renderItem = ({ item }) => {
         const isRead = item.read_at !== null;
-
         return (
             <TouchableOpacity
                 style={[
@@ -52,16 +54,11 @@ const NotificationsScreen = () => {
             >
                 <View style={styles.row}>
                     {!isRead && <View style={styles.unreadDot} />}
-                    <Text
-                        style={[
-                            styles.notificationContent,
-                            !isRead && styles.unreadNotificationContent,
-                        ]}
-                    >
+                    <Text style={[styles.notificationContent, !isRead && styles.unreadContent]}>
                         {item.type}
                     </Text>
                 </View>
-                <Text style={styles.timestamp}>
+                <Text style={styles.notificationDetail}>
                     {item.data?.title || item.data?.trainer || 'No details available'}
                 </Text>
             </TouchableOpacity>
@@ -72,8 +69,8 @@ const NotificationsScreen = () => {
         if (loading) return null;
         return (
             <View style={styles.emptyContainer}>
-                <Text style={styles.emptyTitle}>No Notifications</Text>
-                <Text style={styles.emptySubtitle}>You're all caught up. Notifications will appear here.</Text>
+                <Text style={styles.emptyTitle}>All Caught Up</Text>
+                <Text style={styles.emptySubtitle}>No notifications right now. Check back later.</Text>
             </View>
         );
     };
@@ -83,7 +80,7 @@ const NotificationsScreen = () => {
             <Text style={styles.title}>Notifications</Text>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#007bff" style={styles.loader} />
+                <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
             ) : (
                 <FlatList
                     data={notifications}
@@ -97,47 +94,34 @@ const NotificationsScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
         padding: 20,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
     },
     listContent: {
         paddingBottom: 20,
     },
     notificationItem: {
-        backgroundColor: '#fff',
         padding: 16,
         borderRadius: 10,
         marginBottom: 12,
-        borderColor: '#ddd',
         borderWidth: 1,
     },
     readNotification: {
-        backgroundColor: '#f0f0f0',
-        borderColor: '#ccc',
+        backgroundColor: theme.readItemBackground,
+        borderColor: theme.border,
     },
     unreadNotification: {
-        backgroundColor: '#ffffff',
-        borderColor: '#444',
-    },
-    notificationContent: {
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    unreadNotificationContent: {
-        fontWeight: 'bold',
-    },
-    timestamp: {
-        fontSize: 13,
-        color: '#777',
-        marginTop: 5,
+        backgroundColor: theme.unreadItemBackground,
+        borderColor: theme.unreadItemBorder,
     },
     row: {
         flexDirection: 'row',
@@ -147,8 +131,21 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#ff4d4d',
+        backgroundColor: theme.error,
         marginRight: 8,
+    },
+    notificationContent: {
+        fontSize: 15,
+        fontWeight: '500',
+        color: theme.text,
+    },
+    unreadContent: {
+        fontWeight: 'bold',
+    },
+    notificationDetail: {
+        fontSize: 13,
+        color: theme.textSecondary,
+        marginTop: 5,
     },
     loader: {
         marginTop: 40,
@@ -158,19 +155,15 @@ const styles = StyleSheet.create({
         marginTop: 60,
         paddingHorizontal: 30,
     },
-    emptyIcon: {
-        fontSize: 52,
-        marginBottom: 16,
-    },
     emptyTitle: {
         fontSize: 20,
         fontWeight: '700',
-        color: '#333',
+        color: theme.text,
         marginBottom: 8,
     },
     emptySubtitle: {
         fontSize: 14,
-        color: '#888',
+        color: theme.textSecondary,
         textAlign: 'center',
         lineHeight: 20,
     },

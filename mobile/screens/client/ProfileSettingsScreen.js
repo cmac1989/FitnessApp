@@ -1,14 +1,16 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
 import CustomButton from '../../components/CustomButton';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import {userLogout} from '../../src/api/auth';
+import { userLogout } from '../../src/api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {getTrainerProfile, updateTrainerProfile} from '../../src/api/trainer';
+import { getTrainerProfile, updateTrainerProfile } from '../../src/api/trainer';
+import { useTheme } from '../../src/theme';
 
 const ProfileSettingsScreen = () => {
     const navigation = useNavigation();
+    const { theme } = useTheme();
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -24,10 +26,10 @@ const ProfileSettingsScreen = () => {
         location: '',
     });
 
-    const fetchTrainerProfile = async () => {
+    const fetchProfile = async () => {
         try {
             const token = await AsyncStorage.getItem('auth_token');
-            if (!token) {return;}
+            if (!token) { return; }
 
             const response = await getTrainerProfile(token);
             const profileData = response.data || response;
@@ -52,7 +54,7 @@ const ProfileSettingsScreen = () => {
     };
 
     useEffect(() => {
-        fetchTrainerProfile();
+        fetchProfile();
     }, []);
 
     const handleSaveChanges = async () => {
@@ -61,8 +63,8 @@ const ProfileSettingsScreen = () => {
                 ...profile,
                 years_experience: profile.years_experience === '' ? null : parseInt(profile.years_experience, 10),
             });
-        } catch(error) {
-            console.error('Cannot update profile', error);
+        } catch (err) {
+            console.error('Cannot update profile', err);
             Alert.alert('Error', 'Could not update profile.');
             return;
         }
@@ -76,11 +78,13 @@ const ProfileSettingsScreen = () => {
             await userLogout();
             Alert.alert('Logged Out', 'You have been logged out.');
             navigation.navigate('Home');
-        } catch (error) {
-            console.error('Error logging out:', error);
+        } catch (err) {
+            console.error('Error logging out:', err);
             Alert.alert('Error', 'Something went wrong logging out.');
         }
     };
+
+    const styles = makeStyles(theme);
 
     return (
         <ScreenWrapper title="Profile">
@@ -92,15 +96,19 @@ const ProfileSettingsScreen = () => {
                     style={styles.input}
                     value={profile.name}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, name: text }))}
+                    placeholderTextColor={theme.placeholder}
+                    color={theme.text}
                 />
 
                 <Text style={styles.label}>Email</Text>
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, styles.inputDisabled]}
                     value={profile.email}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
                     keyboardType="email-address"
                     editable={false}
+                    placeholderTextColor={theme.placeholder}
+                    color={theme.textSecondary}
                 />
 
                 <Text style={styles.label}>Certifications</Text>
@@ -108,6 +116,8 @@ const ProfileSettingsScreen = () => {
                     style={styles.input}
                     value={profile.certifications}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, certifications: text }))}
+                    placeholderTextColor={theme.placeholder}
+                    color={theme.text}
                 />
 
                 <Text style={styles.label}>Years Experience</Text>
@@ -116,6 +126,8 @@ const ProfileSettingsScreen = () => {
                     value={profile.years_experience}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, years_experience: text }))}
                     keyboardType="numeric"
+                    placeholderTextColor={theme.placeholder}
+                    color={theme.text}
                 />
 
                 <Text style={styles.label}>Specialties</Text>
@@ -123,6 +135,8 @@ const ProfileSettingsScreen = () => {
                     style={styles.input}
                     value={profile.specialties}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, specialties: text }))}
+                    placeholderTextColor={theme.placeholder}
+                    color={theme.text}
                 />
 
                 <Text style={styles.label}>Bio</Text>
@@ -130,6 +144,8 @@ const ProfileSettingsScreen = () => {
                     style={styles.input}
                     value={profile.bio}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
+                    placeholderTextColor={theme.placeholder}
+                    color={theme.text}
                 />
 
                 <Text style={styles.label}>Availability</Text>
@@ -137,6 +153,8 @@ const ProfileSettingsScreen = () => {
                     style={styles.input}
                     value={profile.availability}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, availability: text }))}
+                    placeholderTextColor={theme.placeholder}
+                    color={theme.text}
                 />
 
                 <Text style={styles.label}>Location</Text>
@@ -144,9 +162,13 @@ const ProfileSettingsScreen = () => {
                     style={styles.input}
                     value={profile.location}
                     onChangeText={(text) => setProfile(prev => ({ ...prev, location: text }))}
+                    placeholderTextColor={theme.placeholder}
+                    color={theme.text}
                 />
 
-                <CustomButton title="Save Changes" onPress={handleSaveChanges} />
+                <View style={styles.buttonRow}>
+                    <CustomButton title="Save Changes" onPress={handleSaveChanges} />
+                </View>
 
                 <View style={styles.divider} />
 
@@ -156,36 +178,44 @@ const ProfileSettingsScreen = () => {
     );
 };
 
-// Styles
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     container: {
         padding: 20,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
     },
     label: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
-        marginTop: 15,
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 18,
+        marginBottom: 6,
     },
     input: {
-        backgroundColor: '#fff',
+        backgroundColor: theme.inputBackground,
         padding: 12,
         borderRadius: 10,
-        marginTop: 5,
         fontSize: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 1 },
-        shadowRadius: 3,
+        borderWidth: 1,
+        borderColor: theme.inputBorder,
+        color: theme.text,
+    },
+    inputDisabled: {
+        opacity: 0.6,
+    },
+    buttonRow: {
+        marginTop: 28,
     },
     divider: {
         height: 1,
-        backgroundColor: '#ddd',
+        backgroundColor: theme.divider,
         marginVertical: 30,
     },
 });

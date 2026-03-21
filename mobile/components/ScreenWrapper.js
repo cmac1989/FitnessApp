@@ -1,10 +1,17 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, StatusBar } from 'react-native';
 import TopNavBar from './TopNavBar';
+import { useTheme } from '../src/theme';
 
 const ScreenWrapper = ({ children, title }) => {
+    const { theme } = useTheme();
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar
+                barStyle={theme.dark ? 'light-content' : 'dark-content'}
+                backgroundColor={theme.navBar}
+            />
             <TopNavBar title={title} />
             <View style={styles.content}>
                 {children}
@@ -16,7 +23,6 @@ const ScreenWrapper = ({ children, title }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f8f8',
     },
     content: {
         flex: 1,

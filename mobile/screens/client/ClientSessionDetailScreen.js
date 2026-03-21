@@ -2,10 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import { useTheme } from '../../src/theme';
 
 const ClientSessionDetailScreen = () => {
     const route = useRoute();
     const session = route.params?.session;
+    const { theme } = useTheme();
+
+    const styles = makeStyles(theme);
 
     if (!session) {
         return (
@@ -23,23 +27,12 @@ const ClientSessionDetailScreen = () => {
                 <Text style={styles.title}>Session Details</Text>
 
                 <View style={styles.card}>
-                    <Text style={styles.label}>Trainer</Text>
-                    <Text style={styles.value}>{session.trainer}</Text>
-
-                    <Text style={styles.label}>Date</Text>
-                    <Text style={styles.value}>{session.date}</Text>
-
-                    <Text style={styles.label}>Time</Text>
-                    <Text style={styles.value}>{session.time}</Text>
-
-                    <Text style={styles.label}>Location</Text>
-                    <Text style={styles.value}>{session.location}</Text>
-
+                    <DetailRow label="Trainer" value={session.trainer} theme={theme} />
+                    <DetailRow label="Date" value={session.date} theme={theme} />
+                    <DetailRow label="Time" value={session.time} theme={theme} />
+                    <DetailRow label="Location" value={session.location} theme={theme} />
                     {session.status ? (
-                        <>
-                            <Text style={styles.label}>Status</Text>
-                            <Text style={styles.value}>{session.status}</Text>
-                        </>
+                        <DetailRow label="Status" value={session.status} theme={theme} />
                     ) : null}
                 </View>
             </ScrollView>
@@ -47,45 +40,61 @@ const ClientSessionDetailScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const DetailRow = ({ label, value, theme }) => {
+    const styles = makeStyles(theme);
+    return (
+        <View style={styles.row}>
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.value}>{value ?? 'N/A'}</Text>
+        </View>
+    );
+};
+
+const makeStyles = (theme) => StyleSheet.create({
     container: {
         padding: 20,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
     },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: theme.background,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
     },
     card: {
-        backgroundColor: '#fff',
+        backgroundColor: theme.card,
         padding: 20,
-        borderRadius: 10,
+        borderRadius: 12,
         shadowColor: '#000',
         shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowRadius: 4,
         elevation: 2,
     },
+    row: {
+        marginBottom: 16,
+    },
     label: {
-        fontSize: 16,
+        fontSize: 13,
         fontWeight: '600',
-        marginTop: 15,
-        color: '#444',
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     value: {
         fontSize: 16,
-        color: '#333',
-        marginTop: 2,
+        color: theme.text,
+        marginTop: 4,
     },
     errorText: {
-        fontSize: 18,
-        color: 'red',
+        fontSize: 17,
+        color: theme.error,
     },
 });
 

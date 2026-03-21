@@ -1,6 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
+import { useTheme } from '../src/theme';
 import TrainerTabNavigator from '../components/TrainerTabNavigator';
 import CreateWorkoutScreen from '../screens/trainer/CreateWorkoutScreen';
 import CreateSessionScreen from '../screens/trainer/CreateSessionScreen';
@@ -10,17 +11,34 @@ import WorkoutDetailsScreen from '../screens/trainer/WorkoutDetailsScreen';
 import EditSessionScreen from '../screens/trainer/EditSessionScreen';
 import EditWorkoutScreen from '../screens/trainer/EditWorkoutScreen';
 import MessagesScreen from '../screens/trainer/MessagesScreen';
-import ClientProfileScreen from "../screens/client/ClientProfileScreen";
-import TrainerProfileScreen from "../screens/trainer/TrainerProfileScreen";
-import ProfileSettingsScreen from "../screens/trainer/ProfileSettingsScreen";
-import MessagesListScreen from "../screens/trainer/MessagesListScreen";
-import NotificationsScreen from "../screens/trainer/NotificationsScreen";
+import ClientProfileScreen from '../screens/client/ClientProfileScreen';
+import TrainerProfileScreen from '../screens/trainer/TrainerProfileScreen';
+import ProfileSettingsScreen from '../screens/trainer/ProfileSettingsScreen';
+import MessagesListScreen from '../screens/trainer/MessagesListScreen';
+import NotificationsScreen from '../screens/trainer/NotificationsScreen';
 
 const Stack = createStackNavigator();
 
 const TrainerStackNavigator = () => {
+    const { theme } = useTheme();
+
+    const headerOptions = {
+        headerStyle: {
+            backgroundColor: theme.navBar,
+            shadowColor: theme.navBarBorder,
+            elevation: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.navBarBorder,
+        },
+        headerTintColor: theme.navBarText,
+        headerTitleStyle: {
+            fontWeight: '600',
+            color: theme.navBarText,
+        },
+    };
+
     return (
-        <Stack.Navigator>
+        <Stack.Navigator screenOptions={headerOptions}>
             {/* Tabs */}
             <Stack.Screen
                 name="Back"
@@ -28,11 +46,10 @@ const TrainerStackNavigator = () => {
                 options={{ headerShown: false }}
             />
 
-            {/* Stack screens on top of tabs */}
+            {/* Stack screens */}
             <Stack.Screen name="ProfileEdit" options={{ title: 'Edit Profile' }} component={ProfileSettingsScreen} />
             <Stack.Screen name="TrainerProfileScreen" options={{ title: 'My Profile' }} component={TrainerProfileScreen} />
             <Stack.Screen name="ClientProfileScreen" options={{ title: 'My Profile' }} component={ClientProfileScreen} />
-
             <Stack.Screen name="CreateWorkout" options={{ title: 'Create Workout' }} component={CreateWorkoutScreen} />
             <Stack.Screen name="CreateSession" options={{ title: 'Create Session' }} component={CreateSessionScreen} />
             <Stack.Screen name="SessionDetail" options={{ title: 'Session Details' }} component={SessionDetailsScreen} />
@@ -41,7 +58,7 @@ const TrainerStackNavigator = () => {
             <Stack.Screen name="EditSession" options={{ title: 'Edit Session' }} component={EditSessionScreen} />
             <Stack.Screen name="EditWorkout" options={{ title: 'Edit Workout' }} component={EditWorkoutScreen} />
             <Stack.Screen name="Messages" options={{ title: 'Messages' }} component={MessagesScreen} />
-            <Stack.Screen name="MessageList" options={{ title: 'Message List' }} component={MessagesListScreen} />
+            <Stack.Screen name="MessageList" options={{ title: 'Messages' }} component={MessagesListScreen} />
             <Stack.Screen name="Notifications" options={{ title: 'Notifications' }} component={NotificationsScreen} />
         </Stack.Navigator>
     );

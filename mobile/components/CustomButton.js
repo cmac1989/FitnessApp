@@ -1,24 +1,30 @@
+import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../src/theme';
 
-const CustomButton = ({ title, onPress, style, textStyle, disabled }) => {
+const CustomButton = ({ title, onPress, style, textStyle, disabled, color }) => {
+    const { theme } = useTheme();
+
+    const backgroundColor = color ?? theme.primary;
+    const textColor = color ? '#fff' : theme.primaryText;
+
     return (
         <TouchableOpacity
-            style={[styles.button, style, disabled && styles.disabled]}
+            style={[styles.button, { backgroundColor }, style, disabled && styles.disabled]}
             onPress={onPress}
             disabled={!!disabled}
-            activeOpacity={0.7}
+            activeOpacity={0.75}
         >
-            <Text style={[styles.buttonText, textStyle]}>{title}</Text>
+            <Text style={[styles.buttonText, { color: textColor }, textStyle]}>{title}</Text>
         </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
     button: {
-        backgroundColor: '#6200EE',
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 24,
-        borderRadius: 8,
+        borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: 10,
@@ -27,9 +33,9 @@ const styles = StyleSheet.create({
         opacity: 0.4,
     },
     buttonText: {
-        color: '#fff',
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '700',
+        letterSpacing: 0.3,
     },
 });
 

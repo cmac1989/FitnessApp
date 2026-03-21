@@ -1,20 +1,23 @@
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import React from 'react';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../src/theme';
 
-const CustomButton = ({ title, onPress, style, textStyle }) => {
+const TextButton = ({ title, onPress, style, textStyle }) => {
+    const { theme } = useTheme();
+
     return (
-        <TouchableOpacity onPress={onPress}>
-            <Text style={[styles.buttonText, textStyle]}>{title}</Text>
+        <TouchableOpacity onPress={onPress} style={style}>
+            <Text style={[styles.buttonText, { color: theme.primary }, textStyle]}>{title}</Text>
         </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
     buttonText: {
-        color: '#6200EE',
-        fontSize: 16,
+        fontSize: 15,
+        fontWeight: '600',
         marginTop: 5,
     },
 });
 
-export default CustomButton;
+export default TextButton;
