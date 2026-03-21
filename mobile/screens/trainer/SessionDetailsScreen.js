@@ -1,106 +1,123 @@
 import React from 'react';
-import {View, Text, StyleSheet, Alert} from 'react-native';
+import { View, Text, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import ScreenWrapper from '../../components/ScreenWrapper';
-import {deleteSession} from "../../src/api/trainingSession";
+import { deleteSession } from '../../src/api/trainingSession';
+import { useTheme } from '../../src/theme';
 
 const SessionDetailScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { session } = route.params;
+    const { theme } = useTheme();
+
+    const styles = makeStyles(theme);
 
     if (!session) {
         return (
-            <View style={styles.container}>
+            <SafeAreaView style={styles.safeArea}>
                 <Text style={styles.errorText}>No session details available.</Text>
-            </View>
+            </SafeAreaView>
         );
     }
 
     const handleDeleteSession = async (sessionId) => {
-        console.log('sessionId', sessionId);
         try {
             await deleteSession(sessionId);
             Alert.alert('Deleted', 'Session successfully removed.');
             navigation.goBack();
-        } catch(error) {
+        } catch (error) {
             console.error('Could not delete session', error);
+            Alert.alert('Error', 'Could not delete session.');
         }
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Session Details</Text>
+        <SafeAreaView style={styles.safeArea}>
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.title}>Session Details</Text>
 
-            <View style={styles.detailCard}>
-                <Text style={styles.label}>Client:</Text>
-                <Text style={styles.value}>{session.client}</Text>
+                <View style={styles.detailCard}>
+                    <DetailRow label="Client" value={session.client} theme={theme} />
+                    <DetailRow label="Date" value={session.date} theme={theme} />
+                    <DetailRow label="Time" value={session.time} theme={theme} />
+                    <DetailRow label="Location" value={session.location} theme={theme} />
+                    {session.workout && (
+                        <DetailRow label="Workout Plan" value={session.workout} theme={theme} />
+                    )}
+                </View>
 
-                <Text style={styles.label}>Date:</Text>
-                <Text style={styles.value}>{session.date}</Text>
+                <CustomButton
+                    title="Edit Session"
+                    onPress={() => navigation.navigate('EditSession', { session })}
+                />
+                <CustomButton
+                    title="Delete Session"
+                    onPress={() => handleDeleteSession(session.id)}
+                    color="#ff4d4d"
+                />
+            </ScrollView>
+        </SafeAreaView>
+    );
+};
 
-                <Text style={styles.label}>Time:</Text>
-                <Text style={styles.value}>{session.time}</Text>
-
-                <Text style={styles.label}>Location:</Text>
-                <Text style={styles.value}>{session.location}</Text>
-
-                {session.workout && (
-                    <>
-                        <Text style={styles.label}>Workout Plan:</Text>
-                        <Text style={styles.value}>{session.workout}</Text>
-                    </>
-                )}
-            </View>
-
-            <CustomButton
-                title="Edit Session"
-                onPress={() => navigation.navigate('EditSession', { session })}
-            />
-            <CustomButton
-                title="Delete Session"
-                onPress={() => handleDeleteSession(session.id)}
-            />
-
+const DetailRow = ({ label, value, theme }) => {
+    const styles = makeStyles(theme);
+    return (
+        <View style={styles.row}>
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.value}>{value ?? 'N/A'}</Text>
         </View>
     );
 };
-//TODO move to separate file
-const styles = StyleSheet.create({
-    container: {
+
+const makeStyles = (theme) => StyleSheet.create({
+    safeArea: {
         flex: 1,
+        backgroundColor: theme.background,
+    },
+    container: {
+        flexGrow: 1,
         padding: 20,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
     },
     detailCard: {
-        backgroundColor: '#fff',
+        backgroundColor: theme.card,
         padding: 20,
-        borderRadius: 10,
-        marginBottom: 20,
+        borderRadius: 12,
+        marginBottom: 24,
         shadowColor: '#000',
         shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowRadius: 4,
+        elevation: 3,
+    },
+    row: {
+        marginBottom: 16,
     },
     label: {
-        fontSize: 16,
+        fontSize: 13,
         fontWeight: '600',
-        marginTop: 10,
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     value: {
         fontSize: 16,
-        color: '#333',
-        marginTop: 2,
+        color: theme.text,
+        marginTop: 4,
     },
     errorText: {
-        fontSize: 18,
-        color: 'red',
+        fontSize: 17,
+        color: theme.error,
+        textAlign: 'center',
+        margin: 20,
     },
 });
 

@@ -1,19 +1,14 @@
 import React, { useCallback, useState } from 'react';
-import {
-    View,
-    Text,
-    FlatList,
-    StyleSheet,
-    Pressable,
-    ActivityIndicator,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
 import { getClientSessions } from '../../src/api/client';
+import { useTheme } from '../../src/theme';
 
 const ClientSessionsScreen = () => {
     const navigation = useNavigation();
+    const { theme } = useTheme();
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -48,29 +43,36 @@ const ClientSessionsScreen = () => {
         }, [fetchSessions])
     );
 
-    const renderItem = useCallback(({ item }) => (
-        <Pressable
-            onPress={() => navigation.navigate('ClientSessionDetail', { session: item })}
-            style={styles.card}
-        >
-            <Text style={styles.cardTitle}>Trainer: {item.trainer}</Text>
-            <Text style={styles.cardDetail}>{item.date} at {item.time}</Text>
-            <Text style={styles.cardDetail}>Location: {item.location}</Text>
-            {item.status ? (
-                <Text style={styles.cardStatus}>Status: {item.status}</Text>
-            ) : null}
-        </Pressable>
-    ), [navigation]);
+    const styles = makeStyles(theme);
 
     if (loading) {
         return (
             <ScreenWrapper title="My Sessions">
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" color="#007bff" />
+                    <ActivityIndicator size="large" color={theme.accent} />
                 </View>
             </ScreenWrapper>
         );
     }
+
+    const renderItem = ({ item }) => (
+        <Pressable
+            onPress={() => navigation.navigate('ClientSessionDetail', { session: item })}
+            style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+        >
+            <Text style={styles.cardTitle}>Trainer: {item.trainer}</Text>
+            <Text style={styles.cardDetail}>{item.date} at {item.time}</Text>
+            <Text style={styles.cardDetail}>Location: {item.location}</Text>
+            {item.status ? <Text style={styles.cardStatus}>Status: {item.status}</Text> : null}
+        </Pressable>
+    );
+
+    const renderEmpty = () => (
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No Sessions Yet</Text>
+            <Text style={styles.emptySubtitle}>Your trainer will schedule sessions with you here.</Text>
+        </View>
+    );
 
     return (
         <ScreenWrapper title="My Sessions">
@@ -79,19 +81,15 @@ const ClientSessionsScreen = () => {
                 {error ? (
                     <View style={styles.centered}>
                         <Text style={styles.errorText}>{error}</Text>
-                        <CustomButton
-                            title="Try Again"
-                            onPress={() => fetchSessions({ value: false })}
-                        />
+                        <CustomButton title="Try Again" onPress={() => fetchSessions({ value: false })} />
                     </View>
-                ) : sessions.length === 0 ? (
-                    <Text style={styles.emptyText}>No sessions scheduled.</Text>
                 ) : (
                     <FlatList
                         data={sessions}
                         keyExtractor={(item) => item.id}
                         renderItem={renderItem}
                         contentContainerStyle={styles.listContent}
+                        ListEmptyComponent={renderEmpty}
                     />
                 )}
             </View>
@@ -99,61 +97,74 @@ const ClientSessionsScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
     },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: theme.background,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
     },
     listContent: {
         paddingBottom: 20,
     },
     card: {
-        backgroundColor: '#fff',
-        padding: 15,
+        backgroundColor: theme.card,
+        padding: 16,
         borderRadius: 10,
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 1 },
-        shadowRadius: 4,
-        elevation: 2,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: theme.border,
     },
+    pressed: { opacity: 0.75 },
     cardTitle: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '600',
         marginBottom: 5,
+        color: theme.text,
     },
     cardDetail: {
         fontSize: 14,
-        color: '#666',
+        color: theme.textSecondary,
+        marginTop: 2,
     },
     cardStatus: {
         fontSize: 14,
-        color: '#007bff',
+        color: theme.accent,
         marginTop: 4,
+        fontWeight: '500',
     },
     errorText: {
-        color: 'red',
+        color: theme.error,
         textAlign: 'center',
-        marginTop: 20,
         marginBottom: 10,
     },
-    emptyText: {
-        color: '#888',
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: 60,
+        paddingHorizontal: 30,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.text,
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: theme.textSecondary,
         textAlign: 'center',
-        marginTop: 40,
-        fontSize: 16,
+        lineHeight: 20,
     },
 });
 

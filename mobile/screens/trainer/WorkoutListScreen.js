@@ -1,21 +1,21 @@
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
-import React, {useCallback, useEffect, useState} from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, FlatList, Pressable, Text, StyleSheet } from 'react-native';
-import dashboardStyles from '../../styles/DashboardStyles';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import {getTrainerWorkouts} from '../../src/api/workout';
+import { getTrainerWorkouts } from '../../src/api/workout';
+import { useTheme } from '../../src/theme';
 
 const WorkoutListScreen = () => {
     const navigation = useNavigation();
+    const { theme } = useTheme();
     const [workouts, setWorkouts] = useState([]);
 
     const fetchWorkouts = async () => {
         try {
             const data = await getTrainerWorkouts();
             setWorkouts(data);
-            console.log('trainer workouts', workouts);
-        } catch(error) {
+        } catch (error) {
             console.error('error fetching workouts', error);
         }
     };
@@ -26,13 +26,25 @@ const WorkoutListScreen = () => {
         }, [])
     );
 
+    const styles = makeStyles(theme);
+
     const renderWorkout = ({ item }) => (
         <Pressable
-            style={dashboardStyles.statCard}
+            style={({ pressed }) => [styles.workoutCard, pressed && styles.pressed]}
             onPress={() => navigation.navigate('WorkoutDetails', { workout: item })}
         >
-            <Text style={dashboardStyles.statValue}>{item.title}</Text>
+            <Text style={styles.workoutTitle}>{item.title}</Text>
+            {item.difficulty && (
+                <Text style={styles.workoutMeta}>{item.difficulty} · {item.duration} min</Text>
+            )}
         </Pressable>
+    );
+
+    const renderEmpty = () => (
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No Workouts Yet</Text>
+            <Text style={styles.emptySubtitle}>Create your first workout plan to get started.</Text>
+        </View>
     );
 
     return (
@@ -41,34 +53,72 @@ const WorkoutListScreen = () => {
                 <Text style={styles.title}>Workout Plans</Text>
                 <FlatList
                     data={workouts}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item) => item.id?.toString()}
                     renderItem={renderWorkout}
-                    contentContainerStyle={{ paddingVertical: 10 }}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={renderEmpty}
                 />
                 <CustomButton
                     title="Add Workout"
                     onPress={() => navigation.navigate('CreateWorkout')}
-                />
-                <CustomButton
-                    title="Assign Workout"
-                    // onPress={() => navigation.navigate('CreateWorkout')}
                 />
             </View>
         </ScreenWrapper>
     );
 };
 
-// Local styles (could move to styles/WorkoutStyles.js)
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
+    },
+    listContent: {
+        paddingBottom: 12,
+    },
+    workoutCard: {
+        backgroundColor: theme.card,
+        padding: 16,
+        borderRadius: 10,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: theme.border,
+    },
+    pressed: {
+        opacity: 0.75,
+    },
+    workoutTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: theme.text,
+    },
+    workoutMeta: {
+        fontSize: 13,
+        color: theme.textMuted,
+        marginTop: 4,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: 60,
+        paddingHorizontal: 30,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.text,
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: theme.textSecondary,
+        textAlign: 'center',
+        lineHeight: 20,
     },
 });
 

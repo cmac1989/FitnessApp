@@ -5,23 +5,31 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import TrainerDashboardScreen from '../screens/trainer/TrainerDashboardScreen';
 import SessionsScreen from '../screens/trainer/SessionsScreen';
 import ClientsListScreen from '../screens/trainer/ClientsListScreen';
-import ProfileSettingsScreen from '../screens/trainer/ProfileSettingsScreen';
 import WorkoutListScreen from '../screens/trainer/WorkoutListScreen';
-import ProfileScreen from "../screens/ProfileScreen";
-import TrainerProfileScreen from "../screens/trainer/TrainerProfileScreen";
+import TrainerProfileScreen from '../screens/trainer/TrainerProfileScreen';
+import { useTheme } from '../src/theme';
 
 const Tab = createBottomTabNavigator();
 
 const TrainerTabNavigator = () => {
+    const { theme } = useTheme();
+
     return (
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: '#007bff',
-                tabBarInactiveTintColor: '#888',
+                tabBarActiveTintColor: theme.accent,
+                tabBarInactiveTintColor: theme.textMuted,
                 tabBarStyle: {
+                    backgroundColor: theme.navBar,
+                    borderTopColor: theme.navBarBorder,
+                    borderTopWidth: 1,
                     paddingVertical: 5,
                     height: 70,
+                },
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: '600',
                 },
             }}
         >
@@ -29,7 +37,8 @@ const TrainerTabNavigator = () => {
                 name="TrainerDashboard"
                 component={TrainerDashboardScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarLabel: 'Home',
+                    tabBarIcon: ({ color }) => (
                         <Icon name="home-outline" color={color} size={24} />
                     ),
                 }}
@@ -38,7 +47,7 @@ const TrainerTabNavigator = () => {
                 name="Clients"
                 component={ClientsListScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color }) => (
                         <Icon name="people-outline" color={color} size={24} />
                     ),
                 }}
@@ -47,7 +56,7 @@ const TrainerTabNavigator = () => {
                 name="Sessions"
                 component={SessionsScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color }) => (
                         <Icon name="calendar-outline" color={color} size={24} />
                     ),
                 }}
@@ -56,16 +65,16 @@ const TrainerTabNavigator = () => {
                 name="Workout"
                 component={WorkoutListScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color }) => (
                         <Icon name="barbell-outline" color={color} size={24} />
                     ),
                 }}
             />
             <Tab.Screen
                 name="Profile"
-                component={TrainerProfileScreen}  // <- not ProfileScreen
+                component={TrainerProfileScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => (
+                    tabBarIcon: ({ color }) => (
                         <Icon name="person-outline" color={color} size={24} />
                     ),
                 }}

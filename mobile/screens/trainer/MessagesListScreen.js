@@ -3,44 +3,38 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { useNavigation } from '@react-navigation/native';
 import { fetchConversations } from '../../src/api/message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../../src/theme';
 
 const MessagesListScreen = () => {
     const navigation = useNavigation();
+    const { theme } = useTheme();
     const [conversations, setConversations] = useState([]);
     const [userInfo, setUserInfo] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Fetch user data from AsyncStorage
     const getUserInfo = async () => {
         try {
             const userData = await AsyncStorage.getItem('user');
             if (userData) {
-                const parsedUserData = JSON.parse(userData);
-                setUserInfo(parsedUserData);
+                setUserInfo(JSON.parse(userData));
             }
         } catch (err) {
             console.error('Error retrieving user data:', err);
         }
     };
 
-    // Fetch conversations after user data is loaded
     const loadConversations = async () => {
         if (!userInfo) return;
-
         setLoading(true);
-
         try {
             const data = await fetchConversations();
-            console.log('Fetched conversations:', data);
-
             const formatted = data.map(item => ({
                 id: item.user.id,
                 client: { name: item.user.name },
                 lastMessage: item.last_message.content,
-                readAt: item.last_message.read_at, // assuming your API sends this
+                readAt: item.last_message.read_at,
             }));
-
             setConversations(formatted);
             setError(null);
         } catch (err) {
@@ -51,48 +45,28 @@ const MessagesListScreen = () => {
         }
     };
 
-    useEffect(() => {
-        getUserInfo();
-    }, []);
+    useEffect(() => { getUserInfo(); }, []);
+    useEffect(() => { if (userInfo) loadConversations(); }, [userInfo]);
 
-    useEffect(() => {
-        if (userInfo) {
-            loadConversations();
-        }
-    }, [userInfo]);
-
-    const handleOpenChat = (clientId, clientName) => {
-        navigation.navigate('Messages', { client: { id: clientId, name: clientName } });
-    };
+    const styles = makeStyles(theme);
 
     const renderItem = ({ item }) => {
         const isUnread = !item.readAt;
-
         return (
             <TouchableOpacity
                 style={[
                     styles.messageItem,
-                    isUnread ? styles.unreadMessage : styles.readMessage
+                    isUnread ? styles.unreadMessage : styles.readMessage,
                 ]}
-                onPress={() => handleOpenChat(item.id, item.client.name)}
+                onPress={() => navigation.navigate('Messages', { client: { id: item.id, name: item.client.name } })}
             >
                 <View style={styles.row}>
                     {isUnread && <View style={styles.unreadDot} />}
-                    <Text
-                        style={[
-                            styles.clientName,
-                            isUnread && styles.unreadClientName
-                        ]}
-                    >
+                    <Text style={[styles.clientName, isUnread && styles.unreadClientName]}>
                         {item.client.name}
                     </Text>
                 </View>
-                <Text
-                    style={[
-                        styles.lastMessage,
-                        isUnread && styles.unreadLastMessage
-                    ]}
-                >
+                <Text style={[styles.lastMessage, isUnread && styles.unreadLastMessage]} numberOfLines={1}>
                     {item.lastMessage}
                 </Text>
             </TouchableOpacity>
@@ -111,7 +85,7 @@ const MessagesListScreen = () => {
             <Text style={styles.title}>Messages</Text>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#007bff" style={styles.loader} />
+                <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
             ) : error ? (
                 <View style={styles.emptyContainer}>
                     <Text style={styles.errorText}>{error}</Text>
@@ -132,96 +106,74 @@ const MessagesListScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
         padding: 20,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
     },
     listContent: {
         paddingBottom: 20,
     },
     messageItem: {
-        backgroundColor: '#fff',
         padding: 16,
         borderRadius: 10,
         marginBottom: 12,
-        borderColor: '#ddd',
         borderWidth: 1,
     },
-    clientName: {
-        fontSize: 18,
-        fontWeight: '500',
-    },
-    lastMessage: {
-        fontSize: 14,
-        color: '#555',
-        marginTop: 4,
-    },
-    errorText: {
-        color: 'red',
-        fontSize: 16,
-        marginTop: 20,
-    },
     readMessage: {
-        backgroundColor: '#f0f0f0',
-        borderColor: '#ccc',
+        backgroundColor: theme.readItemBackground,
+        borderColor: theme.border,
     },
     unreadMessage: {
-        backgroundColor: '#ffffff',
-        borderColor: '#444',
-    },
-    unreadClientName: {
-        fontWeight: 'bold',
-        color: '#111',
-    },
-    unreadLastMessage: {
-        fontWeight: '600',
-        color: '#222',
-    },
-    unreadDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#ff4d4d',
-        marginRight: 8,
+        backgroundColor: theme.unreadItemBackground,
+        borderColor: theme.unreadItemBorder,
     },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+    unreadDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: theme.error,
+        marginRight: 8,
+    },
+    clientName: {
+        fontSize: 17,
+        fontWeight: '500',
+        color: theme.text,
+    },
+    unreadClientName: {
+        fontWeight: 'bold',
+    },
+    lastMessage: {
+        fontSize: 14,
+        color: theme.textSecondary,
+        marginTop: 4,
+    },
+    unreadLastMessage: {
+        fontWeight: '600',
+        color: theme.text,
+    },
     loader: {
         marginTop: 40,
     },
-    emptyContainer: {
-        alignItems: 'center',
-        marginTop: 60,
-        paddingHorizontal: 30,
-    },
-    emptyIcon: {
-        fontSize: 52,
-        marginBottom: 16,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#333',
-        marginBottom: 8,
-    },
-    emptySubtitle: {
-        fontSize: 14,
-        color: '#888',
+    errorText: {
+        color: theme.error,
+        fontSize: 16,
         textAlign: 'center',
-        lineHeight: 20,
+        marginBottom: 12,
     },
     retryButton: {
-        marginTop: 16,
-        backgroundColor: '#007bff',
+        backgroundColor: theme.accent,
         paddingVertical: 10,
         paddingHorizontal: 28,
         borderRadius: 8,
@@ -230,6 +182,23 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 15,
         fontWeight: '600',
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: 60,
+        paddingHorizontal: 30,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.text,
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: theme.textSecondary,
+        textAlign: 'center',
+        lineHeight: 20,
     },
 });
 

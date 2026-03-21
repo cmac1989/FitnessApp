@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, Alert, SafeAreaView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import {updateSession} from '../../src/api/trainingSession';
+import { updateSession } from '../../src/api/trainingSession';
+import { useTheme } from '../../src/theme';
 
 const EditSessionScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { session } = route.params;
+    const { theme } = useTheme();
 
     const [client, setClient] = useState(session.client);
     const [date, setDate] = useState(session.date);
@@ -17,89 +19,100 @@ const EditSessionScreen = () => {
 
     const handleSave = async () => {
         try {
-            // Update the session with the new values
             const updatedSession = {
-                ...session, // Spread the current session
-                client: client, // Update with new client value
-                scheduled_at: `${date} ${time}`, // Combine date and time
-                location: location, // Update location
-                workout: workout, // Update workout if necessary
+                ...session,
+                client,
+                scheduled_at: `${date} ${time}`,
+                location,
+                workout,
             };
-
-            // Call the API to update the session
             await updateSession(session.id, updatedSession);
-            console.log('Session updated:', updatedSession);
-
-            // Success feedback
             Alert.alert('Success', 'Session details updated.');
             navigation.goBack();
         } catch (error) {
             console.error('Could not update session', error);
+            Alert.alert('Error', 'Could not update session.');
         }
     };
 
+    const styles = makeStyles(theme);
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.title}>Edit Session</Text>
+        <SafeAreaView style={styles.safeArea}>
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.title}>Edit Session</Text>
 
-            <Text style={styles.label}>Client</Text>
-            <TextInput
-                style={styles.input}
-                value={client}
-                onChangeText={setClient}
-            />
+                <Text style={styles.label}>Client</Text>
+                <TextInput
+                    style={styles.input}
+                    value={client}
+                    onChangeText={setClient}
+                    placeholderTextColor={theme.placeholder}
+                />
 
-            <Text style={styles.label}>Date</Text>
-            <TextInput
-                style={styles.input}
-                value={date}
-                onChangeText={setDate}
-            />
+                <Text style={styles.label}>Date</Text>
+                <TextInput
+                    style={styles.input}
+                    value={date}
+                    onChangeText={setDate}
+                    placeholderTextColor={theme.placeholder}
+                    placeholder="YYYY-MM-DD"
+                />
 
-            <Text style={styles.label}>Time</Text>
-            <TextInput
-                style={styles.input}
-                value={time}
-                onChangeText={setTime}
-            />
+                <Text style={styles.label}>Time</Text>
+                <TextInput
+                    style={styles.input}
+                    value={time}
+                    onChangeText={setTime}
+                    placeholderTextColor={theme.placeholder}
+                    placeholder="HH:MM"
+                />
 
-            <Text style={styles.label}>Location</Text>
-            <TextInput
-                style={styles.input}
-                value={location}
-                onChangeText={setLocation}
-            />
+                <Text style={styles.label}>Location</Text>
+                <TextInput
+                    style={styles.input}
+                    value={location}
+                    onChangeText={setLocation}
+                    placeholderTextColor={theme.placeholder}
+                />
 
-            <CustomButton title="Save Changes" onPress={handleSave} />
-        </ScrollView>
+                <CustomButton title="Save Changes" onPress={handleSave} />
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: theme.background,
+    },
     container: {
         padding: 20,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
         flexGrow: 1,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
     },
     label: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
-        marginTop: 10,
+        marginTop: 12,
+        marginBottom: 4,
+        color: theme.textSecondary,
     },
     input: {
-        backgroundColor: '#fff',
+        backgroundColor: theme.inputBackground,
         borderRadius: 8,
         padding: 12,
         fontSize: 16,
-        marginTop: 5,
-        borderColor: '#ddd',
+        borderColor: theme.inputBorder,
         borderWidth: 1,
+        color: theme.text,
     },
 });
 

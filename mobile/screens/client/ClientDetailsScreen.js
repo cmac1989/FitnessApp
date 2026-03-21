@@ -1,86 +1,106 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import { useTheme } from '../../src/theme';
 
 const ClientDetailsScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { clients: client } = route.params;
+    const { theme } = useTheme();
+
+    const styles = makeStyles(theme);
 
     if (!client) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>No session details available.</Text>
-            </View>
+            <ScreenWrapper title="Client Details">
+                <View style={styles.centered}>
+                    <Text style={styles.errorText}>No client details available.</Text>
+                </View>
+            </ScreenWrapper>
         );
     }
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Client Details</Text>
+        <ScreenWrapper title="Client Details">
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.title}>Client Details</Text>
 
-            <View style={styles.detailCard}>
-                <Text style={styles.label}>Client:</Text>
-                <Text style={styles.value}>{client.name}</Text>
+                <View style={styles.card}>
+                    <DetailRow label="Name" value={client.name} theme={theme} />
+                    <DetailRow label="Age" value={client.client_profile?.age?.toString() ?? 'N/A'} theme={theme} />
+                    <DetailRow label="Gender" value={client.client_profile?.gender ?? 'N/A'} theme={theme} />
+                    <DetailRow label="Goals" value={client.client_profile?.fitness_goals ?? 'N/A'} theme={theme} />
+                    <DetailRow label="Medical Conditions" value={client.client_profile?.medical_conditions ?? 'N/A'} theme={theme} />
+                </View>
 
-                <Text style={styles.label}>Age:</Text>
-                <Text style={styles.value}>{client.client_profile.age}</Text>
+                <CustomButton
+                    title="Message"
+                    onPress={() => navigation.navigate('Messages', { client })}
+                />
+            </ScrollView>
+        </ScreenWrapper>
+    );
+};
 
-                <Text style={styles.label}>Gender:</Text>
-                <Text style={styles.value}>{client.client_profile?.gender ?? 'N/A'}</Text>
-
-                <Text style={styles.label}>Goals:</Text>
-                <Text style={styles.value}>{client.client_profile?.fitness_goals ?? 'N/A'}</Text>
-
-                <Text style={styles.label}>Medical Conditions:</Text>
-                <Text style={styles.value}>{client.client_profile?.medical_conditions ?? 'N/A'}</Text>
-
-            </View>
-
-
-            <CustomButton
-                title="Message"
-                onPress={() => navigation.navigate('Messages', { client })}
-            />
+const DetailRow = ({ label, value, theme }) => {
+    const styles = makeStyles(theme);
+    return (
+        <View style={styles.row}>
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.value}>{value}</Text>
         </View>
     );
 };
-//TODO move to separate file
-const styles = StyleSheet.create({
+
+const makeStyles = (theme) => StyleSheet.create({
     container: {
-        flex: 1,
         padding: 20,
-        backgroundColor: '#f8f8f8',
+        backgroundColor: theme.background,
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: theme.background,
     },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
+        color: theme.text,
     },
-    detailCard: {
-        backgroundColor: '#fff',
+    card: {
+        backgroundColor: theme.card,
         padding: 20,
-        borderRadius: 10,
-        marginBottom: 20,
+        borderRadius: 12,
+        marginBottom: 24,
         shadowColor: '#000',
         shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowRadius: 4,
+        elevation: 2,
+    },
+    row: {
+        marginBottom: 16,
     },
     label: {
-        fontSize: 16,
+        fontSize: 13,
         fontWeight: '600',
-        marginTop: 10,
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     value: {
         fontSize: 16,
-        color: '#333',
-        marginTop: 2,
+        color: theme.text,
+        marginTop: 4,
     },
     errorText: {
-        fontSize: 18,
-        color: 'red',
+        fontSize: 17,
+        color: theme.error,
     },
 });
 
