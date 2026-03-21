@@ -4,7 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import ClientTabNavigator from '../components/ClientTabNavigator';
 import ClientSessionDetailScreen from '../screens/client/ClientSessionDetailScreen';
 import ClientWorkoutDetailsScreen from '../screens/client/ClientWorkoutDetailsScreen';
-import MessagesScreen from '../screens/trainer/MessagesScreen';
+import MessagesScreen from '../screens/client/MessagesScreen';
 
 const Stack = createStackNavigator();
 

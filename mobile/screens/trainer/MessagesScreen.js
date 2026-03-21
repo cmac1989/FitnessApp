@@ -1,70 +1,90 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
+} from 'react-native';
 import { useRoute } from '@react-navigation/native';
+import { useHeaderHeight } from '@react-navigation/elements';
 import CustomButton from '../../components/CustomButton';
 import { fetchMessagesWithUser, sendMessage } from '../../src/api/message';
+import { getUser } from '../../src/services/authService';
 
 const MessagesScreen = () => {
     const route = useRoute();
     const client = route.params?.client;
-    const userId = 4; // TODO: replace with AsyncStorage or state later
+    const headerHeight = useHeaderHeight();
     const flatListRef = useRef(null);
 
+    const [userId, setUserId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [sendError, setSendError] = useState(null);
 
-    // Fetch messages when component mounts or client changes
     useEffect(() => {
-        if (client) {
-            const loadMessages = async () => {
-                try {
-                    const response = await fetchMessagesWithUser(client.id);
-                    setMessages(response);
-                } catch (error) {
-                    console.error('Failed to fetch messages:', error);
-                }
-            };
-            loadMessages();
-        }
+        const loadCurrentUser = async () => {
+            const user = await getUser();
+            if (user) {
+                setUserId(user.id);
+            }
+        };
+        loadCurrentUser();
+    }, []);
+
+    useEffect(() => {
+        if (!client) return;
+
+        const loadMessages = async () => {
+            try {
+                const response = await fetchMessagesWithUser(client.id);
+                setMessages(response);
+            } catch (error) {
+                console.error('Failed to fetch messages:', error);
+            }
+        };
+        loadMessages();
     }, [client]);
 
-    // Send a new message
     const handleSend = async () => {
-        if (newMessage.trim() === '') return;
+        if (!newMessage.trim() || !userId || !client) return;
+
+        setSendError(null);
 
         const message = {
             sender_id: userId,
             receiver_id: client.id,
-            trainer_id: userId, // assuming sender is always the trainer
+            trainer_id: userId,
             content: newMessage,
-            scheduled_at: null,
         };
 
         try {
             const response = await sendMessage(message);
 
-            // Append new message from response or create a local fallback message
             const newMsg = {
-                id: response.message?.id || new Date().getTime(),
+                id: response.message?.id || Date.now(),
                 sender_id: userId,
                 receiver_id: client.id,
                 content: newMessage,
-                created_at: new Date(),
+                created_at: new Date().toISOString(),
             };
 
             setMessages(prev => [...prev, newMsg]);
             setNewMessage('');
 
-            // Scroll to bottom
             setTimeout(() => {
                 flatListRef.current?.scrollToEnd({ animated: true });
             }, 100);
         } catch (error) {
             console.error('Failed to send message:', error);
+            setSendError('Message failed to send. Tap to retry.');
         }
     };
 
-    const renderItem = ({ item }) => (
+    const renderItem = useCallback(({ item }) => (
         <View
             style={[
                 styles.messageBubble,
@@ -73,16 +93,21 @@ const MessagesScreen = () => {
         >
             <Text style={styles.messageText}>{item.content}</Text>
             <Text style={styles.timestamp}>
-                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(item.created_at).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                })}
             </Text>
         </View>
-    );
+    ), [userId]);
+
+    const isSendDisabled = !newMessage.trim() || !userId;
 
     return (
         <KeyboardAvoidingView
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={90}
+            keyboardVerticalOffset={headerHeight}
         >
             <Text style={styles.title}>
                 Messages {client ? `with ${client.name}` : ''}
@@ -95,21 +120,33 @@ const MessagesScreen = () => {
                 renderItem={renderItem}
                 contentContainerStyle={styles.messagesList}
                 style={{ flex: 1 }}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                onContentSizeChange={() =>
+                    flatListRef.current?.scrollToEnd({ animated: true })
+                }
             />
+
+            {sendError ? (
+                <Text style={styles.errorText}>{sendError}</Text>
+            ) : null}
 
             <View style={styles.inputContainer}>
                 <TextInput
                     style={styles.input}
                     placeholder="Type your message..."
                     value={newMessage}
-                    onChangeText={setNewMessage}
+                    onChangeText={text => {
+                        setNewMessage(text);
+                        if (sendError) setSendError(null);
+                    }}
+                    returnKeyType="send"
+                    onSubmitEditing={handleSend}
+                    blurOnSubmit={false}
                 />
                 <CustomButton
                     title="Send"
                     onPress={handleSend}
                     style={styles.sendButton}
-                    disabled={newMessage.trim() === ''}
+                    disabled={isSendDisabled}
                 />
             </View>
         </KeyboardAvoidingView>
@@ -152,6 +189,12 @@ const styles = StyleSheet.create({
         color: '#555',
         marginTop: 4,
         alignSelf: 'flex-end',
+    },
+    errorText: {
+        color: '#cc0000',
+        fontSize: 13,
+        textAlign: 'center',
+        marginBottom: 6,
     },
     inputContainer: {
         flexDirection: 'row',
