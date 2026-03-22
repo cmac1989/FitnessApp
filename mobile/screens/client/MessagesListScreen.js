@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
-    Modal, Pressable,
+    View, Text, StyleSheet, FlatList, TouchableOpacity,
+    ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import { fetchConversations, markMessageAsRead } from '../../src/api/message';
-import { getClients } from '../../src/api/user';
+import { getClientConversations, markClientMessagesAsRead } from '../../src/api/client';
+import { getClientProfile } from '../../src/api/client';
 import { useTheme } from '../../src/theme';
 
 const MessagesListScreen = () => {
@@ -15,26 +15,35 @@ const MessagesListScreen = () => {
     const styles = makeStyles(theme);
 
     const [conversations, setConversations] = useState([]);
+    const [trainerInfo, setTrainerInfo]     = useState(null);
     const [loading, setLoading]             = useState(true);
     const [error, setError]                 = useState(null);
-    const [showModal, setShowModal]         = useState(false);
-    const [clients, setClients]             = useState([]);
-    const [clientsLoading, setClientsLoading] = useState(false);
 
     const loadConversations = useCallback(async (cancelled) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await fetchConversations();
+
+            const [convData, profileData] = await Promise.all([
+                getClientConversations(),
+                getClientProfile(),
+            ]);
+
             if (cancelled?.value) return;
-            const formatted = data.map(item => ({
+
+            const formatted = convData.map(item => ({
                 id:          item.user.id,
-                name:        item.user.name,
+                trainer:     { id: item.user.id, name: item.user.name },
                 lastMessage: item.last_message.content,
                 isMine:      item.last_message.is_mine,
                 readAt:      item.last_message.read_at,
             }));
             setConversations(formatted);
+
+            // Save trainer info so we can show "Message Trainer" if no conversations
+            if (profileData?.trainer_id && profileData?.trainer_name) {
+                setTrainerInfo({ id: profileData.trainer_id, name: profileData.trainer_name });
+            }
         } catch (err) {
             if (!cancelled?.value) setError('Failed to load messages. Please try again.');
         } finally {
@@ -46,27 +55,13 @@ const MessagesListScreen = () => {
         useCallback(() => {
             const cancelled = { value: false };
             loadConversations(cancelled);
-            markMessageAsRead().catch(() => {});
+            markClientMessagesAsRead().catch(() => {});
             return () => { cancelled.value = true; };
         }, [loadConversations])
     );
 
-    const openNewConversation = async () => {
-        setShowModal(true);
-        setClientsLoading(true);
-        try {
-            const data = await getClients();
-            setClients(data);
-        } catch {
-            setClients([]);
-        } finally {
-            setClientsLoading(false);
-        }
-    };
-
-    const startConversation = (client) => {
-        setShowModal(false);
-        navigation.navigate('Messages', { client: { id: client.id, name: client.name } });
+    const openConversation = (trainer) => {
+        navigation.navigate('ClientMessages', { trainer });
     };
 
     const renderItem = ({ item }) => {
@@ -74,13 +69,13 @@ const MessagesListScreen = () => {
         return (
             <TouchableOpacity
                 style={[styles.messageItem, isUnread ? styles.unreadMessage : styles.readMessage]}
-                onPress={() => navigation.navigate('Messages', { client: { id: item.id, name: item.name } })}
+                onPress={() => openConversation(item.trainer)}
                 activeOpacity={0.75}
             >
                 <View style={styles.row}>
                     {isUnread && <View style={styles.unreadDot} />}
-                    <Text style={[styles.clientName, isUnread && styles.unreadClientName]}>
-                        {item.name}
+                    <Text style={[styles.trainerName, isUnread && styles.unreadTrainerName]}>
+                        {item.trainer.name}
                     </Text>
                 </View>
                 <Text style={[styles.lastMessage, isUnread && styles.unreadLastMessage]} numberOfLines={1}>
@@ -93,9 +88,21 @@ const MessagesListScreen = () => {
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
             <Text style={styles.emptyTitle}>No Messages</Text>
-            <Text style={styles.emptySubtitle}>
-                Go to a client's profile and tap "Message Client" to start a conversation.
-            </Text>
+            {trainerInfo ? (
+                <>
+                    <Text style={styles.emptySubtitle}>Start a conversation with your trainer.</Text>
+                    <TouchableOpacity
+                        style={styles.startBtn}
+                        onPress={() => openConversation(trainerInfo)}
+                    >
+                        <Text style={styles.startBtnText}>Message {trainerInfo.name}</Text>
+                    </TouchableOpacity>
+                </>
+            ) : (
+                <Text style={styles.emptySubtitle}>
+                    Messages from your trainer will appear here.
+                </Text>
+            )}
         </View>
     );
 
@@ -104,9 +111,14 @@ const MessagesListScreen = () => {
             <View style={styles.container}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Messages</Text>
-                    <TouchableOpacity style={styles.composeBtn} onPress={openNewConversation}>
-                        <Text style={styles.composeBtnText}>+ New</Text>
-                    </TouchableOpacity>
+                    {trainerInfo && conversations.length > 0 && (
+                        <TouchableOpacity
+                            style={styles.composeBtn}
+                            onPress={() => openConversation(trainerInfo)}
+                        >
+                            <Text style={styles.composeBtnText}>+ New</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {loading ? (
@@ -128,42 +140,6 @@ const MessagesListScreen = () => {
                     />
                 )}
             </View>
-
-            {/* Client picker modal */}
-            <Modal
-                visible={showModal}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowModal(false)}
-            >
-                <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
-                    <Pressable style={styles.modalSheet} onPress={() => {}}>
-                        <Text style={styles.modalTitle}>Select a Client</Text>
-                        {clientsLoading ? (
-                            <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 20 }} />
-                        ) : clients.length === 0 ? (
-                            <Text style={styles.modalEmpty}>No clients linked yet.</Text>
-                        ) : (
-                            <FlatList
-                                data={clients}
-                                keyExtractor={(item) => item.id.toString()}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity
-                                        style={styles.clientItem}
-                                        onPress={() => startConversation(item)}
-                                        activeOpacity={0.75}
-                                    >
-                                        <Text style={styles.clientItemText}>{item.name}</Text>
-                                    </TouchableOpacity>
-                                )}
-                            />
-                        )}
-                        <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowModal(false)}>
-                            <Text style={styles.cancelBtnText}>Cancel</Text>
-                        </TouchableOpacity>
-                    </Pressable>
-                </Pressable>
-            </Modal>
         </ScreenWrapper>
     );
 };
@@ -224,15 +200,15 @@ const makeStyles = (theme) => StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: theme.error,
+        backgroundColor: theme.accent,
         marginRight: 8,
     },
-    clientName: {
+    trainerName: {
         fontSize: 17,
         fontWeight: '500',
         color: theme.text,
     },
-    unreadClientName: {
+    unreadTrainerName: {
         fontWeight: 'bold',
     },
     lastMessage: {
@@ -281,50 +257,18 @@ const makeStyles = (theme) => StyleSheet.create({
         color: theme.textSecondary,
         textAlign: 'center',
         lineHeight: 20,
+        marginBottom: 20,
     },
-    // Modal
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalSheet: {
-        backgroundColor: theme.background,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 24,
-        maxHeight: '60%',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: theme.text,
-        marginBottom: 16,
-    },
-    modalEmpty: {
-        fontSize: 15,
-        color: theme.textSecondary,
-        textAlign: 'center',
-        marginTop: 20,
-    },
-    clientItem: {
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border,
-    },
-    clientItemText: {
-        fontSize: 16,
-        color: theme.text,
-    },
-    cancelBtn: {
-        marginTop: 16,
+    startBtn: {
+        backgroundColor: theme.primary,
+        paddingHorizontal: 24,
         paddingVertical: 12,
-        alignItems: 'center',
+        borderRadius: 24,
     },
-    cancelBtnText: {
-        fontSize: 16,
-        color: theme.error,
-        fontWeight: '600',
+    startBtnText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 15,
     },
 });
 

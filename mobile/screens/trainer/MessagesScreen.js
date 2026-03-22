@@ -1,17 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    TextInput,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
+    View, Text, StyleSheet, FlatList, TextInput,
+    KeyboardAvoidingView, Platform, SafeAreaView, TouchableOpacity,
+    ActivityIndicator,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import { useHeaderHeight } from '@react-navigation/elements';
-import CustomButton from '../../components/CustomButton';
 import { fetchMessagesWithUser, sendMessage } from '../../src/api/message';
 import { getUser } from '../../src/services/authService';
 import { useTheme } from '../../src/theme';
@@ -19,143 +12,134 @@ import { useTheme } from '../../src/theme';
 const MessagesScreen = () => {
     const route = useRoute();
     const client = route.params?.client;
-    const headerHeight = useHeaderHeight();
-    const flatListRef = useRef(null);
     const { theme } = useTheme();
+    const styles = makeStyles(theme);
+    const flatListRef = useRef(null);
 
-    const [userId, setUserId] = useState(null);
+    const [myId, setMyId]         = useState(null);
     const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState('');
+    const [text, setText]         = useState('');
+    const [sending, setSending]   = useState(false);
+    const [loading, setLoading]   = useState(true);
     const [sendError, setSendError] = useState(null);
 
+    // Load current user id once
     useEffect(() => {
-        const loadCurrentUser = async () => {
-            const user = await getUser();
-            if (user) setUserId(user.id);
-        };
-        loadCurrentUser();
+        getUser().then(u => { if (u?.id) setMyId(u.id); });
     }, []);
 
+    // Load messages when client is available
     useEffect(() => {
-        if (!client) return;
-        const loadMessages = async () => {
-            try {
-                const response = await fetchMessagesWithUser(client.id);
-                setMessages(response);
-            } catch (error) {
-                console.error('Failed to fetch messages:', error);
-            }
-        };
-        loadMessages();
-    }, [client]);
+        if (!client?.id) return;
+        let active = true;
+        setLoading(true);
+        fetchMessagesWithUser(client.id)
+            .then(data => { if (active) setMessages(data); })
+            .catch(err => console.error('Failed to fetch messages:', err))
+            .finally(() => { if (active) setLoading(false); });
+        return () => { active = false; };
+    }, [client?.id]);
 
-    const handleSend = async () => {
-        if (!newMessage.trim() || !userId || !client) return;
+    const scrollToEnd = () => {
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    };
+
+    const handleSend = useCallback(async () => {
+        const trimmed = text.trim();
+        if (!trimmed || !client?.id || sending) return;
         setSendError(null);
-
-        const message = {
-            sender_id: userId,
-            receiver_id: client.id,
-            trainer_id: userId,
-            content: newMessage,
-        };
-
+        setSending(true);
         try {
-            const response = await sendMessage(message);
-            const newMsg = {
-                id: response.message?.id || Date.now(),
-                sender_id: userId,
+            const res = await sendMessage(client.id, trimmed);
+            const newMsg = res.message ?? {
+                id: Date.now(),
+                sender_id: myId,
                 receiver_id: client.id,
-                content: newMessage,
+                content: trimmed,
                 created_at: new Date().toISOString(),
             };
             setMessages(prev => [...prev, newMsg]);
-            setNewMessage('');
-            setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-        } catch (error) {
-            console.error('Failed to send message:', error);
+            setText('');
+            scrollToEnd();
+        } catch (err) {
+            console.error('Failed to send message:', err);
             setSendError('Message failed to send. Please try again.');
+        } finally {
+            setSending(false);
         }
+    }, [text, client, sending, myId]);
+
+    const renderItem = useCallback(({ item }) => {
+        const isMine = item.sender_id === myId;
+        return (
+            <View style={[styles.bubble, isMine ? styles.myBubble : styles.theirBubble]}>
+                <Text style={[styles.bubbleText, { color: isMine ? theme.myMessageText : theme.theirMessageText }]}>
+                    {item.content}
+                </Text>
+                <Text style={styles.timestamp}>
+                    {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+            </View>
+        );
+    }, [myId, theme, styles]);
+
+    const renderEmpty = () => {
+        if (loading) return null;
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>No Messages</Text>
+                <Text style={styles.emptySubtitle}>Send a message to start the conversation.</Text>
+            </View>
+        );
     };
-
-    const styles = makeStyles(theme);
-
-    const renderItem = useCallback(({ item }) => (
-        <View style={[
-            styles.messageBubble,
-            item.sender_id === userId ? styles.myMessage : styles.theirMessage,
-        ]}>
-            <Text style={[
-                styles.messageText,
-                { color: item.sender_id === userId ? theme.myMessageText : theme.theirMessageText },
-            ]}>
-                {item.content}
-            </Text>
-            <Text style={styles.timestamp}>
-                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-        </View>
-    ), [userId, theme]);
-
-    const renderEmpty = () => (
-        <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>No Messages</Text>
-            <Text style={styles.emptySubtitle}>Send a message to start the conversation.</Text>
-        </View>
-    );
-
-    const isSendDisabled = !newMessage.trim() || !userId;
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <KeyboardAvoidingView
-                style={styles.container}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={headerHeight}
+                style={styles.flex}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
             >
-                <Text style={styles.title}>
-                    {client ? `${client.name}` : 'Messages'}
-                </Text>
+                {loading ? (
+                    <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
+                ) : (
+                    <FlatList
+                        ref={flatListRef}
+                        data={messages}
+                        keyExtractor={item => item.id.toString()}
+                        renderItem={renderItem}
+                        contentContainerStyle={styles.list}
+                        style={styles.flex}
+                        ListEmptyComponent={renderEmpty}
+                        onContentSizeChange={scrollToEnd}
+                        onLayout={scrollToEnd}
+                    />
+                )}
 
-                <FlatList
-                    ref={flatListRef}
-                    data={messages}
-                    keyExtractor={item => item.id.toString()}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.messagesList}
-                    style={{ flex: 1 }}
-                    ListEmptyComponent={renderEmpty}
-                    onContentSizeChange={() =>
-                        flatListRef.current?.scrollToEnd({ animated: true })
-                    }
-                />
+                {sendError ? <Text style={styles.errorText}>{sendError}</Text> : null}
 
-                {sendError ? (
-                    <Text style={styles.errorText}>{sendError}</Text>
-                ) : null}
-
-                <View style={styles.inputContainer}>
+                <View style={styles.inputRow}>
                     <TextInput
                         style={styles.input}
-                        placeholder="Type your message..."
+                        placeholder="Type a message…"
                         placeholderTextColor={theme.placeholder}
-                        value={newMessage}
-                        onChangeText={text => {
-                            setNewMessage(text);
-                            if (sendError) setSendError(null);
-                        }}
+                        value={text}
+                        onChangeText={t => { setText(t); if (sendError) setSendError(null); }}
                         returnKeyType="send"
                         onSubmitEditing={handleSend}
                         blurOnSubmit={false}
+                        color={theme.text}
+                        editable={!sending}
+                        multiline
                     />
-                    <CustomButton
-                        title="Send"
+                    <TouchableOpacity
+                        style={[styles.sendBtn, (!text.trim() || sending) && styles.sendBtnDisabled]}
                         onPress={handleSend}
-                        style={styles.sendButton}
-                        disabled={isSendDisabled}
-                    />
+                        disabled={!text.trim() || sending}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.sendBtnText}>Send</Text>
+                    </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -167,40 +151,36 @@ const makeStyles = (theme) => StyleSheet.create({
         flex: 1,
         backgroundColor: theme.background,
     },
-    container: {
+    flex: { flex: 1 },
+    loader: {
         flex: 1,
-        backgroundColor: theme.background,
+        marginTop: 60,
+    },
+    list: {
         paddingHorizontal: 16,
-        paddingTop: 16,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 16,
-        color: theme.text,
-    },
-    messagesList: {
-        paddingBottom: 12,
+        paddingTop: 12,
+        paddingBottom: 8,
         flexGrow: 1,
     },
-    messageBubble: {
+    bubble: {
         padding: 12,
-        borderRadius: 14,
-        marginBottom: 10,
+        borderRadius: 18,
+        marginBottom: 8,
         maxWidth: '80%',
     },
-    myMessage: {
+    myBubble: {
         backgroundColor: theme.myMessageBubble,
         alignSelf: 'flex-end',
         borderBottomRightRadius: 4,
     },
-    theirMessage: {
+    theirBubble: {
         backgroundColor: theme.theirMessageBubble,
         alignSelf: 'flex-start',
         borderBottomLeftRadius: 4,
     },
-    messageText: {
+    bubbleText: {
         fontSize: 16,
+        lineHeight: 22,
     },
     timestamp: {
         fontSize: 11,
@@ -212,31 +192,47 @@ const makeStyles = (theme) => StyleSheet.create({
         color: theme.error,
         fontSize: 13,
         textAlign: 'center',
-        marginBottom: 6,
+        paddingHorizontal: 16,
+        paddingBottom: 4,
     },
-    inputContainer: {
+    inputRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingTop: 10,
-        paddingBottom: Platform.OS === 'ios' ? 10 : 20,
+        alignItems: 'flex-end',
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        paddingBottom: Platform.OS === 'ios' ? 12 : 16,
         borderTopWidth: 1,
         borderTopColor: theme.border,
+        backgroundColor: theme.background,
     },
     input: {
         flex: 1,
         backgroundColor: theme.inputBackground,
-        padding: 12,
         borderRadius: 22,
         borderColor: theme.inputBorder,
         borderWidth: 1,
+        paddingHorizontal: 16,
+        paddingVertical: Platform.OS === 'ios' ? 10 : 8,
         fontSize: 16,
-        marginRight: 10,
         color: theme.text,
+        marginRight: 10,
+        maxHeight: 120,
     },
-    sendButton: {
-        paddingVertical: 12,
+    sendBtn: {
+        backgroundColor: theme.primary,
+        borderRadius: 22,
         paddingHorizontal: 20,
-        marginTop: 0,
+        paddingVertical: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sendBtnDisabled: {
+        opacity: 0.45,
+    },
+    sendBtnText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 15,
     },
     emptyContainer: {
         flex: 1,

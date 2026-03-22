@@ -23,3 +23,8 @@ export const deleteWorkout = async (id) => {
     const response = await api.delete(`api/trainer/workouts/${id}`);
     return response.data;
 };
+
+export const assignWorkout = async (workoutId, clientId) => {
+    const response = await api.post(`api/trainer/workouts/${workoutId}/assign`, { client_id: clientId });
+    return response.data;
+};

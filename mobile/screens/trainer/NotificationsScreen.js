@@ -1,87 +1,94 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import ScreenWrapper from '../../components/ScreenWrapper';
 import { getUserNotifications, markNotificationsAsRead } from '../../src/api/notification';
-import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../src/theme';
 
+const TYPE_LABELS = {
+    check_in_submitted:  'New Check-in Submitted',
+    check_in_reviewed:   'Check-in Reviewed',
+    trainer_invite:      'Invitation Sent',
+    invitation_sent:     'Invitation Sent',
+    invite_accepted:     'Client Accepted Invitation',
+    invite_declined:     'Client Declined Invitation',
+    workout_assigned:    'Workout Assigned',
+};
+
 const NotificationsScreen = () => {
+    const navigation = useNavigation();
     const { theme } = useTheme();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useFocusEffect(
-        React.useCallback(() => {
+        useCallback(() => {
+            const cancelled = { value: false };
+
+            const fetchNotifications = async () => {
+                setLoading(true);
+                try {
+                    const data = await getUserNotifications();
+                    if (!cancelled.value) setNotifications(data);
+                } catch (err) {
+                    console.error('Error fetching notifications', err);
+                } finally {
+                    if (!cancelled.value) setLoading(false);
+                }
+            };
+
             fetchNotifications();
-            clearNotifications();
+            markNotificationsAsRead().catch(() => {});
+            return () => { cancelled.value = true; };
         }, [])
     );
 
-    const clearNotifications = async () => {
-        try {
-            await markNotificationsAsRead();
-        } catch (error) {
-            console.error('Error clearing notifications', error);
-        }
-    };
-
-    const fetchNotifications = async () => {
-        setLoading(true);
-        try {
-            const data = await getUserNotifications();
-            setNotifications(data);
-        } catch (error) {
-            console.error('Error fetching notifications', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleNotificationPress = (notification) => {
-        console.log('Tapped notification:', notification);
-    };
-
     const styles = makeStyles(theme);
+
+    if (loading) {
+        return (
+            <ScreenWrapper title="Notifications" showBack>
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color={theme.accent} />
+                </View>
+            </ScreenWrapper>
+        );
+    }
 
     const renderItem = ({ item }) => {
         const isRead = item.read_at !== null;
+        const title = item.data?.title ?? TYPE_LABELS[item.type] ?? item.type ?? 'Notification';
+        const detail = item.data?.message ?? item.data?.body ?? null;
         return (
             <TouchableOpacity
-                style={[
-                    styles.notificationItem,
-                    isRead ? styles.readNotification : styles.unreadNotification,
-                ]}
-                onPress={() => handleNotificationPress(item)}
+                style={[styles.notificationItem, isRead ? styles.readNotification : styles.unreadNotification]}
+                onPress={() => navigation.navigate('NotificationDetail', { notification: item })}
+                activeOpacity={0.75}
             >
                 <View style={styles.row}>
                     {!isRead && <View style={styles.unreadDot} />}
                     <Text style={[styles.notificationContent, !isRead && styles.unreadContent]}>
-                        {item.type}
+                        {title}
                     </Text>
                 </View>
-                <Text style={styles.notificationDetail}>
-                    {item.data?.title || item.data?.trainer || 'No details available'}
-                </Text>
+                {detail ? (
+                    <Text style={styles.notificationDetail}>{detail}</Text>
+                ) : null}
             </TouchableOpacity>
         );
     };
 
-    const renderEmpty = () => {
-        if (loading) return null;
-        return (
-            <View style={styles.emptyContainer}>
-                <Text style={styles.emptyTitle}>All Caught Up</Text>
-                <Text style={styles.emptySubtitle}>No notifications right now. Check back later.</Text>
-            </View>
-        );
-    };
+    const renderEmpty = () => (
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>All Caught Up</Text>
+            <Text style={styles.emptySubtitle}>No notifications right now. Check back later.</Text>
+        </View>
+    );
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Notifications</Text>
-
-            {loading ? (
-                <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
-            ) : (
+        <ScreenWrapper title="Notifications" showBack>
+            <View style={styles.container}>
+                <Text style={styles.title}>Notifications</Text>
                 <FlatList
                     data={notifications}
                     keyExtractor={(item) => item.id.toString()}
@@ -89,8 +96,8 @@ const NotificationsScreen = () => {
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={renderEmpty}
                 />
-            )}
-        </View>
+            </View>
+        </ScreenWrapper>
     );
 };
 
@@ -99,6 +106,12 @@ const makeStyles = (theme) => StyleSheet.create({
         flex: 1,
         backgroundColor: theme.background,
         padding: 20,
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: theme.background,
     },
     title: {
         fontSize: 26,
@@ -131,13 +144,14 @@ const makeStyles = (theme) => StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: theme.error,
+        backgroundColor: theme.accent,
         marginRight: 8,
     },
     notificationContent: {
         fontSize: 15,
         fontWeight: '500',
         color: theme.text,
+        flex: 1,
     },
     unreadContent: {
         fontWeight: 'bold',
@@ -146,9 +160,6 @@ const makeStyles = (theme) => StyleSheet.create({
         fontSize: 13,
         color: theme.textSecondary,
         marginTop: 5,
-    },
-    loader: {
-        marginTop: 40,
     },
     emptyContainer: {
         alignItems: 'center',

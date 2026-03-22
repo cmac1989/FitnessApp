@@ -5,7 +5,13 @@ import { useTheme } from '../src/theme';
 import ClientTabNavigator from '../components/ClientTabNavigator';
 import ClientSessionDetailScreen from '../screens/client/ClientSessionDetailScreen';
 import ClientWorkoutDetailsScreen from '../screens/client/ClientWorkoutDetailsScreen';
+import MessagesListScreen from '../screens/client/MessagesListScreen';
 import MessagesScreen from '../screens/client/MessagesScreen';
+import NotificationsScreen from '../screens/client/NotificationsScreen';
+import NotificationDetailScreen from '../screens/NotificationDetailScreen';
+import ClientProfileEditScreen from '../screens/client/ClientProfileEditScreen';
+import CheckInFormScreen from '../screens/client/CheckInFormScreen';
+import CheckInDetailScreen from '../screens/client/CheckInDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -45,9 +51,41 @@ const ClientStackNavigator = () => {
                 options={{ title: 'Workout Details' }}
             />
             <Stack.Screen
-                name="Messages"
+                name="MessageList"
+                component={MessagesListScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="Notifications"
+                component={NotificationsScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="ClientMessages"
                 component={MessagesScreen}
-                options={{ title: 'Messages' }}
+                options={({ route }) => ({
+                    title: route.params?.trainer?.name ?? 'Messages',
+                })}
+            />
+            <Stack.Screen
+                name="ClientProfileEdit"
+                component={ClientProfileEditScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="CheckInForm"
+                component={CheckInFormScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="CheckInDetail"
+                component={CheckInDetailScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="NotificationDetail"
+                component={NotificationDetailScreen}
+                options={{ headerShown: false }}
             />
         </Stack.Navigator>
     );

@@ -3,7 +3,7 @@ import { View, StyleSheet, StatusBar } from 'react-native';
 import TopNavBar from './TopNavBar';
 import { useTheme } from '../src/theme';
 
-const ScreenWrapper = ({ children, title }) => {
+const ScreenWrapper = ({ children, title, showBack = false }) => {
     const { theme } = useTheme();
 
     return (
@@ -12,7 +12,7 @@ const ScreenWrapper = ({ children, title }) => {
                 barStyle={theme.dark ? 'light-content' : 'dark-content'}
                 backgroundColor={theme.navBar}
             />
-            <TopNavBar title={title} />
+            <TopNavBar title={title} showBack={showBack} />
             <View style={styles.content}>
                 {children}
             </View>

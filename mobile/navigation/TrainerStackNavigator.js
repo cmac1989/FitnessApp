@@ -16,6 +16,9 @@ import TrainerProfileScreen from '../screens/trainer/TrainerProfileScreen';
 import ProfileSettingsScreen from '../screens/trainer/ProfileSettingsScreen';
 import MessagesListScreen from '../screens/trainer/MessagesListScreen';
 import NotificationsScreen from '../screens/trainer/NotificationsScreen';
+import NotificationDetailScreen from '../screens/NotificationDetailScreen';
+import InviteClientScreen from '../screens/trainer/InviteClientScreen';
+import CheckInReviewScreen from '../screens/trainer/CheckInReviewScreen';
 
 const Stack = createStackNavigator();
 
@@ -56,10 +59,13 @@ const TrainerStackNavigator = () => {
             <Stack.Screen name="ClientDetails" options={{ title: 'Client Details' }} component={ClientDetailsScreen} />
             <Stack.Screen name="WorkoutDetails" options={{ title: 'Workout Details' }} component={WorkoutDetailsScreen} />
             <Stack.Screen name="EditSession" options={{ title: 'Edit Session' }} component={EditSessionScreen} />
-            <Stack.Screen name="EditWorkout" options={{ title: 'Edit Workout' }} component={EditWorkoutScreen} />
+            <Stack.Screen name="EditWorkout" options={{ headerShown: false }} component={EditWorkoutScreen} />
             <Stack.Screen name="Messages" options={{ title: 'Messages' }} component={MessagesScreen} />
-            <Stack.Screen name="MessageList" options={{ title: 'Messages' }} component={MessagesListScreen} />
-            <Stack.Screen name="Notifications" options={{ title: 'Notifications' }} component={NotificationsScreen} />
+            <Stack.Screen name="MessageList" options={{ headerShown: false }} component={MessagesListScreen} />
+            <Stack.Screen name="Notifications" options={{ headerShown: false }} component={NotificationsScreen} />
+            <Stack.Screen name="InviteClient" options={{ headerShown: false }} component={InviteClientScreen} />
+            <Stack.Screen name="CheckInReview" options={{ headerShown: false }} component={CheckInReviewScreen} />
+            <Stack.Screen name="NotificationDetail" options={{ headerShown: false }} component={NotificationDetailScreen} />
         </Stack.Navigator>
     );
 };

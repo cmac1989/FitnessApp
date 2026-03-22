@@ -7,7 +7,7 @@ import { getUnreadMessageCount } from '../src/api/message';
 import { getUnreadNotificationCount } from '../src/api/notification';
 import { useTheme } from '../src/theme';
 
-const TopNavBar = ({ title = '' }) => {
+const TopNavBar = ({ title = '', showBack = false }) => {
     const navigation = useNavigation();
     const { theme } = useTheme();
     const [messageCount, setMessageCount] = useState(0);
@@ -46,9 +46,15 @@ const TopNavBar = ({ title = '' }) => {
     return (
         <SafeAreaView style={{ backgroundColor: theme.navBar }}>
             <View style={styles.container}>
-                <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-                    <Icon name="person-circle-outline" size={30} color={theme.navBarIcon} />
-                </TouchableOpacity>
+                {showBack ? (
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <Icon name="chevron-back-outline" size={28} color={theme.navBarIcon} />
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+                        <Icon name="person-circle-outline" size={30} color={theme.navBarIcon} />
+                    </TouchableOpacity>
+                )}
 
                 <Text style={styles.title}>{title}</Text>
 
@@ -110,6 +116,9 @@ const makeStyles = (theme) => StyleSheet.create({
     },
     iconSpacing: {
         marginRight: 16,
+    },
+    backButton: {
+        padding: 2,
     },
     badgeStyle: {
         position: 'absolute',
