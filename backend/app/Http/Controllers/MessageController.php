@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClientProfile;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
-    // Get all messages for the authenticated user (as sender or receiver)
+    // Get all messages for the authenticated user
     public function index()
     {
         $messages = Message::where('sender_id', Auth::id())
@@ -20,28 +20,25 @@ class MessageController extends Controller
         return response()->json($messages);
     }
 
+    // Latest message per conversation, with read_at
     public function getLatestMessagesPerConversation()
     {
-        $authId = Auth::id();  // Get authenticated user's ID
+        $authId = Auth::id();
 
-        // Retrieve messages where the authenticated user is either sender or receiver
         $messages = Message::with(['sender', 'receiver'])
-            ->where(function ($query) use ($authId) {
-                $query->where('sender_id', $authId)
-                    ->orWhere('receiver_id', $authId);
+            ->where(function ($q) use ($authId) {
+                $q->where('sender_id', $authId)->orWhere('receiver_id', $authId);
             })
-            ->orderBy('created_at', 'desc')  // Get messages in descending order by creation date
+            ->orderBy('created_at', 'desc')
             ->get();
 
         $conversations = [];
 
         foreach ($messages as $message) {
-            // Determine the other user in this message
             $otherUser = $message->sender_id === $authId
                 ? $message->receiver
                 : $message->sender;
 
-            // Only keep the latest message per conversation
             if (!isset($conversations[$otherUser->id])) {
                 $conversations[$otherUser->id] = [
                     'user' => [
@@ -51,7 +48,9 @@ class MessageController extends Controller
                     'last_message' => [
                         'content'    => $message->content,
                         'created_at' => $message->created_at,
-                    ]
+                        'read_at'    => $message->read_at,
+                        'is_mine'    => $message->sender_id === $authId,
+                    ],
                 ];
             }
         }
@@ -59,42 +58,49 @@ class MessageController extends Controller
         return response()->json(array_values($conversations));
     }
 
-
-
-    // Get messages between the authenticated user and another user
+    // Get messages between authenticated user and another user
     public function getMessagesWithUser($otherUserId)
     {
-        $messages = Message::where(function ($query) use ($otherUserId) {
-            $query->where('sender_id', Auth::id())
-                ->where('receiver_id', $otherUserId);
+        $authId = Auth::id();
+
+        $messages = Message::where(function ($q) use ($authId, $otherUserId) {
+            $q->where('sender_id', $authId)->where('receiver_id', $otherUserId);
         })
-            ->orWhere(function ($query) use ($otherUserId) {
-                $query->where('sender_id', $otherUserId)
-                    ->where('receiver_id', Auth::id());
-            })
-            ->orderBy('created_at', 'asc')
-            ->get();
+        ->orWhere(function ($q) use ($authId, $otherUserId) {
+            $q->where('sender_id', $otherUserId)->where('receiver_id', $authId);
+        })
+        ->orderBy('created_at', 'asc')
+        ->get();
 
         return response()->json($messages);
     }
 
-    // Send a message from the authenticated user
+    // Send a message — sender is always Auth::user(), trainer_id auto-derived
     public function sendMessage(Request $request)
     {
         $validated = $request->validate([
-            'sender_id'    => 'required|integer|exists:users,id',
             'receiver_id'  => 'required|integer|exists:users,id',
-            'trainer_id'   => 'required|integer|exists:users,id',
             'content'      => 'required|string|max:1000',
             'scheduled_at' => 'nullable|date',
         ]);
 
+        $sender   = Auth::user();
+        $senderId = $sender->id;
+
+        // Derive trainer_id from the relationship
+        if ($sender->role === 'trainer') {
+            $trainerId = $senderId;
+        } else {
+            $profile   = ClientProfile::where('user_id', $senderId)->first();
+            $trainerId = $profile?->trainer_id ?? $validated['receiver_id'];
+        }
+
         $message = Message::create([
-            'sender_id'    => $validated['sender_id'],
+            'sender_id'    => $senderId,
             'receiver_id'  => $validated['receiver_id'],
-            'trainer_id'   => $validated['trainer_id'],
+            'trainer_id'   => $trainerId,
             'content'      => $validated['content'],
-            'scheduled_at' => $validated['scheduled_at'],
+            'scheduled_at' => $validated['scheduled_at'] ?? null,
         ]);
 
         return response()->json([
@@ -103,7 +109,7 @@ class MessageController extends Controller
         ], 201);
     }
 
-    // Mark a specific message as read (only if you’re the receiver)
+    // Mark a specific message as read (only if you're the receiver)
     public function markAsRead($messageId)
     {
         $message = Message::where('id', $messageId)
@@ -112,38 +118,25 @@ class MessageController extends Controller
 
         $message->update(['read_at' => now()]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Message marked as read.',
-        ]);
+        return response()->json(['success' => true]);
     }
 
+    // Mark all unread messages as read for authenticated user
     public function markAllAsRead()
     {
-        $updatedCount = Message::where('receiver_id', Auth::id())
+        Message::where('receiver_id', Auth::id())
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        Log::info("Updated messages count: $updatedCount");
-
-        return response()->json([
-            'success' => true,
-            'updated_count' => $updatedCount,
-            'message' => 'All messages marked as read.'
-        ]);
+        return response()->json(['success' => true]);
     }
 
-
-    // Get count of unread messages for authenticated user
+    // Count unread messages for authenticated user
     public function countUnreadMessages()
     {
-        Log::info('Authenticated User ID: ' . Auth::id());
-
         $count = Message::where('receiver_id', Auth::id())
             ->whereNull('read_at')
             ->count();
-
-        Log::info('Unread message count: ' . $count);
 
         return response()->json(['unread_count' => $count]);
     }
