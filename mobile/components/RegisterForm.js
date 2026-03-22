@@ -1,69 +1,51 @@
-import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
+import React, { useState, useCallback } from 'react';
+import {
+    Pressable, ScrollView, Text, TextInput, View,
+    StyleSheet, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import CustomButton from './CustomButton';
-import React, {useState, useCallback} from 'react';
-import formInputStyles from '../styles/FormInputStyles';
-import {registerUser} from '../src/api/auth';
+import { registerUser } from '../src/api/auth';
 import { useFocusEffect } from '@react-navigation/native';
-import formErrorStyles from '../styles/FormErrorStyles';
 import { validateRegisterForm, validateField } from '../src/utils/validation';
-import { Picker } from '@react-native-picker/picker';
+import { useTheme } from '../src/theme';
+
+const EMPTY_FORM = {
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+    role: 'client',
+    profile_picture: '',
+    bio: '',
+    age: '',
+    gender: '',
+    fitness_goals: '',
+    medical_conditions: '',
+    certifications: '',
+    years_experience: '',
+    specialties: '',
+    availability: 'available',
+    location: '',
+};
 
 const RegisterForm = ({ navigation }) => {
+    const { theme } = useTheme();
+    const [userInfo, setUserInfo] = useState(EMPTY_FORM);
+    const [errors, setErrors] = useState({});
+    const [generalError, setGeneralError] = useState('');
+
     useFocusEffect(
         useCallback(() => {
-            // Reset form state when screen comes into focus
-            setUserInfo({
-                name: '',
-                email: '',
-                password: '',
-                password_confirmation: '',
-                role: 'client',
-                profile_picture: '',
-                bio: '',
-                age: '',
-                gender: '',
-                fitness_goals: '',
-                medical_conditions: '',
-                certifications: '',
-                years_experience: '',
-                specialties: '',
-                availability: 'available',
-                location: '',
-            });
+            setUserInfo(EMPTY_FORM);
             setErrors({});
             setGeneralError('');
         }, [])
     );
 
-    const [userInfo, setUserInfo] = useState({
-        name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-        role: 'client',
-        profile_picture: '',
-        bio: '',
-        age: '',
-        gender: '',
-        fitness_goals: '',
-        medical_conditions: '',
-        certifications: '',
-        years_experience: '',
-        specialties: '',
-        availability: 'available',
-        location: '',
-    });
-
-    const [errors, setErrors] = useState({});
-    const [generalError, setGeneralError] = useState('');
-
     const normalizeTrainerPayload = (data) => ({
         ...data,
         years_experience: data.years_experience === '' ? null : parseInt(data.years_experience, 10),
-        specialties: data.specialties
-            .split(',')
-            .map(item => item.trim())
-            .filter(Boolean),
+        specialties: data.specialties.split(',').map(s => s.trim()).filter(Boolean),
         availability: data.availability,
     });
 
@@ -77,14 +59,12 @@ const RegisterForm = ({ navigation }) => {
         try {
             setGeneralError('');
             setErrors({});
-
             const payload = userInfo.role === 'trainer'
                 ? normalizeTrainerPayload(userInfo)
                 : {
                     ...userInfo,
                     years_experience: userInfo.years_experience === '' ? null : parseInt(userInfo.years_experience, 10),
                 };
-
             await registerUser(payload);
             navigation.navigate('Login');
         } catch (error) {
@@ -92,295 +72,211 @@ const RegisterForm = ({ navigation }) => {
             const flattenedErrors = Object.fromEntries(
                 Object.entries(backendErrors).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
             );
-
             if (Object.keys(flattenedErrors).length > 0) {
-                setErrors(prev => ({...prev, ...flattenedErrors}));
+                setErrors(prev => ({ ...prev, ...flattenedErrors }));
                 setGeneralError('Please fix the errors below.');
             } else {
                 setGeneralError(error.message || 'Registration failed. Please try again.');
             }
-
-            console.error('Registration failed:', {
-                message: error.message,
-                status: error.status,
-                validationErrors: error.validationErrors,
-                raw: error.raw,
-            });
         }
     };
 
+    const styles = makeStyles(theme);
+
+    const field = (label, key, props = {}) => (
+        <>
+            <Text style={styles.label}>{label}</Text>
+            <TextInput
+                style={styles.input}
+                value={userInfo[key]}
+                placeholderTextColor={theme.placeholder}
+                onChangeText={text => {
+                    setUserInfo(prev => ({ ...prev, [key]: text }));
+                    const err = validateField(key, text, userInfo);
+                    setErrors(prev => ({ ...prev, [key]: err }));
+                }}
+                {...props}
+            />
+            <Text style={styles.errorText}>{errors[key] || ' '}</Text>
+        </>
+    );
+
     return (
-        <ScrollView style={formInputStyles.container}>
-            <Text style={formInputStyles.label}>Name</Text>
-            <TextInput
-                style={formInputStyles.input}
-                placeholder="Enter your name"
-                value={userInfo.name}
-                onChangeText={text => {
-                    setUserInfo(prev => ({ ...prev, name: text }));
-                    const error = validateField('name', text, userInfo);
-                    setErrors(prev => ({ ...prev, name: error }));
-                }}
-                textContentType="name"
-                autoComplete="name"
-            />
-            <Text style={formErrorStyles.errorText}>
-                {errors.name ? errors.name : ' '}
-            </Text>
+        <KeyboardAvoidingView
+            style={styles.flex}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+            <ScrollView
+                style={styles.flex}
+                contentContainerStyle={styles.container}
+                keyboardShouldPersistTaps="handled"
+            >
+                {field('Name', 'name', { textContentType: 'name', autoComplete: 'name' })}
+                {field('Email', 'email', { keyboardType: 'email-address', textContentType: 'emailAddress', autoComplete: 'email' })}
+                {field('Password', 'password', {
+                    secureTextEntry: true,
+                    textContentType: 'newPassword',
+                    autoComplete: 'password-new',
+                    onChangeText: text => {
+                        setUserInfo(prev => ({ ...prev, password: text }));
+                        setErrors(prev => ({
+                            ...prev,
+                            password: validateField('password', text, userInfo),
+                            password_confirmation: validateField('password_confirmation', userInfo.password_confirmation, { ...userInfo, password: text }),
+                        }));
+                    },
+                })}
+                {field('Confirm Password', 'password_confirmation', {
+                    secureTextEntry: true,
+                    textContentType: 'newPassword',
+                    autoComplete: 'password-new',
+                })}
+                {field('Bio', 'bio', { placeholder: 'Tell us a little about yourself', multiline: true })}
 
-            <Text style={formInputStyles.label}>Email</Text>
-            <TextInput
-                style={formInputStyles.input}
-                placeholder="Enter your email"
-                value={userInfo.email}
-                onChangeText={text => {
-                    setUserInfo(prev => ({ ...prev, email: text }));
-                    const error = validateField('email', text, userInfo);
-                    setErrors(prev => ({ ...prev, email: error }));
-                }}
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                autoComplete="email"
-            />
-            <Text style={formErrorStyles.errorText}>
-                {errors.email ? errors.email : ' '}
-            </Text>
+                {/* Role selector */}
+                <Text style={styles.label}>Select your role:</Text>
+                <View style={styles.roleContainer}>
+                    {['client', 'trainer'].map(role => (
+                        <Pressable
+                            key={role}
+                            onPress={() => setUserInfo(prev => ({ ...prev, role }))}
+                            style={({ pressed }) => [
+                                styles.roleButton,
+                                userInfo.role === role && styles.activeRoleButton,
+                                pressed && styles.pressedButton,
+                            ]}
+                        >
+                            <Text style={[
+                                styles.roleButtonText,
+                                userInfo.role === role && styles.activeRoleButtonText,
+                            ]}>
+                                {role.charAt(0).toUpperCase() + role.slice(1)}
+                            </Text>
+                        </Pressable>
+                    ))}
+                </View>
+                <Text style={styles.errorText}>{errors.role || ' '}</Text>
 
-            <Text style={formInputStyles.label}>Password</Text>
-            <TextInput
-                style={formInputStyles.input}
-                placeholder="Enter your password"
-                secureTextEntry
-                value={userInfo.password}
-                onChangeText={text => {
-                    setUserInfo(prev => ({ ...prev, password: text }));
-                    const passwordError = validateField('password', text, userInfo);
-                    const confirmError = validateField('password_confirmation', userInfo.password_confirmation, {
-                        ...userInfo,
-                        password: text,
-                    });
-                    setErrors(prev => ({
-                        ...prev,
-                        password: passwordError,
-                        password_confirmation: confirmError
-                    }));
-                }}
-                textContentType="newPassword"
-                autoComplete="password-new"
-            />
-            <Text style={formErrorStyles.errorText}>
-                {errors.password ? errors.password : ' '}
-            </Text>
+                {/* Client fields */}
+                {userInfo.role === 'client' && (
+                    <>
+                        {field('Age', 'age', { keyboardType: 'numeric' })}
+                        {field('Gender (M/F/O)', 'gender')}
+                        {field('Fitness Goal', 'fitness_goals', { placeholder: "What's your fitness goal?" })}
+                        {field('Medical Conditions', 'medical_conditions', { placeholder: 'List any conditions' })}
+                    </>
+                )}
 
-            <Text style={formInputStyles.label}>Confirm Password</Text>
-            <TextInput
-                style={formInputStyles.input}
-                placeholder="Confirm your password"
-                secureTextEntry
-                value={userInfo.password_confirmation}
-                onChangeText={text => {
-                    setUserInfo(prev => ({ ...prev, password_confirmation: text }));
-                    const confirmError = validateField('password_confirmation', text, userInfo);
-                    setErrors(prev => ({
-                        ...prev,
-                        password_confirmation: confirmError,
-                    }));
-                }}
-                textContentType="newPassword"
-                autoComplete="password-new"
-            />
-            <Text style={formErrorStyles.errorText}>
-                {errors.password_confirmation ? errors.password_confirmation : ' '}
-            </Text>
+                {/* Trainer fields */}
+                {userInfo.role === 'trainer' && (
+                    <>
+                        {field('Certifications', 'certifications')}
+                        {field('Years of Experience', 'years_experience', { keyboardType: 'numeric' })}
+                        {field('Specialties', 'specialties', { placeholder: 'Strength Training, Weight Loss' })}
 
-            <Text style={formInputStyles.label}>Bio</Text>
-            <TextInput
-                style={formInputStyles.input}
-                placeholder="Tell us a little about yourself"
-                value={userInfo.bio}
-                onChangeText={text => {
-                    setUserInfo(prev => ({ ...prev, bio: text }));
-                    setErrors(prev => ({ ...prev, bio: null }));
-                }}
-                multiline
-            />
-            <Text style={formErrorStyles.errorText}>
-                {errors.bio ? errors.bio : ' '}
-            </Text>
+                        <Text style={styles.label}>Availability</Text>
+                        <View style={styles.roleContainer}>
+                            {['available', 'unavailable'].map(option => (
+                                <Pressable
+                                    key={option}
+                                    onPress={() => setUserInfo(prev => ({ ...prev, availability: option }))}
+                                    style={({ pressed }) => [
+                                        styles.roleButton,
+                                        userInfo.availability === option && styles.activeRoleButton,
+                                        pressed && styles.pressedButton,
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.roleButtonText,
+                                        userInfo.availability === option && styles.activeRoleButtonText,
+                                    ]}>
+                                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </View>
+                        <Text style={styles.errorText}>{errors.availability || ' '}</Text>
 
-            <Text style={formInputStyles.label}>Select your role:</Text>
-            <View style={formInputStyles.roleContainer}>
-                {['client', 'trainer'].map((role) => (
-                    <Pressable
-                        key={role}
-                        onPress={() => setUserInfo(prev => ({ ...prev, role }))}
-                        style={({ pressed }) => [
-                            formInputStyles.roleButton,
-                            userInfo.role === role && formInputStyles.activeRoleButton,
-                            pressed && formInputStyles.pressedButton,
-                        ]}
-                    >
-                        <Text style={[
-                            formInputStyles.roleButtonText,
-                            userInfo.role === role && formInputStyles.activeRoleButtonText,
-                        ]}>
-                            {role.charAt(0).toUpperCase() + role.slice(1)}
-                        </Text>
-                    </Pressable>
-                ))}
-            </View>
-            <Text style={formErrorStyles.errorText}>
-                {errors.role ? errors.role : ' '}
-            </Text>
+                        {field('Location', 'location', { placeholder: 'Your city / region' })}
+                    </>
+                )}
 
-            {userInfo.role === 'client' && (
-                <>
-                    <Text style={formInputStyles.label}>Age</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="Your age"
-                        keyboardType="numeric"
-                        value={userInfo.age}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, age: text }))
-                        }
-                    />
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.age ? errors.age : ' '}
-                    </Text>
+                {generalError ? <Text style={styles.generalError}>{generalError}</Text> : null}
 
-                    <Text style={formInputStyles.label}>Gender (M/F/O)</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="Gender"
-                        value={userInfo.gender}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, gender: text }))
-                        }
-                    />
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.gender ? errors.gender : ' '}
-                    </Text>
-
-                    <Text style={formInputStyles.label}>Fitness Goal</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="What’s your fitness goal?"
-                        value={userInfo.fitness_goals}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, fitness_goals: text }))
-                        }
-                    />
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.fitness_goals ? errors.fitness_goals : ' '}
-                    </Text>
-
-                    <Text style={formInputStyles.label}>Medical Conditions</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="List any conditions"
-                        value={userInfo.medical_conditions}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, medical_conditions: text }))
-                        }
-                    />
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.medical_conditions ? errors.medical_conditions : ' '}
-                    </Text>
-                </>
-            )}
-
-            {userInfo.role === 'trainer' && (
-                <>
-                    <Text style={formInputStyles.label}>Certifications</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="Certifications"
-                        value={userInfo.certifications}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, certifications: text }))
-                        }
-                    />
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.certifications ? errors.certifications : ' '}
-                    </Text>
-
-                    <Text style={formInputStyles.label}>Years of Experience</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="Years"
-                        keyboardType="numeric"
-                        value={userInfo.years_experience}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, years_experience: text }))
-                        }
-                    />
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.years_experience ? errors.years_experience : ' '}
-                    </Text>
-
-                    <Text style={formInputStyles.label}>Specialties</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="Strength Training, Weight Loss"
-                        value={userInfo.specialties}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, specialties: text }))
-                        }
-                    />
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.specialties ? errors.specialties : ' '}
-                    </Text>
-
-                    <Text style={formInputStyles.label}>Availability</Text>
-                    <View style={formInputStyles.roleContainer}>
-                        {['available', 'unavailable'].map((option) => (
-                            <Pressable
-                                key={option}
-                                onPress={() => setUserInfo(prev => ({ ...prev, availability: option }))}
-                                style={({ pressed }) => [
-                                    formInputStyles.roleButton,
-                                    userInfo.availability === option && formInputStyles.activeRoleButton,
-                                    pressed && formInputStyles.pressedButton,
-                                ]}
-                            >
-                                <Text style={[
-                                    formInputStyles.roleButtonText,
-                                    userInfo.availability === option && formInputStyles.activeRoleButtonText,
-                                ]}>
-                                    {option.charAt(0).toUpperCase() + option.slice(1)}
-                                </Text>
-                            </Pressable>
-                        ))}
-                    </View>
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.availability ? errors.availability : ' '}
-                    </Text>
-
-                    <Text style={formInputStyles.label}>Location</Text>
-                    <TextInput
-                        style={formInputStyles.input}
-                        placeholder="Your city / region"
-                        value={userInfo.location}
-                        onChangeText={text =>
-                            setUserInfo(prev => ({ ...prev, location: text }))
-                        }
-                    />
-                    <Text style={formErrorStyles.errorText}>
-                        {errors.location ? errors.location : ' '}
-                    </Text>
-                </>
-            )}
-
-            <Text style={formErrorStyles.errorText}>
-                {generalError ? generalError : ' '}
-            </Text>
-
-            <CustomButton
-                title="Register"
-                onPress={handleRegister}
-            />
-        </ScrollView>
+                <CustomButton title="Register" onPress={handleRegister} />
+                <View style={styles.bottomPad} />
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
+
+const makeStyles = (theme) => StyleSheet.create({
+    flex: { flex: 1 },
+    container: {
+        padding: 20,
+        backgroundColor: theme.background,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.textSecondary,
+        marginTop: 14,
+        marginBottom: 4,
+    },
+    input: {
+        backgroundColor: theme.inputBackground,
+        borderWidth: 1,
+        borderColor: theme.inputBorder,
+        borderRadius: 10,
+        padding: 12,
+        fontSize: 16,
+        color: theme.text,
+    },
+    errorText: {
+        fontSize: 12,
+        color: theme.error,
+        marginTop: 2,
+        minHeight: 16,
+    },
+    generalError: {
+        fontSize: 14,
+        color: theme.error,
+        textAlign: 'center',
+        marginVertical: 10,
+    },
+    roleContainer: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 4,
+    },
+    roleButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: theme.inputBorder,
+        backgroundColor: theme.inputBackground,
+        alignItems: 'center',
+    },
+    activeRoleButton: {
+        backgroundColor: theme.primary,
+        borderColor: theme.primary,
+    },
+    pressedButton: {
+        opacity: 0.75,
+    },
+    roleButtonText: {
+        fontSize: 15,
+        fontWeight: '500',
+        color: theme.textSecondary,
+    },
+    activeRoleButtonText: {
+        color: '#fff',
+        fontWeight: '700',
+    },
+    bottomPad: {
+        height: 30,
+    },
+});
+
 export default RegisterForm;

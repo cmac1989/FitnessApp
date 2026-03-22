@@ -15,8 +15,8 @@ export const fetchConversations = async () => {
     return response.data;
 };
 
-export const sendMessage = async (messageData) => {
-    const response = await api.post('/api/trainer/messages', messageData);
+export const sendMessage = async (receiverId, content) => {
+    const response = await api.post('/api/trainer/messages', { receiver_id: receiverId, content });
     return response.data;
 };
 

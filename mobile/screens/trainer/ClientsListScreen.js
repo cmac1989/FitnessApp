@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, Pressable, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { getClients } from '../../src/api/user';
 import { useTheme } from '../../src/theme';
@@ -8,21 +8,40 @@ import { useTheme } from '../../src/theme';
 const ClientsListScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
-    const [clients, setClients] = useState([]);
+    const styles = makeStyles(theme);
 
-    useEffect(() => {
-        const fetchClients = async () => {
-            try {
-                const data = await getClients();
-                setClients(data);
-            } catch (error) {
-                console.error('There was a problem fetching clients', error);
-            }
-        };
-        fetchClients();
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchClients = useCallback(async (cancelled) => {
+        try {
+            setLoading(true);
+            const data = await getClients();
+            if (!cancelled.value) setClients(data);
+        } catch (error) {
+            console.error('There was a problem fetching clients', error);
+        } finally {
+            if (!cancelled.value) setLoading(false);
+        }
     }, []);
 
-    const styles = makeStyles(theme);
+    useFocusEffect(
+        useCallback(() => {
+            const cancelled = { value: false };
+            fetchClients(cancelled);
+            return () => { cancelled.value = true; };
+        }, [fetchClients])
+    );
+
+    if (loading) {
+        return (
+            <ScreenWrapper title="Clients">
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color={theme.accent} />
+                </View>
+            </ScreenWrapper>
+        );
+    }
 
     const renderClient = ({ item }) => (
         <Pressable
@@ -37,14 +56,25 @@ const ClientsListScreen = () => {
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
             <Text style={styles.emptyTitle}>No Clients Yet</Text>
-            <Text style={styles.emptySubtitle}>Clients who sign up with you will appear here.</Text>
+            <Text style={styles.emptySubtitle}>
+                Invite a client using the button above. Once they accept, they'll appear here.
+            </Text>
         </View>
     );
 
     return (
         <ScreenWrapper title="Clients">
             <View style={styles.container}>
-                <Text style={styles.title}>Your Clients</Text>
+                <View style={styles.header}>
+                    <Text style={styles.title}>Your Clients</Text>
+                    <TouchableOpacity
+                        style={styles.inviteBtn}
+                        onPress={() => navigation.navigate('InviteClient')}
+                    >
+                        <Text style={styles.inviteBtnText}>+ Invite</Text>
+                    </TouchableOpacity>
+                </View>
+
                 <FlatList
                     data={clients}
                     keyExtractor={(item) => item.id.toString()}
@@ -58,16 +88,38 @@ const ClientsListScreen = () => {
 };
 
 const makeStyles = (theme) => StyleSheet.create({
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: theme.background,
+    },
     container: {
         flex: 1,
         padding: 20,
         backgroundColor: theme.background,
     },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
     title: {
         fontSize: 26,
         fontWeight: 'bold',
-        marginBottom: 20,
         color: theme.text,
+    },
+    inviteBtn: {
+        backgroundColor: theme.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+    },
+    inviteBtnText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 14,
     },
     listContent: {
         paddingBottom: 20,

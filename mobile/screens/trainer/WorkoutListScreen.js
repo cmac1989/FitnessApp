@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, FlatList, Pressable, Text, StyleSheet } from 'react-native';
+import { View, FlatList, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -10,23 +10,39 @@ const WorkoutListScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
     const [workouts, setWorkouts] = useState([]);
+    const [loading, setLoading]   = useState(true);
 
-    const fetchWorkouts = async () => {
+    const fetchWorkouts = useCallback(async (cancelled) => {
         try {
+            setLoading(true);
             const data = await getTrainerWorkouts();
-            setWorkouts(data);
+            if (!cancelled.value) setWorkouts(data);
         } catch (error) {
             console.error('error fetching workouts', error);
+        } finally {
+            if (!cancelled.value) setLoading(false);
         }
-    };
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
-            fetchWorkouts();
-        }, [])
+            const cancelled = { value: false };
+            fetchWorkouts(cancelled);
+            return () => { cancelled.value = true; };
+        }, [fetchWorkouts])
     );
 
     const styles = makeStyles(theme);
+
+    if (loading) {
+        return (
+            <ScreenWrapper title="Workouts">
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color={theme.accent} />
+                </View>
+            </ScreenWrapper>
+        );
+    }
 
     const renderWorkout = ({ item }) => (
         <Pressable
@@ -68,6 +84,12 @@ const WorkoutListScreen = () => {
 };
 
 const makeStyles = (theme) => StyleSheet.create({
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: theme.background,
+    },
     container: {
         flex: 1,
         padding: 20,

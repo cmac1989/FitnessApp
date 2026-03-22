@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import TrainerDashboardScreen from '../screens/trainer/TrainerDashboardScreen';
-import SessionsScreen from '../screens/trainer/SessionsScreen';
+import CheckInsScreen from '../screens/trainer/CheckInsScreen';
 import ClientsListScreen from '../screens/trainer/ClientsListScreen';
 import WorkoutListScreen from '../screens/trainer/WorkoutListScreen';
 import TrainerProfileScreen from '../screens/trainer/TrainerProfileScreen';
@@ -54,10 +54,11 @@ const TrainerTabNavigator = () => {
             />
             <Tab.Screen
                 name="Sessions"
-                component={SessionsScreen}
+                component={CheckInsScreen}
                 options={{
+                    tabBarLabel: 'Check-ins',
                     tabBarIcon: ({ color }) => (
-                        <Icon name="calendar-outline" color={color} size={24} />
+                        <Icon name="clipboard-outline" color={color} size={24} />
                     ),
                 }}
             />

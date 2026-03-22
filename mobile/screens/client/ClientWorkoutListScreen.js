@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
@@ -11,18 +11,23 @@ const ClientWorkoutListScreen = () => {
     const { theme } = useTheme();
     const [workouts, setWorkouts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
 
-    const fetchWorkouts = useCallback(async (cancelled) => {
+    const fetchWorkouts = useCallback(async (cancelled, isRefresh = false) => {
         try {
-            setLoading(true);
+            if (isRefresh) setRefreshing(true);
+            else setLoading(true);
             setError(null);
             const data = await getClientWorkouts();
             if (!cancelled.value) setWorkouts(data);
         } catch (err) {
             if (!cancelled.value) setError('Could not load workouts.');
         } finally {
-            if (!cancelled.value) setLoading(false);
+            if (!cancelled.value) {
+                setLoading(false);
+                setRefreshing(false);
+            }
         }
     }, []);
 
@@ -80,6 +85,17 @@ const ClientWorkoutListScreen = () => {
                         renderItem={renderItem}
                         contentContainerStyle={styles.listContent}
                         ListEmptyComponent={renderEmpty}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={() => {
+                                    const cancelled = { value: false };
+                                    fetchWorkouts(cancelled, true);
+                                }}
+                                tintColor={theme.accent}
+                                colors={[theme.accent]}
+                            />
+                        }
                     />
                 )}
             </View>

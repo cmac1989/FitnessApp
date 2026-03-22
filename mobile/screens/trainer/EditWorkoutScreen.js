@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Alert, SafeAreaView } from 'react-native';
+import {
+    View, Text, StyleSheet, TextInput, ScrollView, Alert,
+    KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
+import ScreenWrapper from '../../components/ScreenWrapper';
 import { updateWorkout } from '../../src/api/workout';
 import { useTheme } from '../../src/theme';
 
@@ -10,113 +14,122 @@ const EditWorkoutScreen = () => {
     const route = useRoute();
     const { workout } = route.params;
     const { theme } = useTheme();
+    const styles = makeStyles(theme);
 
-    const [title, setTitle] = useState(workout.title || '');
+    const [title, setTitle]           = useState(workout.title || '');
     const [description, setDescription] = useState(workout.description || '');
     const [workoutList, setWorkoutList] = useState(workout.workout_list || '');
-    const [difficulty, setDifficulty] = useState(workout.difficulty || '');
-    const [duration, setDuration] = useState(workout.duration?.toString() || '');
+    const [difficulty, setDifficulty]  = useState(workout.difficulty || '');
+    const [duration, setDuration]      = useState(workout.duration?.toString() || '');
+    const [saving, setSaving]          = useState(false);
 
     const handleSave = async () => {
-        const updatedData = {
-            title,
-            description,
-            workout_list: workoutList,
-            difficulty,
-            duration: parseInt(duration, 10),
-        };
+        if (saving) return;
         try {
-            await updateWorkout(workout.id, updatedData);
+            setSaving(true);
+            await updateWorkout(workout.id, {
+                title,
+                description,
+                workout_list: workoutList,
+                difficulty,
+                duration: duration ? parseInt(duration, 10) : null,
+            });
             Alert.alert('Success', 'Workout updated successfully.');
             navigation.goBack();
         } catch (error) {
-            console.error('Failed to update workout', error);
             Alert.alert('Error', 'Failed to update workout. Please try again.');
+        } finally {
+            setSaving(false);
         }
     };
 
-    const styles = makeStyles(theme);
-
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView contentContainerStyle={styles.container}>
-                <Text style={styles.title}>Edit Workout</Text>
+        <ScreenWrapper title="Edit Workout" showBack>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={styles.flex}
+            >
+                <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+                    <Text style={styles.label}>Workout Title</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={title}
+                        onChangeText={setTitle}
+                        placeholderTextColor={theme.placeholder}
+                        color={theme.text}
+                    />
 
-                <Text style={styles.label}>Workout Title</Text>
-                <TextInput
-                    style={styles.input}
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholderTextColor={theme.placeholder}
-                />
+                    <Text style={styles.label}>Description</Text>
+                    <TextInput
+                        style={[styles.input, styles.multiLine]}
+                        value={description}
+                        onChangeText={setDescription}
+                        placeholderTextColor={theme.placeholder}
+                        color={theme.text}
+                        multiline
+                    />
 
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                    style={[styles.input, styles.multiLine]}
-                    value={description}
-                    onChangeText={setDescription}
-                    placeholderTextColor={theme.placeholder}
-                    multiline
-                />
+                    <Text style={styles.label}>Workout List</Text>
+                    <TextInput
+                        style={[styles.input, styles.multiLine]}
+                        value={workoutList}
+                        onChangeText={setWorkoutList}
+                        placeholderTextColor={theme.placeholder}
+                        color={theme.text}
+                        multiline
+                    />
 
-                <Text style={styles.label}>Workout List</Text>
-                <TextInput
-                    style={[styles.input, styles.multiLine]}
-                    value={workoutList}
-                    onChangeText={setWorkoutList}
-                    placeholderTextColor={theme.placeholder}
-                    multiline
-                />
+                    <Text style={styles.label}>Difficulty</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={difficulty}
+                        onChangeText={setDifficulty}
+                        placeholderTextColor={theme.placeholder}
+                        color={theme.text}
+                    />
 
-                <Text style={styles.label}>Difficulty</Text>
-                <TextInput
-                    style={styles.input}
-                    value={difficulty}
-                    onChangeText={setDifficulty}
-                    placeholderTextColor={theme.placeholder}
-                />
+                    <Text style={styles.label}>Duration (minutes)</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={duration}
+                        onChangeText={setDuration}
+                        placeholderTextColor={theme.placeholder}
+                        color={theme.text}
+                        keyboardType="numeric"
+                    />
 
-                <Text style={styles.label}>Duration (minutes)</Text>
-                <TextInput
-                    style={styles.input}
-                    value={duration}
-                    onChangeText={setDuration}
-                    placeholderTextColor={theme.placeholder}
-                    keyboardType="numeric"
-                />
-
-                <CustomButton title="Save Changes" onPress={handleSave} />
-            </ScrollView>
-        </SafeAreaView>
+                    <View style={styles.buttonRow}>
+                        <CustomButton
+                            title={saving ? 'Saving…' : 'Save Changes'}
+                            onPress={handleSave}
+                            disabled={saving}
+                        />
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </ScreenWrapper>
     );
 };
 
 const makeStyles = (theme) => StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: theme.background,
-    },
+    flex: { flex: 1 },
     container: {
         padding: 20,
         backgroundColor: theme.background,
-        flexGrow: 1,
-    },
-    title: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: theme.text,
+        paddingBottom: 40,
     },
     label: {
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: '600',
-        marginTop: 12,
-        marginBottom: 4,
-        color: theme.textSecondary,
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 18,
+        marginBottom: 6,
     },
     input: {
         backgroundColor: theme.inputBackground,
-        borderRadius: 8,
+        borderRadius: 10,
         padding: 12,
         fontSize: 16,
         borderColor: theme.inputBorder,
@@ -124,8 +137,11 @@ const makeStyles = (theme) => StyleSheet.create({
         color: theme.text,
     },
     multiLine: {
-        minHeight: 80,
+        minHeight: 90,
         textAlignVertical: 'top',
+    },
+    buttonRow: {
+        marginTop: 28,
     },
 });
 

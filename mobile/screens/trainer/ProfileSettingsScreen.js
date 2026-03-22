@@ -76,8 +76,7 @@ const ProfileSettingsScreen = () => {
     const handleLogout = async () => {
         try {
             await userLogout();
-            Alert.alert('Logged Out', 'You have been logged out.');
-            navigation.navigate('Home');
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
         } catch (error) {
             console.error('Error logging out:', error);
             Alert.alert('Error', 'Something went wrong logging out.');

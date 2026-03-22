@@ -1,5 +1,10 @@
 import api from './api';
 
+export const getTrainerDashboard = async () => {
+    const response = await api.get('api/trainer/dashboard');
+    return response.data;
+};
+
 export const getTrainerStats = async () => {
     const response = await api.get('api/trainer/stats');
     return response.data;
