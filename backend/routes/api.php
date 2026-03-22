@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ClientDashboardController;
+use App\Http\Controllers\ClientInvitationController;
 use App\Http\Controllers\ClientProfileController;
 use App\Http\Controllers\ClientSessionController;
 use App\Http\Controllers\ClientWorkoutController;
@@ -55,6 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAllAsRead']);
         Route::get('/notifications/{id}', [NotificationController::class, 'show']);
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+
+        // Invitations — specific routes before wildcard
+        Route::get('/invitations/pending', [ClientInvitationController::class, 'pendingForClient']);
+        Route::post('/invitations/{token}/accept', [ClientInvitationController::class, 'accept']);
+        Route::post('/invitations/{token}/decline', [ClientInvitationController::class, 'decline']);
     });
 
     Route::prefix('trainer')->group(function () {
@@ -65,12 +71,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/clients', [ClientProfileController::class, 'clients']);
 
+        // Invitations
+        Route::get('/invitations', [ClientInvitationController::class, 'index']);
+        Route::post('/invitations', [ClientInvitationController::class, 'store']);
+        Route::delete('/invitations/{id}', [ClientInvitationController::class, 'destroy']);
+
         Route::get('/trainer-profile', [TrainerProfileController::class, 'getTrainerProfile']);
         Route::patch('/trainer-profile/{id}', [TrainerProfileController::class, 'update']);
 
         Route::apiResource('workouts', WorkoutController::class)->only(['store', 'update', 'destroy']);
         Route::get('/workouts/', [WorkoutController::class, 'getTrainerWorkouts']);
         Route::get('/workouts/{id}', [WorkoutController::class, 'getTrainerWorkout']);
+        Route::post('/workouts/{id}/assign', [WorkoutController::class, 'assign']);
 
         // Messages — order matters: specific routes before wildcards
         Route::get('/messages/unread-count', [MessageController::class, 'countUnreadMessages']);

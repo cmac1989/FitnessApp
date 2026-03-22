@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClientProfile;
+use App\Models\Notification;
 use App\Models\Workout;
+use App\Models\WorkoutAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -71,6 +74,45 @@ class WorkoutController extends Controller
             'message' => 'Workout updated successfully',
             'workout' => $workout
         ]);
+    }
+
+    public function assign(Request $request, $id)
+    {
+        $trainer = Auth::user();
+
+        $workout = Workout::where('id', $id)
+            ->where('user_id', $trainer->id)
+            ->firstOrFail();
+
+        $request->validate([
+            'client_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $isLinked = ClientProfile::where('user_id', $request->client_id)
+            ->where('trainer_id', $trainer->id)
+            ->exists();
+
+        if (!$isLinked) {
+            return response()->json(['error' => 'Client is not linked to you.'], 403);
+        }
+
+        WorkoutAssignment::firstOrCreate(
+            ['workout_id' => $workout->id, 'client_id' => $request->client_id],
+            ['trainer_id' => $trainer->id]
+        );
+
+        // Notify client
+        Notification::create([
+            'user_id' => $request->client_id,
+            'type'    => 'workout_assigned',
+            'data'    => json_encode([
+                'title'      => 'New Workout Assigned',
+                'body'       => "{$trainer->name} assigned you \"{$workout->title}\".",
+                'workout_id' => $workout->id,
+            ]),
+        ]);
+
+        return response()->json(['message' => 'Workout assigned successfully.']);
     }
 
     public function destroy($id) {

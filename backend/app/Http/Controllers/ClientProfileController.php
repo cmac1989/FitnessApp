@@ -11,8 +11,11 @@ class ClientProfileController extends Controller
 {
     public function clients(Request $request)
     {
+        $trainerId = $request->user()->id;
+
         $clients = User::with('clientProfile')
             ->where('role', 'client')
+            ->whereHas('clientProfile', fn ($q) => $q->where('trainer_id', $trainerId))
             ->orderBy('name')
             ->get();
 

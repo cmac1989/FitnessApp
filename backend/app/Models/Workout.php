@@ -36,4 +36,8 @@ class Workout extends Model
         return $this->hasMany(ProgressLog::class);
     }
 
+    public function assignments()
+    {
+        return $this->hasMany(WorkoutAssignment::class);
+    }
 }
