@@ -97,8 +97,28 @@ const CheckInReviewScreen = () => {
         );
     }
 
+    const isPending  = !checkIn.submitted_at;
     const isReviewed = !!checkIn.reviewed_at;
     const clientName = checkIn.client?.name || 'Unknown Client';
+
+    if (isPending) {
+        return (
+            <ScreenWrapper title="Review Check-in" showBack>
+                <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Pending Check-in</Text>
+                        <Text style={styles.clientName}>{clientName}</Text>
+                        <Text style={styles.weekLabel}>{formatWeek(checkIn.week_start)}</Text>
+                        <View style={styles.pendingBanner}>
+                            <Text style={styles.pendingBannerText}>
+                                This check-in hasn't been submitted yet. The client will fill it in on their end.
+                            </Text>
+                        </View>
+                    </View>
+                </ScrollView>
+            </ScreenWrapper>
+        );
+    }
 
     const renderWeightChange = () => {
         if (weightChange === null || weightChange === undefined) return null;
@@ -197,7 +217,7 @@ const CheckInReviewScreen = () => {
                             </View>
                         )}
 
-                        {renderScoreDisplay(checkIn.adherence_score, 'Adherence Score')}
+                        {renderScoreDisplay(checkIn.adherence_score, 'Workout Compliance (auto-calculated)')}
                         {renderScoreDisplay(checkIn.energy_score, 'Energy Score')}
 
                         {checkIn.client_notes ? (
@@ -415,6 +435,19 @@ const makeStyles = (theme) => StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: '700',
+    },
+    pendingBanner: {
+        backgroundColor: '#fef3c722',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#f59e0b44',
+        padding: 12,
+        marginTop: 8,
+    },
+    pendingBannerText: {
+        fontSize: 14,
+        color: '#b45309',
+        lineHeight: 20,
     },
 });
 

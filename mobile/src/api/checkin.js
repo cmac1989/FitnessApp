@@ -33,3 +33,18 @@ export const reviewCheckIn = async (id, data) => {
     const response = await api.patch(`/api/trainer/check-ins/${id}/review`, data);
     return response.data;
 };
+
+export const trainerCreateCheckIn = async (data) => {
+    const response = await api.post('/api/trainer/check-ins', data);
+    return response.data;
+};
+
+export const clientCompleteCheckIn = async (id, data) => {
+    const response = await api.patch(`/api/client/check-ins/${id}/complete`, data);
+    return response.data;
+};
+
+export const trainerBatchCreateCheckIns = async (clientIds) => {
+    const response = await api.post('/api/trainer/check-ins/batch', { client_ids: clientIds });
+    return response.data;
+};

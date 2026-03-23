@@ -24,7 +24,28 @@ export const deleteWorkout = async (id) => {
     return response.data;
 };
 
-export const assignWorkout = async (workoutId, clientId) => {
-    const response = await api.post(`api/trainer/workouts/${workoutId}/assign`, { client_id: clientId });
+export const assignWorkout = async (workoutId, clientId, scheduledDate = null) => {
+    const response = await api.post(`api/trainer/workouts/${workoutId}/assign`, {
+        client_id: clientId,
+        scheduled_date: scheduledDate,
+    });
+    return response.data;
+};
+
+export const batchAssignWorkout = async (workoutId, clientIds, scheduledDate = null) => {
+    const response = await api.post(`api/trainer/workouts/${workoutId}/assign-batch`, {
+        client_ids: clientIds,
+        scheduled_date: scheduledDate,
+    });
+    return response.data;
+};
+
+export const getClientSchedule = async () => {
+    const response = await api.get('api/client/schedule');
+    return response.data;
+};
+
+export const generateWorkout = async (prompt) => {
+    const response = await api.post('api/trainer/workouts/generate', { prompt });
     return response.data;
 };

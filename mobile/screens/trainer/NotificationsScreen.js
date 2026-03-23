@@ -13,6 +13,10 @@ const TYPE_LABELS = {
     invite_accepted:     'Client Accepted Invitation',
     invite_declined:     'Client Declined Invitation',
     workout_assigned:    'Workout Assigned',
+    workout_liked:       'Workout Liked',
+    workout_commented:   'New Comment on Workout',
+    workout_completed:   'Client Completed Workout',
+    message_liked:       'Message Liked',
 };
 
 const NotificationsScreen = () => {

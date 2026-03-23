@@ -1,127 +1,241 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
+import {
+    View, Text, TextInput, ScrollView, StyleSheet,
+    TouchableOpacity, KeyboardAvoidingView, Platform, Alert,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
 import { createWorkout } from '../../src/api/workout';
-import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../src/theme';
 
-const CreateWorkoutScreen = ({ userId }) => {
+const DIFFICULTY_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'];
+
+const CreateWorkoutScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
+    const styles = makeStyles(theme);
 
-    const [title, setTitle] = useState('');
+    const [title, setTitle]           = useState('');
     const [description, setDescription] = useState('');
     const [workoutList, setWorkoutList] = useState('');
-    const [difficulty, setDifficulty] = useState('');
-    const [duration, setDuration] = useState('');
+    const [difficulty, setDifficulty]  = useState('');
+    const [duration, setDuration]      = useState('');
+    const [saving, setSaving]          = useState(false);
 
-    const handleCreateWorkout = async () => {
-        const workoutData = {
-            user_id: userId,
-            title,
-            description,
-            workout_list: workoutList,
-            difficulty,
-            duration,
-        };
+    const handleCreate = async () => {
+        if (!title.trim()) {
+            Alert.alert('Missing Title', 'Please enter a workout title.');
+            return;
+        }
+        if (saving) return;
+        setSaving(true);
         try {
-            await createWorkout(workoutData);
+            await createWorkout({
+                title:        title.trim(),
+                description:  description.trim(),
+                workout_list: workoutList.trim(),
+                difficulty,
+                duration:     duration ? parseInt(duration, 10) : null,
+            });
             navigation.goBack();
-        } catch (error) {
-            console.error('Could not create workout', error);
+        } catch {
+            Alert.alert('Error', 'Could not create workout. Please try again.');
+        } finally {
+            setSaving(false);
         }
     };
 
-    const styles = makeStyles(theme);
-
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView contentContainerStyle={styles.container}>
-                <Text style={styles.title}>Create New Workout</Text>
+        <ScreenWrapper title="Create Workout" showBack>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={styles.flex}
+            >
+                <ScrollView
+                    contentContainerStyle={styles.container}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* AI banner */}
+                    <TouchableOpacity
+                        style={styles.aiBanner}
+                        onPress={() => navigation.navigate('AIWorkout')}
+                        activeOpacity={0.85}
+                    >
+                        <View style={styles.aiBannerLeft}>
+                            <Text style={styles.aiSparkle}>✦</Text>
+                            <View>
+                                <Text style={styles.aiBannerTitle}>Generate with AI</Text>
+                                <Text style={styles.aiBannerSub}>Describe your workout, get a full plan</Text>
+                            </View>
+                        </View>
+                        <Text style={styles.aiBannerArrow}>›</Text>
+                    </TouchableOpacity>
 
-                <Text style={styles.label}>Workout Title</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter workout title"
-                    placeholderTextColor={theme.placeholder}
-                    value={title}
-                    onChangeText={setTitle}
-                />
+                    {/* Divider */}
+                    <View style={styles.dividerRow}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>or create manually</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
 
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                    style={[styles.input, styles.multiLine]}
-                    placeholder="Describe the workout"
-                    placeholderTextColor={theme.placeholder}
-                    value={description}
-                    onChangeText={setDescription}
-                    multiline
-                />
+                    {/* Form */}
+                    <Text style={styles.label}>WORKOUT TITLE</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g. Push Day A"
+                        placeholderTextColor={theme.placeholder}
+                        value={title}
+                        onChangeText={setTitle}
+                        color={theme.text}
+                    />
 
-                <Text style={styles.label}>Workout List</Text>
-                <TextInput
-                    style={[styles.input, styles.multiLine]}
-                    placeholder="e.g. 3x10 Squats, 4x8 Deadlifts"
-                    placeholderTextColor={theme.placeholder}
-                    value={workoutList}
-                    onChangeText={setWorkoutList}
-                    multiline
-                />
+                    <Text style={styles.label}>DESCRIPTION</Text>
+                    <TextInput
+                        style={[styles.input, styles.multiLine]}
+                        placeholder="What's the purpose and target muscles?"
+                        placeholderTextColor={theme.placeholder}
+                        value={description}
+                        onChangeText={setDescription}
+                        color={theme.text}
+                        multiline
+                    />
 
-                <Text style={styles.label}>Difficulty Level</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Beginner, Intermediate, Advanced"
-                    placeholderTextColor={theme.placeholder}
-                    value={difficulty}
-                    onChangeText={setDifficulty}
-                />
+                    <Text style={styles.label}>EXERCISE LIST</Text>
+                    <Text style={styles.fieldHint}>One exercise per line, e.g. "3x10 Barbell Squats"</Text>
+                    <TextInput
+                        style={[styles.input, styles.multiLineXL]}
+                        placeholder={'3x10 Bench Press\n4x8 Overhead Press\n3x12 Lateral Raises'}
+                        placeholderTextColor={theme.placeholder}
+                        value={workoutList}
+                        onChangeText={setWorkoutList}
+                        color={theme.text}
+                        multiline
+                    />
 
-                <Text style={styles.label}>Duration (minutes)</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Enter duration in minutes"
-                    placeholderTextColor={theme.placeholder}
-                    value={duration}
-                    onChangeText={setDuration}
-                    keyboardType="numeric"
-                />
+                    <Text style={styles.label}>DIFFICULTY</Text>
+                    <View style={styles.diffRow}>
+                        {DIFFICULTY_OPTIONS.map(opt => (
+                            <TouchableOpacity
+                                key={opt}
+                                style={[styles.diffChip, difficulty === opt && styles.diffChipActive]}
+                                onPress={() => setDifficulty(opt)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.diffChipText, difficulty === opt && styles.diffChipTextActive]}>
+                                    {opt}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
 
-                <CustomButton title="Create Workout" onPress={handleCreateWorkout} />
-            </ScrollView>
-        </SafeAreaView>
+                    <Text style={styles.label}>DURATION (MINUTES)</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g. 45"
+                        placeholderTextColor={theme.placeholder}
+                        value={duration}
+                        onChangeText={setDuration}
+                        keyboardType="numeric"
+                        color={theme.text}
+                    />
+
+                    <View style={styles.buttonRow}>
+                        <CustomButton
+                            title={saving ? 'Creating…' : 'Create Workout'}
+                            onPress={handleCreate}
+                            disabled={saving}
+                        />
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </ScreenWrapper>
     );
 };
 
 const makeStyles = (theme) => StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: theme.background,
-    },
+    flex: { flex: 1 },
     container: {
         padding: 20,
+        paddingBottom: 48,
         backgroundColor: theme.background,
-        flexGrow: 1,
     },
-    title: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: theme.text,
+
+    // AI banner
+    aiBanner: {
+        backgroundColor: theme.primary,
+        borderRadius: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 22,
     },
+    aiBannerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+    },
+    aiSparkle: {
+        fontSize: 24,
+        color: '#fff',
+    },
+    aiBannerTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 2,
+    },
+    aiBannerSub: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.75)',
+    },
+    aiBannerArrow: {
+        fontSize: 24,
+        color: 'rgba(255,255,255,0.7)',
+        fontWeight: '300',
+    },
+
+    // Divider
+    dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 22,
+    },
+    dividerLine: {
+        flex: 1,
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: theme.border,
+    },
+    dividerText: {
+        fontSize: 12,
+        color: theme.textMuted,
+        fontWeight: '500',
+    },
+
+    // Fields
     label: {
-        fontSize: 15,
-        fontWeight: '600',
-        marginTop: 12,
-        marginBottom: 4,
-        color: theme.textSecondary,
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.textMuted,
+        letterSpacing: 0.8,
+        marginTop: 16,
+        marginBottom: 6,
+    },
+    fieldHint: {
+        fontSize: 12,
+        color: theme.textMuted,
+        marginBottom: 6,
+        marginTop: -2,
     },
     input: {
         backgroundColor: theme.inputBackground,
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        marginBottom: 4,
+        borderRadius: 12,
+        padding: 13,
+        fontSize: 15,
         borderColor: theme.inputBorder,
         borderWidth: 1,
         color: theme.text,
@@ -129,6 +243,41 @@ const makeStyles = (theme) => StyleSheet.create({
     multiLine: {
         minHeight: 90,
         textAlignVertical: 'top',
+    },
+    multiLineXL: {
+        minHeight: 140,
+        textAlignVertical: 'top',
+    },
+
+    // Difficulty picker
+    diffRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    diffChip: {
+        flex: 1,
+        backgroundColor: theme.card,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: theme.border,
+        paddingVertical: 11,
+        alignItems: 'center',
+    },
+    diffChipActive: {
+        backgroundColor: theme.primary + '18',
+        borderColor: theme.primary + '66',
+    },
+    diffChipText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: theme.textSecondary,
+    },
+    diffChipTextActive: {
+        color: theme.primary,
+    },
+
+    buttonRow: {
+        marginTop: 28,
     },
 });
 

@@ -53,7 +53,7 @@ const ClientTabNavigator = () => {
                 }}
             />
             <Tab.Screen
-                name="Workout"
+                name="Workouts"
                 component={ClientWorkoutListScreen}
                 options={{
                     tabBarLabel: 'Workouts',

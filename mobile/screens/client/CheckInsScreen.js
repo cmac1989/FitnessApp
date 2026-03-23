@@ -25,6 +25,12 @@ const formatWeek = (weekStart) => {
     return `Week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 };
 
+const statusInfo = (item) => {
+    if (!item.submitted_at) return { label: 'Action Required', color: '#f59e0b', bg: '#fef3c722' };
+    if (item.reviewed_at)   return { label: 'Reviewed',        color: '#16a34a', bg: '#22c55e22' };
+    return                         { label: 'Submitted',        color: '#3b82f6', bg: '#3b82f622' };
+};
+
 const CheckInsScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
@@ -41,14 +47,10 @@ const CheckInsScreen = () => {
                     const data = await getClientCheckIns();
                     if (cancelled.value) return;
                     setCheckIns(data.check_ins || []);
-                } catch (err) {
-                    if (!cancelled.value) {
-                        setCheckIns([]);
-                    }
+                } catch {
+                    if (!cancelled.value) setCheckIns([]);
                 } finally {
-                    if (!cancelled.value) {
-                        setLoading(false);
-                    }
+                    if (!cancelled.value) setLoading(false);
                 }
             };
 
@@ -70,49 +72,66 @@ const CheckInsScreen = () => {
     }
 
     const thisWeekStart = getThisWeekStart();
-    const submittedThisWeek = checkIns.length > 0 && (checkIns[0].week_start ?? '').slice(0, 10) === thisWeekStart;
+    const thisWeekCheckIn = checkIns.find(c => (c.week_start ?? '').slice(0, 10) === thisWeekStart);
+
+    const handlePress = (item) => {
+        if (!item.submitted_at) {
+            navigation.navigate('CheckInForm', { checkIn: item });
+        } else {
+            navigation.navigate('CheckInDetail', { checkIn: item });
+        }
+    };
 
     const renderItem = ({ item }) => {
-        const isReviewed = !!item.reviewed_at;
+        const { label, color, bg } = statusInfo(item);
+        const isPending = !item.submitted_at;
+
         return (
             <TouchableOpacity
-                style={styles.card}
-                onPress={() => navigation.navigate('CheckInDetail', { checkIn: item })}
+                style={[styles.card, isPending && styles.cardPending]}
+                onPress={() => handlePress(item)}
                 activeOpacity={0.75}
             >
-                <Text style={styles.cardWeek}>{formatWeek(item.week_start)}</Text>
-
-                {item.weight != null && (
-                    <Text style={styles.cardDetail}>
-                        Weight: {item.weight} {item.weight_unit}
-                    </Text>
-                )}
-
-                {(item.adherence_score != null || item.energy_score != null) && (
-                    <View style={styles.scoresRow}>
-                        {item.adherence_score != null && (
-                            <Text style={styles.scoreText}>Adherence: {item.adherence_score}/10</Text>
-                        )}
-                        {item.energy_score != null && (
-                            <Text style={styles.scoreText}>Energy: {item.energy_score}/10</Text>
-                        )}
+                <View style={styles.cardTop}>
+                    <Text style={styles.cardWeek}>{formatWeek(item.week_start)}</Text>
+                    <View style={[styles.badge, { backgroundColor: bg }]}>
+                        <Text style={[styles.badgeText, { color }]}>{label}</Text>
                     </View>
-                )}
-
-                <View style={[styles.badge, isReviewed ? styles.badgeReviewed : styles.badgePending]}>
-                    <Text style={[styles.badgeText, isReviewed ? styles.badgeTextReviewed : styles.badgeTextPending]}>
-                        {isReviewed ? 'Reviewed' : 'Awaiting feedback'}
-                    </Text>
                 </View>
+
+                {isPending ? (
+                    <Text style={styles.pendingCta}>Tap to complete your check-in →</Text>
+                ) : (
+                    <>
+                        {item.weight != null && (
+                            <Text style={styles.cardDetail}>
+                                Weight: {item.weight} {item.weight_unit}
+                            </Text>
+                        )}
+                        {(item.adherence_score != null || item.energy_score != null) && (
+                            <View style={styles.scoresRow}>
+                                {item.adherence_score != null && (
+                                    <Text style={styles.scoreText}>Compliance: {item.adherence_score}/10</Text>
+                                )}
+                                {item.energy_score != null && (
+                                    <Text style={styles.scoreText}>Energy: {item.energy_score}/10</Text>
+                                )}
+                            </View>
+                        )}
+                    </>
+                )}
             </TouchableOpacity>
         );
     };
 
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
+            <View style={styles.emptyIcon}>
+                <Text style={styles.emptyIconText}>📋</Text>
+            </View>
             <Text style={styles.emptyTitle}>No Check-ins Yet</Text>
             <Text style={styles.emptySubtitle}>
-                Submit your first weekly check-in to get started.
+                Your trainer will assign weekly check-ins here to track your progress.
             </Text>
         </View>
     );
@@ -122,21 +141,13 @@ const CheckInsScreen = () => {
             <View style={styles.container}>
                 <View style={styles.headerRow}>
                     <Text style={styles.title}>Check-ins</Text>
-                    {submittedThisWeek ? (
+                    {thisWeekCheckIn && !thisWeekCheckIn.submitted_at && (
                         <TouchableOpacity
-                            style={styles.headerButton}
-                            onPress={() => navigation.navigate('CheckInDetail', { checkIn: checkIns[0] })}
+                            style={styles.thisWeekBtn}
+                            onPress={() => navigation.navigate('CheckInForm', { checkIn: thisWeekCheckIn })}
                             activeOpacity={0.75}
                         >
-                            <Text style={styles.headerButtonText}>This Week</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.headerButton}
-                            onPress={() => navigation.navigate('CheckInForm')}
-                            activeOpacity={0.75}
-                        >
-                            <Text style={styles.headerButtonText}>Submit Check-in</Text>
+                            <Text style={styles.thisWeekBtnText}>This Week</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -145,7 +156,7 @@ const CheckInsScreen = () => {
                     data={checkIns}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={renderItem}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[styles.listContent, checkIns.length === 0 && styles.listEmpty]}
                     ListEmptyComponent={renderEmpty}
                 />
             </View>
@@ -156,7 +167,6 @@ const CheckInsScreen = () => {
 const makeStyles = (theme) => StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
         backgroundColor: theme.background,
     },
     centered: {
@@ -169,45 +179,67 @@ const makeStyles = (theme) => StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 20,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 14,
     },
     title: {
         fontSize: 26,
-        fontWeight: 'bold',
+        fontWeight: '800',
         color: theme.text,
     },
-    headerButton: {
-        backgroundColor: theme.accent,
-        paddingHorizontal: 14,
+    thisWeekBtn: {
+        backgroundColor: '#f59e0b',
+        paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 8,
+        borderRadius: 20,
     },
-    headerButtonText: {
+    thisWeekBtnText: {
         color: '#fff',
-        fontWeight: '600',
-        fontSize: 14,
+        fontWeight: '700',
+        fontSize: 13,
     },
     listContent: {
-        paddingBottom: 20,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
+    },
+    listEmpty: {
+        flexGrow: 1,
     },
     card: {
         backgroundColor: theme.card,
         padding: 16,
-        borderRadius: 10,
-        marginBottom: 14,
+        borderRadius: 14,
+        marginBottom: 10,
         borderWidth: 1,
         borderColor: theme.border,
     },
+    cardPending: {
+        borderColor: '#f59e0b44',
+        borderWidth: 1.5,
+    },
+    cardTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
     cardWeek: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 15,
+        fontWeight: '700',
         color: theme.text,
-        marginBottom: 6,
+        flex: 1,
+        marginRight: 8,
     },
     cardDetail: {
         fontSize: 14,
         color: theme.textSecondary,
         marginTop: 2,
+    },
+    pendingCta: {
+        fontSize: 13,
+        color: '#f59e0b',
+        fontWeight: '600',
     },
     scoresRow: {
         flexDirection: 'row',
@@ -219,38 +251,36 @@ const makeStyles = (theme) => StyleSheet.create({
         color: theme.textSecondary,
     },
     badge: {
-        alignSelf: 'flex-start',
-        marginTop: 10,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
-    },
-    badgeReviewed: {
-        backgroundColor: '#22c55e22',
-    },
-    badgePending: {
-        backgroundColor: theme.border,
+        flexShrink: 0,
     },
     badgeText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    badgeTextReviewed: {
-        color: '#16a34a',
-    },
-    badgeTextPending: {
-        color: theme.textSecondary,
+        fontSize: 11,
+        fontWeight: '700',
     },
     emptyContainer: {
+        flex: 1,
         alignItems: 'center',
-        marginTop: 60,
-        paddingHorizontal: 30,
+        justifyContent: 'center',
+        paddingHorizontal: 32,
+        gap: 10,
     },
+    emptyIcon: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: theme.accent + '22',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyIconText: { fontSize: 30 },
     emptyTitle: {
         fontSize: 20,
         fontWeight: '700',
         color: theme.text,
-        marginBottom: 8,
+        marginTop: 6,
     },
     emptySubtitle: {
         fontSize: 14,

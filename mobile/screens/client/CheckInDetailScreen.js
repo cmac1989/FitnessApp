@@ -91,7 +91,25 @@ const CheckInDetailScreen = () => {
         );
     };
 
+    const isPending  = !checkIn.submitted_at;
     const isReviewed = !!checkIn.reviewed_at;
+
+    if (isPending) {
+        return (
+            <ScreenWrapper title="Check-in Detail" showBack>
+                <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>{formatWeek(checkIn.week_start)}</Text>
+                        <View style={[styles.pendingBanner]}>
+                            <Text style={styles.pendingBannerText}>
+                                Your trainer has assigned this check-in. Complete it to share your progress.
+                            </Text>
+                        </View>
+                    </View>
+                </ScrollView>
+            </ScreenWrapper>
+        );
+    }
 
     return (
         <ScreenWrapper title="Check-in Detail" showBack>
@@ -112,7 +130,7 @@ const CheckInDetailScreen = () => {
 
                     {checkIn.adherence_score != null && (
                         <View style={styles.fieldRow}>
-                            <Text style={styles.fieldLabel}>Adherence Score</Text>
+                            <Text style={styles.fieldLabel}>Workout Compliance (auto-calculated)</Text>
                             <Text style={styles.fieldValue}>{checkIn.adherence_score}/10</Text>
                         </View>
                     )}
@@ -249,6 +267,19 @@ const makeStyles = (theme) => StyleSheet.create({
         color: theme.textMuted,
         fontStyle: 'italic',
         marginTop: 4,
+    },
+    pendingBanner: {
+        backgroundColor: '#fef3c722',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#f59e0b44',
+        padding: 12,
+        marginTop: 8,
+    },
+    pendingBannerText: {
+        fontSize: 14,
+        color: '#b45309',
+        lineHeight: 20,
     },
 });
 

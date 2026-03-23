@@ -12,6 +12,7 @@ use App\Http\Controllers\TrainingSessionController;
 use App\Http\Controllers\TrainerDashboardController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkoutController;
+use App\Http\Controllers\AIWorkoutController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\WorkoutAssignmentController;
 use Illuminate\Support\Facades\Route;
@@ -78,8 +79,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Check-ins
         Route::get('/check-ins', [CheckInController::class, 'clientIndex']);
-        Route::post('/check-ins', [CheckInController::class, 'store']);
         Route::get('/check-ins/{id}', [CheckInController::class, 'show']);
+        Route::patch('/check-ins/{id}/complete', [CheckInController::class, 'clientComplete']);
     });
 
     Route::prefix('trainer')->group(function () {
@@ -98,10 +99,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/trainer-profile', [TrainerProfileController::class, 'getTrainerProfile']);
         Route::patch('/trainer-profile/{id}', [TrainerProfileController::class, 'update']);
 
+        Route::post('/workouts/generate', [AIWorkoutController::class, 'generate']);
         Route::apiResource('workouts', WorkoutController::class)->only(['store', 'update', 'destroy']);
         Route::get('/workouts/', [WorkoutController::class, 'getTrainerWorkouts']);
         Route::get('/workouts/{id}', [WorkoutController::class, 'getTrainerWorkout']);
         Route::post('/workouts/{id}/assign', [WorkoutController::class, 'assign']);
+        Route::post('/workouts/{id}/assign-batch', [WorkoutController::class, 'batchAssign']);
 
         // Messages — order matters: specific routes before wildcards
         Route::get('/messages/unread-count', [MessageController::class, 'countUnreadMessages']);
@@ -132,6 +135,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Check-ins
         Route::get('/check-ins', [CheckInController::class, 'trainerIndex']);
+        Route::post('/check-ins', [CheckInController::class, 'trainerStore']);
+        Route::post('/check-ins/batch', [CheckInController::class, 'batchStore']);
         Route::get('/check-ins/{id}', [CheckInController::class, 'trainerShow']);
         Route::patch('/check-ins/{id}/review', [CheckInController::class, 'review']);
     });

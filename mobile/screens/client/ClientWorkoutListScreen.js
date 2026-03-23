@@ -1,26 +1,86 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
+import {
+    View, Text, FlatList, StyleSheet, TouchableOpacity,
+    ActivityIndicator, RefreshControl, SectionList,
+} from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import CustomButton from '../../components/CustomButton';
-import { getClientWorkouts } from '../../src/api/client';
+import { getClientSchedule } from '../../src/api/workout';
 import { useTheme } from '../../src/theme';
+
+const toYMD = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+const formatScheduledDate = (ymd) => {
+    if (!ymd) return null;
+    const today = toYMD(new Date());
+    const tomorrow = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return toYMD(d);
+    })();
+
+    if (ymd === today)    return 'Today';
+    if (ymd === tomorrow) return 'Tomorrow';
+
+    const d = new Date(ymd + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+};
+
+const buildSections = (schedule) => {
+    const today = toYMD(new Date());
+    const in7Days = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return toYMD(d);
+    })();
+
+    const todayItems      = [];
+    const upcomingItems   = [];
+    const laterItems      = [];
+    const unscheduled     = [];
+
+    for (const item of schedule) {
+        if (!item.scheduled_date) {
+            unscheduled.push(item);
+        } else if (item.scheduled_date === today) {
+            todayItems.push(item);
+        } else if (item.scheduled_date > today && item.scheduled_date <= in7Days) {
+            upcomingItems.push(item);
+        } else if (item.scheduled_date > today) {
+            laterItems.push(item);
+        }
+        // past items: skip for now (already happened)
+    }
+
+    const sections = [];
+    if (todayItems.length)    sections.push({ title: "Today's Plan", data: todayItems, isToday: true });
+    if (upcomingItems.length) sections.push({ title: 'This Week', data: upcomingItems });
+    if (laterItems.length)    sections.push({ title: 'Later', data: laterItems });
+    if (unscheduled.length)   sections.push({ title: 'Unscheduled', data: unscheduled });
+
+    return sections;
+};
 
 const ClientWorkoutListScreen = () => {
     const navigation = useNavigation();
-    const { theme } = useTheme();
-    const [workouts, setWorkouts] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { theme }  = useTheme();
+    const [schedule, setSchedule]   = useState([]);
+    const [loading, setLoading]     = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError]         = useState(null);
 
-    const fetchWorkouts = useCallback(async (cancelled, isRefresh = false) => {
+    const fetchSchedule = useCallback(async (cancelled, isRefresh = false) => {
         try {
             if (isRefresh) setRefreshing(true);
             else setLoading(true);
             setError(null);
-            const data = await getClientWorkouts();
-            if (!cancelled.value) setWorkouts(data);
+            const data = await getClientSchedule();
+            if (!cancelled.value) setSchedule(data.schedule || []);
         } catch (err) {
             if (!cancelled.value) setError('Could not load workouts.');
         } finally {
@@ -34,9 +94,9 @@ const ClientWorkoutListScreen = () => {
     useFocusEffect(
         useCallback(() => {
             const cancelled = { value: false };
-            fetchWorkouts(cancelled);
+            fetchSchedule(cancelled);
             return () => { cancelled.value = true; };
-        }, [fetchWorkouts])
+        }, [fetchSchedule])
     );
 
     const styles = makeStyles(theme);
@@ -51,46 +111,88 @@ const ClientWorkoutListScreen = () => {
         );
     }
 
-    const renderItem = ({ item }) => (
-        <Pressable
-            onPress={() => navigation.navigate('ClientWorkoutDetails', { workout: item })}
-            style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-        >
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            {item.difficulty ? <Text style={styles.cardDetail}>Difficulty: {item.difficulty}</Text> : null}
-            {item.duration ? <Text style={styles.cardDetail}>Duration: {item.duration} min</Text> : null}
-        </Pressable>
+    const sections = buildSections(schedule);
+
+    const renderItem = ({ item, section }) => {
+        const dateLabel = formatScheduledDate(item.scheduled_date);
+        const workout   = item.workout || {};
+        const isToday   = section.isToday;
+
+        return (
+            <TouchableOpacity
+                style={[styles.card, isToday && styles.cardToday]}
+                onPress={() => navigation.navigate('AssignmentDetail', { assignment: item, role: 'client' })}
+                activeOpacity={0.75}
+            >
+                <View style={styles.cardRow}>
+                    <Text style={[styles.cardTitle, isToday && styles.cardTitleToday]}>
+                        {workout.title}
+                    </Text>
+                    {dateLabel ? (
+                        <View style={[styles.dateBadge, isToday && styles.dateBadgeToday]}>
+                            <Text style={[styles.dateBadgeText, isToday && styles.dateBadgeTextToday]}>
+                                {dateLabel}
+                            </Text>
+                        </View>
+                    ) : null}
+                </View>
+                {workout.difficulty ? (
+                    <Text style={styles.cardDetail}>Difficulty: {workout.difficulty}</Text>
+                ) : null}
+                {workout.duration ? (
+                    <Text style={styles.cardDetail}>Duration: {workout.duration} min</Text>
+                ) : null}
+            </TouchableOpacity>
+        );
+    };
+
+    const renderSectionHeader = ({ section }) => (
+        <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, section.isToday && styles.sectionTitleToday]}>
+                {section.title}
+            </Text>
+        </View>
     );
 
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
             <Text style={styles.emptyTitle}>No Workouts Yet</Text>
-            <Text style={styles.emptySubtitle}>Your trainer will assign workout plans here.</Text>
+            <Text style={styles.emptySubtitle}>
+                Your trainer will assign and schedule workouts here.
+            </Text>
         </View>
     );
 
     return (
         <ScreenWrapper title="My Workouts">
             <View style={styles.container}>
-                <Text style={styles.title}>Workout Plans</Text>
+                <Text style={styles.screenTitle}>Workout Plan</Text>
+
                 {error ? (
                     <View style={styles.centered}>
                         <Text style={styles.errorText}>{error}</Text>
-                        <CustomButton title="Try Again" onPress={() => fetchWorkouts({ value: false })} />
+                        <TouchableOpacity
+                            style={styles.retryBtn}
+                            onPress={() => fetchSchedule({ value: false })}
+                        >
+                            <Text style={styles.retryBtnText}>Try Again</Text>
+                        </TouchableOpacity>
                     </View>
                 ) : (
-                    <FlatList
-                        data={workouts}
+                    <SectionList
+                        sections={sections}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={renderItem}
+                        renderSectionHeader={renderSectionHeader}
                         contentContainerStyle={styles.listContent}
                         ListEmptyComponent={renderEmpty}
+                        stickySectionHeadersEnabled={false}
                         refreshControl={
                             <RefreshControl
                                 refreshing={refreshing}
                                 onRefresh={() => {
                                     const cancelled = { value: false };
-                                    fetchWorkouts(cancelled, true);
+                                    fetchSchedule(cancelled, true);
                                 }}
                                 tintColor={theme.accent}
                                 colors={[theme.accent]}
@@ -115,39 +217,95 @@ const makeStyles = (theme) => StyleSheet.create({
         alignItems: 'center',
         backgroundColor: theme.background,
     },
-    title: {
+    screenTitle: {
         fontSize: 26,
         fontWeight: 'bold',
         marginBottom: 20,
         color: theme.text,
     },
     listContent: {
-        paddingBottom: 20,
+        paddingBottom: 30,
+    },
+    sectionHeader: {
+        marginTop: 8,
+        marginBottom: 10,
+    },
+    sectionTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+    },
+    sectionTitleToday: {
+        color: theme.accent,
     },
     card: {
         backgroundColor: theme.card,
         padding: 16,
-        borderRadius: 10,
-        marginBottom: 14,
+        borderRadius: 12,
+        marginBottom: 12,
         borderWidth: 1,
         borderColor: theme.border,
     },
-    pressed: { opacity: 0.75 },
+    cardToday: {
+        borderLeftWidth: 4,
+        borderLeftColor: theme.accent,
+        backgroundColor: theme.accent + '0D',
+    },
+    cardRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 6,
+    },
     cardTitle: {
-        fontSize: 17,
+        fontSize: 16,
         fontWeight: '600',
-        marginBottom: 4,
+        color: theme.text,
+        flex: 1,
+        marginRight: 8,
+    },
+    cardTitleToday: {
         color: theme.text,
     },
     cardDetail: {
-        fontSize: 14,
+        fontSize: 13,
         color: theme.textSecondary,
         marginTop: 2,
+    },
+    dateBadge: {
+        backgroundColor: theme.border,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 10,
+    },
+    dateBadgeToday: {
+        backgroundColor: theme.accent,
+    },
+    dateBadgeText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.textSecondary,
+    },
+    dateBadgeTextToday: {
+        color: '#fff',
     },
     errorText: {
         color: theme.error,
         textAlign: 'center',
-        marginBottom: 10,
+        marginBottom: 12,
+        fontSize: 15,
+    },
+    retryBtn: {
+        backgroundColor: theme.accent,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    retryBtnText: {
+        color: '#fff',
+        fontWeight: '600',
     },
     emptyContainer: {
         alignItems: 'center',

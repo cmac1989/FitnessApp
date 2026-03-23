@@ -9,6 +9,7 @@ import MessagesListScreen from '../screens/client/MessagesListScreen';
 import MessagesScreen from '../screens/client/MessagesScreen';
 import NotificationsScreen from '../screens/client/NotificationsScreen';
 import NotificationDetailScreen from '../screens/NotificationDetailScreen';
+import AssignmentDetailScreen from '../screens/AssignmentDetailScreen';
 import ClientProfileEditScreen from '../screens/client/ClientProfileEditScreen';
 import CheckInFormScreen from '../screens/client/CheckInFormScreen';
 import CheckInDetailScreen from '../screens/client/CheckInDetailScreen';
@@ -85,6 +86,11 @@ const ClientStackNavigator = () => {
             <Stack.Screen
                 name="NotificationDetail"
                 component={NotificationDetailScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="AssignmentDetail"
+                component={AssignmentDetailScreen}
                 options={{ headerShown: false }}
             />
         </Stack.Navigator>

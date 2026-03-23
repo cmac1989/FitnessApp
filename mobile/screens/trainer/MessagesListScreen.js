@@ -1,13 +1,47 @@
 import React, { useState, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
-    Modal, Pressable,
+    View, Text, StyleSheet, FlatList, TouchableOpacity,
+    ActivityIndicator, Modal, Pressable, Platform,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { fetchConversations, markMessageAsRead } from '../../src/api/message';
 import { getClients } from '../../src/api/user';
 import { useTheme } from '../../src/theme';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const AVATAR_COLORS = ['#6366f1', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+
+const avatarColor = (name = '') => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+};
+
+const getInitials = (name = '') => {
+    const parts = name.trim().split(' ');
+    return parts.length >= 2
+        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        : name.substring(0, 2).toUpperCase();
+};
+
+// ── Avatar ────────────────────────────────────────────────────────────────────
+
+const Avatar = ({ name, size = 46 }) => {
+    const bg = avatarColor(name);
+    return (
+        <View style={[avatarStyles.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}>
+            <Text style={[avatarStyles.initials, { fontSize: size * 0.36 }]}>{getInitials(name)}</Text>
+        </View>
+    );
+};
+const avatarStyles = StyleSheet.create({
+    circle: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    initials: { color: '#fff', fontWeight: '700' },
+});
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 const MessagesListScreen = () => {
     const navigation = useNavigation();
@@ -31,11 +65,12 @@ const MessagesListScreen = () => {
                 id:          item.user.id,
                 name:        item.user.name,
                 lastMessage: item.last_message.content,
+                isDeleted:   item.last_message.is_deleted,
                 isMine:      item.last_message.is_mine,
                 readAt:      item.last_message.read_at,
             }));
             setConversations(formatted);
-        } catch (err) {
+        } catch {
             if (!cancelled?.value) setError('Failed to load messages. Please try again.');
         } finally {
             if (!cancelled?.value) setLoading(false);
@@ -69,65 +104,81 @@ const MessagesListScreen = () => {
         navigation.navigate('Messages', { client: { id: client.id, name: client.name } });
     };
 
+    const previewText = (item) => {
+        if (item.isDeleted) return item.isMine ? 'You deleted a message' : 'Message deleted';
+        if (!item.lastMessage) return '';
+        return item.isMine ? `You: ${item.lastMessage}` : item.lastMessage;
+    };
+
     const renderItem = ({ item }) => {
         const isUnread = !item.readAt && !item.isMine;
+
         return (
             <TouchableOpacity
-                style={[styles.messageItem, isUnread ? styles.unreadMessage : styles.readMessage]}
+                style={[styles.card, isUnread && styles.cardUnread]}
                 onPress={() => navigation.navigate('Messages', { client: { id: item.id, name: item.name } })}
-                activeOpacity={0.75}
+                activeOpacity={0.7}
             >
-                <View style={styles.row}>
-                    {isUnread && <View style={styles.unreadDot} />}
-                    <Text style={[styles.clientName, isUnread && styles.unreadClientName]}>
-                        {item.name}
+                <Avatar name={item.name} size={48} />
+
+                <View style={styles.rowContent}>
+                    <View style={styles.rowTop}>
+                        <Text style={[styles.name, isUnread && styles.nameUnread]} numberOfLines={1}>
+                            {item.name}
+                        </Text>
+                        {isUnread && <View style={styles.unreadDot} />}
+                    </View>
+                    <Text
+                        style={[styles.preview, isUnread && styles.previewUnread]}
+                        numberOfLines={1}
+                    >
+                        {previewText(item)}
                     </Text>
                 </View>
-                <Text style={[styles.lastMessage, isUnread && styles.unreadLastMessage]} numberOfLines={1}>
-                    {item.isMine ? `You: ${item.lastMessage}` : item.lastMessage}
-                </Text>
             </TouchableOpacity>
         );
     };
 
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>No Messages</Text>
+            <View style={styles.emptyIcon}>
+                <Text style={styles.emptyIconText}>✉</Text>
+            </View>
+            <Text style={styles.emptyTitle}>No Conversations</Text>
             <Text style={styles.emptySubtitle}>
-                Go to a client's profile and tap "Message Client" to start a conversation.
+                Start a conversation by tapping the button above.
             </Text>
         </View>
     );
 
     return (
         <ScreenWrapper title="Messages" showBack>
-            <View style={styles.container}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Messages</Text>
-                    <TouchableOpacity style={styles.composeBtn} onPress={openNewConversation}>
-                        <Text style={styles.composeBtnText}>+ New</Text>
+            {/* Subheader with compose button */}
+            <View style={styles.subHeader}>
+                <Text style={styles.subHeaderTitle}>Messages</Text>
+                <TouchableOpacity style={styles.composeBtn} onPress={openNewConversation} activeOpacity={0.8}>
+                    <Text style={styles.composeBtnText}>+ New</Text>
+                </TouchableOpacity>
+            </View>
+
+            {loading ? (
+                <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
+            ) : error ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryBtn} onPress={() => loadConversations({})}>
+                        <Text style={styles.retryBtnText}>Try Again</Text>
                     </TouchableOpacity>
                 </View>
-
-                {loading ? (
-                    <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
-                ) : error ? (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.errorText}>{error}</Text>
-                        <TouchableOpacity style={styles.retryButton} onPress={() => loadConversations({})}>
-                            <Text style={styles.retryButtonText}>Try Again</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <FlatList
-                        data={conversations}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={renderItem}
-                        contentContainerStyle={[styles.listContent, conversations.length === 0 && styles.listEmpty]}
-                        ListEmptyComponent={renderEmpty}
-                    />
-                )}
-            </View>
+            ) : (
+                <FlatList
+                    data={conversations}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    contentContainerStyle={[styles.list, conversations.length === 0 && styles.listEmpty]}
+                    ListEmptyComponent={renderEmpty}
+                />
+            )}
 
             {/* Client picker modal */}
             <Modal
@@ -137,27 +188,31 @@ const MessagesListScreen = () => {
                 onRequestClose={() => setShowModal(false)}
             >
                 <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
-                    <Pressable style={styles.modalSheet} onPress={() => {}}>
-                        <Text style={styles.modalTitle}>Select a Client</Text>
+                    <Pressable style={[styles.modalSheet, { backgroundColor: theme.card }]} onPress={() => {}}>
+                        <View style={styles.modalHandle} />
+                        <Text style={styles.modalTitle}>Start a Conversation</Text>
+
                         {clientsLoading ? (
-                            <ActivityIndicator size="large" color={theme.accent} style={{ marginTop: 20 }} />
+                            <ActivityIndicator size="large" color={theme.accent} style={{ marginVertical: 32 }} />
                         ) : clients.length === 0 ? (
                             <Text style={styles.modalEmpty}>No clients linked yet.</Text>
                         ) : (
                             <FlatList
                                 data={clients}
                                 keyExtractor={(item) => item.id.toString()}
-                                renderItem={({ item }) => (
+                                renderItem={({ item, index }) => (
                                     <TouchableOpacity
-                                        style={styles.clientItem}
+                                        style={[styles.clientRow, index < clients.length - 1 && styles.clientRowBorder]}
                                         onPress={() => startConversation(item)}
-                                        activeOpacity={0.75}
+                                        activeOpacity={0.65}
                                     >
-                                        <Text style={styles.clientItemText}>{item.name}</Text>
+                                        <Avatar name={item.name} size={38} />
+                                        <Text style={styles.clientRowName}>{item.name}</Text>
                                     </TouchableOpacity>
                                 )}
                             />
                         )}
+
                         <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowModal(false)}>
                             <Text style={styles.cancelBtnText}>Cancel</Text>
                         </TouchableOpacity>
@@ -168,108 +223,122 @@ const MessagesListScreen = () => {
     );
 };
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const makeStyles = (theme) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.background,
-        padding: 20,
-    },
-    header: {
+    subHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 20,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 12,
     },
-    title: {
+    subHeaderTitle: {
         fontSize: 26,
-        fontWeight: 'bold',
+        fontWeight: '800',
         color: theme.text,
     },
     composeBtn: {
         backgroundColor: theme.primary,
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: 18,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
     },
     composeBtnText: {
         color: '#fff',
         fontWeight: '700',
-        fontSize: 13,
+        fontSize: 14,
     },
-    listContent: {
-        paddingBottom: 20,
-    },
-    listEmpty: {
-        flexGrow: 1,
-    },
-    messageItem: {
-        padding: 16,
-        borderRadius: 10,
-        marginBottom: 12,
-        borderWidth: 1,
-    },
-    readMessage: {
-        backgroundColor: theme.readItemBackground,
-        borderColor: theme.border,
-    },
-    unreadMessage: {
-        backgroundColor: theme.unreadItemBackground,
-        borderColor: theme.unreadItemBorder,
-    },
-    row: {
+
+    loader: { marginTop: 60 },
+
+    // Conversation rows
+    list: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16 },
+    listEmpty: { flexGrow: 1 },
+
+    card: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: theme.card,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.border,
+        padding: 14,
+        marginBottom: 10,
+        gap: 12,
     },
-    unreadDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: theme.error,
-        marginRight: 8,
+    cardUnread: {
+        borderColor: theme.primary + '55',
+        backgroundColor: theme.primary + '08',
     },
-    clientName: {
-        fontSize: 17,
+    rowContent: {
+        flex: 1,
+    },
+    rowTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 3,
+    },
+    name: {
+        flex: 1,
+        fontSize: 16,
         fontWeight: '500',
         color: theme.text,
+        marginRight: 8,
     },
-    unreadClientName: {
-        fontWeight: 'bold',
+    nameUnread: {
+        fontWeight: '700',
     },
-    lastMessage: {
+    preview: {
         fontSize: 14,
         color: theme.textSecondary,
-        marginTop: 4,
+        lineHeight: 19,
     },
-    unreadLastMessage: {
-        fontWeight: '600',
+    previewUnread: {
         color: theme.text,
+        fontWeight: '500',
     },
-    loader: {
-        marginTop: 40,
+    unreadDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: theme.primary,
+        flexShrink: 0,
     },
+
+    // Error / Empty
     errorText: {
         color: theme.error,
-        fontSize: 16,
+        fontSize: 15,
         textAlign: 'center',
-        marginBottom: 12,
+        marginBottom: 14,
     },
-    retryButton: {
+    retryBtn: {
         backgroundColor: theme.accent,
         paddingVertical: 10,
         paddingHorizontal: 28,
         borderRadius: 8,
     },
-    retryButtonText: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '600',
-    },
+    retryBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+
     emptyContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 30,
+        paddingHorizontal: 32,
     },
+    emptyIcon: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: theme.accent + '22',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    emptyIconText: { fontSize: 30 },
     emptyTitle: {
         fontSize: 20,
         fontWeight: '700',
@@ -282,44 +351,61 @@ const makeStyles = (theme) => StyleSheet.create({
         textAlign: 'center',
         lineHeight: 20,
     },
-    // Modal
+
+    // Client picker modal
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.45)',
         justifyContent: 'flex-end',
     },
     modalSheet: {
-        backgroundColor: theme.background,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 24,
-        maxHeight: '60%',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 20,
+        paddingBottom: Platform.OS === 'ios' ? 36 : 20,
+        maxHeight: '65%',
+    },
+    modalHandle: {
+        width: 36,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: theme.border,
+        alignSelf: 'center',
+        marginBottom: 16,
     },
     modalTitle: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '700',
         color: theme.text,
-        marginBottom: 16,
+        marginBottom: 12,
     },
     modalEmpty: {
         fontSize: 15,
         color: theme.textSecondary,
         textAlign: 'center',
-        marginTop: 20,
+        marginVertical: 24,
     },
-    clientItem: {
-        paddingVertical: 14,
-        borderBottomWidth: 1,
+    clientRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        gap: 12,
+    },
+    clientRowBorder: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.border,
     },
-    clientItemText: {
+    clientRowName: {
         fontSize: 16,
         color: theme.text,
+        fontWeight: '500',
     },
     cancelBtn: {
-        marginTop: 16,
-        paddingVertical: 12,
+        marginTop: 8,
+        paddingVertical: 14,
         alignItems: 'center',
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: theme.border,
     },
     cancelBtnText: {
         fontSize: 16,

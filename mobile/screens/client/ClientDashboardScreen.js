@@ -100,6 +100,7 @@ const ClientDashboardScreen = () => {
     const [goalModal, setGoalModal] = useState(false);
     const [goalForm, setGoalForm] = useState({ type: 'weight_loss', description: '', start_value: '', target_value: '', unit: 'lbs', deadline: '' });
     const [savingGoal, setSavingGoal] = useState(false);
+    const [showAllTypes, setShowAllTypes] = useState(false);
 
     const fetchDashboard = useCallback(async (cancelled) => {
         try {
@@ -155,6 +156,7 @@ const ClientDashboardScreen = () => {
         } else {
             setGoalForm({ type: 'weight_loss', description: '', start_value: '', target_value: '', unit: 'lbs', deadline: '' });
         }
+        setShowAllTypes(false);
         setGoalModal(true);
     };
 
@@ -473,30 +475,35 @@ const ClientDashboardScreen = () => {
             {/* ── Set / Edit Goal Modal ───────────────────────────────────── */}
             <Modal visible={goalModal} animationType="slide" transparent onRequestClose={() => setGoalModal(false)}>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-                    <ScrollView contentContainerStyle={[styles.modalSheet, { backgroundColor: theme.card }]} keyboardShouldPersistTaps="handled">
-                        <Text style={styles.modalTitle}>{data?.goal ? 'Edit Goal' : 'Set a Goal'}</Text>
+                    <ScrollView contentContainerStyle={[styles.modalSheet, { backgroundColor: theme.card, paddingTop: 48 }]} keyboardShouldPersistTaps="handled">
 
                         {/* Type selector */}
                         <Text style={styles.modalLabel}>Goal Type</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
-                            <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 4 }}>
-                                {GOAL_TYPES.map(g => (
-                                    <Pressable
-                                        key={g.key}
-                                        style={[
-                                            styles.typeChip,
-                                            { borderColor: theme.border, backgroundColor: theme.inputBackground },
-                                            goalForm.type === g.key && { backgroundColor: theme.accent, borderColor: theme.accent },
-                                        ]}
-                                        onPress={() => setGoalForm(prev => ({ ...prev, type: g.key, unit: g.unit }))}
-                                    >
-                                        <Text style={{ fontSize: 14, color: goalForm.type === g.key ? '#fff' : theme.text }}>
-                                            {g.label}
-                                        </Text>
-                                    </Pressable>
-                                ))}
-                            </View>
-                        </ScrollView>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+                            {(showAllTypes ? GOAL_TYPES : GOAL_TYPES.slice(0, 3)).map(g => (
+                                <Pressable
+                                    key={g.key}
+                                    style={[
+                                        styles.typeChip,
+                                        { borderColor: theme.border, backgroundColor: theme.inputBackground },
+                                        goalForm.type === g.key && { backgroundColor: theme.accent, borderColor: theme.accent },
+                                    ]}
+                                    onPress={() => setGoalForm(prev => ({ ...prev, type: g.key, unit: g.unit }))}
+                                >
+                                    <Text style={{ fontSize: 14, color: goalForm.type === g.key ? '#fff' : theme.text }}>
+                                        {g.label}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                            <Pressable
+                                style={[styles.typeChip, { borderColor: theme.border, backgroundColor: 'transparent' }]}
+                                onPress={() => setShowAllTypes(v => !v)}
+                            >
+                                <Text style={{ fontSize: 14, color: theme.accent }}>
+                                    {showAllTypes ? 'Show less' : 'More…'}
+                                </Text>
+                            </Pressable>
+                        </View>
 
                         <Text style={styles.modalLabel}>Description (optional)</Text>
                         <TextInput

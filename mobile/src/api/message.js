@@ -24,3 +24,13 @@ export const markMessageAsRead = async () => {
     const response = await api.post('/api/trainer/messages/mark-as-read');
     return response.data;
 };
+
+export const deleteTrainerMessage = async (messageId) => {
+    const response = await api.delete(`/api/trainer/messages/${messageId}`);
+    return response.data;
+};
+
+export const toggleTrainerMessageLike = async (messageId) => {
+    const response = await api.post(`/api/trainer/messages/${messageId}/like`);
+    return response.data;
+};
