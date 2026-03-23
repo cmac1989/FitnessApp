@@ -49,7 +49,7 @@ class ClientProfileController extends Controller
         ]);
     }
 
-    public function updateProfile(Request $request, $id)
+    public function updateProfile(Request $request)
     {
         $user = $request->user();
 

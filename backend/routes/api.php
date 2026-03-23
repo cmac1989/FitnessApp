@@ -12,6 +12,8 @@ use App\Http\Controllers\TrainingSessionController;
 use App\Http\Controllers\TrainerDashboardController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkoutController;
+use App\Http\Controllers\CheckInController;
+use App\Http\Controllers\WorkoutAssignmentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Log;
@@ -34,7 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/workouts', [ClientWorkoutController::class, 'index']);
         Route::get('/workouts/{id}', [ClientWorkoutController::class, 'show']);
         Route::get('/profile', [ClientProfileController::class, 'getProfile']);
-        Route::patch('/profile/{id}', [ClientProfileController::class, 'updateProfile']);
+        Route::patch('/profile', [ClientProfileController::class, 'updateProfile']);
 
         // Goals
         Route::get('/goal', [ClientDashboardController::class, 'getGoal']);
@@ -50,6 +52,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/messages/mark-as-read', [MessageController::class, 'markAllAsRead']);
         Route::get('/messages/{otherUserId}', [MessageController::class, 'getMessagesWithUser']);
         Route::post('/messages', [MessageController::class, 'sendMessage']);
+        Route::delete('/messages/{id}', [MessageController::class, 'deleteMessage']);
+        Route::post('/messages/{id}/like', [MessageController::class, 'toggleMessageLike']);
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);
@@ -61,6 +65,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/invitations/pending', [ClientInvitationController::class, 'pendingForClient']);
         Route::post('/invitations/{token}/accept', [ClientInvitationController::class, 'accept']);
         Route::post('/invitations/{token}/decline', [ClientInvitationController::class, 'decline']);
+
+        // Schedule
+        Route::get('/schedule', [WorkoutController::class, 'clientSchedule']);
+        Route::get('/schedule/{id}',          [WorkoutAssignmentController::class, 'show']);
+        Route::patch('/schedule/{id}/complete', [WorkoutAssignmentController::class, 'complete']);
+        Route::post('/schedule/{id}/like',    [WorkoutAssignmentController::class, 'toggleLike']);
+        Route::get('/schedule/{id}/comments', [WorkoutAssignmentController::class, 'comments']);
+        Route::post('/schedule/{id}/comments', [WorkoutAssignmentController::class, 'addComment']);
+        Route::delete('/schedule/{id}/comments/{commentId}', [WorkoutAssignmentController::class, 'deleteComment']);
+        Route::post('/schedule/{id}/comments/{commentId}/like', [WorkoutAssignmentController::class, 'toggleCommentLike']);
+
+        // Check-ins
+        Route::get('/check-ins', [CheckInController::class, 'clientIndex']);
+        Route::post('/check-ins', [CheckInController::class, 'store']);
+        Route::get('/check-ins/{id}', [CheckInController::class, 'show']);
     });
 
     Route::prefix('trainer')->group(function () {
@@ -91,6 +110,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/messages/{otherUserId}', [MessageController::class, 'getMessagesWithUser']);
         Route::get('/messages', [MessageController::class, 'index']);
         Route::post('/messages', [MessageController::class, 'sendMessage']);
+        Route::delete('/messages/{id}', [MessageController::class, 'deleteMessage']);
+        Route::post('/messages/{id}/like', [MessageController::class, 'toggleMessageLike']);
         Route::post('/messages/{messageId}/read', [MessageController::class, 'markAsRead']);
 
         Route::get('/notifications', [NotificationController::class, 'index']);
@@ -99,5 +120,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAllAsRead']);
         Route::get('/notifications/{id}', [NotificationController::class, 'show']);
         Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+
+        // Client assignments (trainer view)
+        Route::get('/clients/{clientId}/schedule',          [WorkoutAssignmentController::class, 'trainerClientSchedule']);
+        Route::get('/schedule/{id}',                        [WorkoutAssignmentController::class, 'show']);
+        Route::post('/schedule/{id}/like',                  [WorkoutAssignmentController::class, 'toggleLike']);
+        Route::get('/schedule/{id}/comments',               [WorkoutAssignmentController::class, 'comments']);
+        Route::post('/schedule/{id}/comments',              [WorkoutAssignmentController::class, 'addComment']);
+        Route::delete('/schedule/{id}/comments/{commentId}', [WorkoutAssignmentController::class, 'deleteComment']);
+        Route::post('/schedule/{id}/comments/{commentId}/like', [WorkoutAssignmentController::class, 'toggleCommentLike']);
+
+        // Check-ins
+        Route::get('/check-ins', [CheckInController::class, 'trainerIndex']);
+        Route::get('/check-ins/{id}', [CheckInController::class, 'trainerShow']);
+        Route::patch('/check-ins/{id}/review', [CheckInController::class, 'review']);
     });
 });

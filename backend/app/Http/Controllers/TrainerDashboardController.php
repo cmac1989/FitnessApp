@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\ClientGoal;
 use App\Models\ClientMetric;
 use App\Models\ClientProfile;
-use App\Models\ProgressLog;
 use App\Models\TrainingSession;
 use App\Models\Workout;
+use App\Models\WorkoutAssignment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -58,15 +58,15 @@ class TrainerDashboardController extends Controller
             ->unique('client_id')
             ->keyBy('client_id');
 
-        // Completed workout counts per client
-        $completedCounts = ProgressLog::whereIn('client_id', $clientIds)
+        // Completed workout assignment counts per client
+        $completedCounts = WorkoutAssignment::whereIn('client_id', $clientIds)
             ->whereNotNull('completed_at')
             ->selectRaw('client_id, count(*) as total')
             ->groupBy('client_id')
             ->pluck('total', 'client_id');
 
-        // Last activity date per client
-        $lastActiveDates = ProgressLog::whereIn('client_id', $clientIds)
+        // Last activity date per client (from workout assignments)
+        $lastActiveDates = WorkoutAssignment::whereIn('client_id', $clientIds)
             ->whereNotNull('completed_at')
             ->selectRaw('client_id, MAX(completed_at) as last_at')
             ->groupBy('client_id')
@@ -115,7 +115,24 @@ class TrainerDashboardController extends Controller
             ? (int) round(($completedThisWeek / $scheduledThisWeek) * 100)
             : 0;
 
-        // Inactive = no completed progress log in 14+ days
+        // Workout assignment compliance this week
+        $weekStart = now()->startOfWeek();
+        $weekEnd   = now()->endOfWeek();
+
+        $workoutsScheduledThisWeek = WorkoutAssignment::where('trainer_id', $trainerId)
+            ->whereBetween('scheduled_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->count();
+
+        $workoutsCompletedThisWeek = WorkoutAssignment::where('trainer_id', $trainerId)
+            ->whereBetween('scheduled_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->whereNotNull('completed_at')
+            ->count();
+
+        $workoutCompletionRate = $workoutsScheduledThisWeek > 0
+            ? (int) round(($workoutsCompletedThisWeek / $workoutsScheduledThisWeek) * 100)
+            : 0;
+
+        // Inactive = no completed workout assignment in 14+ days
         $inactiveAlerts = collect($clientProgress)
             ->filter(fn ($c) => $c['days_since_active'] === null || $c['days_since_active'] >= 14)
             ->map(fn ($c) => [
@@ -132,12 +149,20 @@ class TrainerDashboardController extends Controller
         $lastMonthEnd    = now()->subMonth()->endOfMonth();
         $thirtyDaysAgo   = now()->subDays(30);
 
-        $activeClientIds = TrainingSession::where('trainer_id', $trainerId)
+        // Active = had a session OR any workout assignment in the last 30 days
+        $sessionActiveIds    = TrainingSession::where('trainer_id', $trainerId)
             ->where('scheduled_at', '>=', $thirtyDaysAgo)
-            ->pluck('client_id')
-            ->unique();
+            ->pluck('client_id');
 
-        $activeClientsCount   = $activeClientIds->count();
+        $assignmentActiveIds = WorkoutAssignment::where('trainer_id', $trainerId)
+            ->where(function ($q) use ($thirtyDaysAgo) {
+                $q->where('created_at', '>=', $thirtyDaysAgo)
+                  ->orWhere('completed_at', '>=', $thirtyDaysAgo);
+            })
+            ->pluck('client_id');
+
+        $activeClientIds      = $sessionActiveIds->merge($assignmentActiveIds)->unique();
+        $activeClientsCount   = min($totalClients, $activeClientIds->count());
         $inactiveClientsCount = max(0, $totalClients - $activeClientsCount);
 
         $sessionsThisMonth = TrainingSession::where('trainer_id', $trainerId)
@@ -177,10 +202,13 @@ class TrainerDashboardController extends Controller
             ],
             'client_progress' => $clientProgress,
             'compliance'      => [
-                'session_completion_rate'      => $sessionCompletionRate,
-                'sessions_completed_this_week' => $completedThisWeek,
-                'sessions_scheduled_this_week' => $scheduledThisWeek,
-                'inactive_alerts'              => $inactiveAlerts,
+                'session_completion_rate'       => $sessionCompletionRate,
+                'sessions_completed_this_week'  => $completedThisWeek,
+                'sessions_scheduled_this_week'  => $scheduledThisWeek,
+                'workout_completion_rate'       => $workoutCompletionRate,
+                'workouts_completed_this_week'  => $workoutsCompletedThisWeek,
+                'workouts_scheduled_this_week'  => $workoutsScheduledThisWeek,
+                'inactive_alerts'               => $inactiveAlerts,
             ],
             'business'        => [
                 'active_clients'       => $activeClientsCount,
