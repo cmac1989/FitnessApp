@@ -10,22 +10,29 @@ import {
     Platform,
     ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import { submitCheckIn } from '../../src/api/checkin';
+import { clientCompleteCheckIn } from '../../src/api/checkin';
 import { useTheme } from '../../src/theme';
+
+const formatWeek = (weekStart) => {
+    const d = new Date((weekStart ?? '').slice(0, 10) + 'T12:00:00');
+    return `Week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+};
 
 const CheckInFormScreen = () => {
     const navigation = useNavigation();
+    const route = useRoute();
     const { theme } = useTheme();
 
-    const [weight, setWeight] = useState('');
+    const checkIn = route.params?.checkIn;
+
+    const [weight, setWeight]         = useState('');
     const [weightUnit, setWeightUnit] = useState('lbs');
-    const [adherenceScore, setAdherenceScore] = useState(null);
     const [energyScore, setEnergyScore] = useState(null);
-    const [notes, setNotes] = useState('');
+    const [notes, setNotes]           = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError]           = useState(null);
 
     const styles = makeStyles(theme);
 
@@ -34,10 +41,9 @@ const CheckInFormScreen = () => {
         setError(null);
 
         try {
-            await submitCheckIn({
-                weight: parseFloat(weight) || null,
-                weight_unit: weightUnit,
-                adherence_score: adherenceScore,
+            await clientCompleteCheckIn(checkIn.id, {
+                weight:       parseFloat(weight) || null,
+                weight_unit:  weightUnit,
                 energy_score: energyScore,
                 client_notes: notes.trim() || null,
             });
@@ -54,39 +60,25 @@ const CheckInFormScreen = () => {
         }
     };
 
-    const renderScoreButtons = (selectedScore, onSelect) => {
-        return (
-            <View style={styles.scoreRow}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
-                    const isSelected = selectedScore === num;
-                    return (
-                        <TouchableOpacity
-                            key={num}
-                            style={[
-                                styles.scoreButton,
-                                isSelected
-                                    ? { backgroundColor: theme.accent }
-                                    : { backgroundColor: theme.card },
-                            ]}
-                            onPress={() => onSelect(num)}
-                            activeOpacity={0.75}
-                        >
-                            <Text
-                                style={[
-                                    styles.scoreButtonText,
-                                    isSelected
-                                        ? { color: '#fff' }
-                                        : { color: theme.text },
-                                ]}
-                            >
-                                {num}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-        );
-    };
+    const renderScoreButtons = (selectedScore, onSelect) => (
+        <View style={styles.scoreRow}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                const isSelected = selectedScore === num;
+                return (
+                    <TouchableOpacity
+                        key={num}
+                        style={[styles.scoreButton, isSelected && styles.scoreButtonActive]}
+                        onPress={() => onSelect(isSelected ? null : num)}
+                        activeOpacity={0.75}
+                    >
+                        <Text style={[styles.scoreButtonText, isSelected && styles.scoreButtonTextActive]}>
+                            {num}
+                        </Text>
+                    </TouchableOpacity>
+                );
+            })}
+        </View>
+    );
 
     return (
         <ScreenWrapper title="Weekly Check-in" showBack>
@@ -99,6 +91,13 @@ const CheckInFormScreen = () => {
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
+                    {/* Week label */}
+                    {checkIn?.week_start && (
+                        <View style={styles.weekBadge}>
+                            <Text style={styles.weekBadgeText}>📅  {formatWeek(checkIn.week_start)}</Text>
+                        </View>
+                    )}
+
                     {error ? (
                         <View style={styles.errorContainer}>
                             <Text style={styles.errorText}>{error}</Text>
@@ -116,59 +115,34 @@ const CheckInFormScreen = () => {
                             placeholder="e.g. 175.5"
                             placeholderTextColor={theme.textMuted}
                         />
-                        <TouchableOpacity
-                            style={[
-                                styles.unitButton,
-                                weightUnit === 'lbs' && styles.unitButtonActive,
-                            ]}
-                            onPress={() => setWeightUnit('lbs')}
-                            activeOpacity={0.75}
-                        >
-                            <Text
-                                style={[
-                                    styles.unitButtonText,
-                                    weightUnit === 'lbs' && styles.unitButtonTextActive,
-                                ]}
+                        {['lbs', 'kg'].map(u => (
+                            <TouchableOpacity
+                                key={u}
+                                style={[styles.unitButton, weightUnit === u && styles.unitButtonActive]}
+                                onPress={() => setWeightUnit(u)}
+                                activeOpacity={0.75}
                             >
-                                lbs
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                styles.unitButton,
-                                weightUnit === 'kg' && styles.unitButtonActive,
-                            ]}
-                            onPress={() => setWeightUnit('kg')}
-                            activeOpacity={0.75}
-                        >
-                            <Text
-                                style={[
-                                    styles.unitButtonText,
-                                    weightUnit === 'kg' && styles.unitButtonTextActive,
-                                ]}
-                            >
-                                kg
-                            </Text>
-                        </TouchableOpacity>
+                                <Text style={[styles.unitButtonText, weightUnit === u && styles.unitButtonTextActive]}>
+                                    {u}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
 
-                    {/* Adherence Score */}
-                    <Text style={styles.sectionLabel}>
-                        How well did you stick to your plan? (1-10)
-                    </Text>
-                    {renderScoreButtons(adherenceScore, setAdherenceScore)}
+                    {/* Compliance note */}
+                    <View style={styles.complianceNote}>
+                        <Text style={styles.complianceNoteText}>
+                            Workout compliance is automatically calculated from your completed workouts this week.
+                        </Text>
+                    </View>
 
                     {/* Energy Score */}
-                    <Text style={styles.sectionLabel}>
-                        How was your energy and mood? (1-10)
-                    </Text>
+                    <Text style={styles.sectionLabel}>How was your energy this week? (1–10)</Text>
                     {renderScoreButtons(energyScore, setEnergyScore)}
 
                     {/* Notes */}
                     <Text style={styles.sectionLabel}>Notes (optional)</Text>
-                    <Text style={styles.sectionHint}>
-                        How did the week go? Any struggles or wins to share?
-                    </Text>
+                    <Text style={styles.sectionHint}>How did the week go? Any struggles or wins?</Text>
                     <TextInput
                         style={styles.notesInput}
                         value={notes}
@@ -207,6 +181,21 @@ const makeStyles = (theme) => StyleSheet.create({
     scrollContent: {
         padding: 20,
         paddingBottom: 40,
+    },
+    weekBadge: {
+        backgroundColor: theme.card,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.border,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        alignSelf: 'flex-start',
+        marginBottom: 20,
+    },
+    weekBadgeText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.textSecondary,
     },
     errorContainer: {
         backgroundColor: '#fef2f2',
@@ -269,6 +258,19 @@ const makeStyles = (theme) => StyleSheet.create({
     unitButtonTextActive: {
         color: '#fff',
     },
+    complianceNote: {
+        backgroundColor: theme.primary + '12',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: theme.primary + '30',
+        padding: 12,
+        marginTop: 16,
+    },
+    complianceNoteText: {
+        fontSize: 13,
+        color: theme.primary,
+        lineHeight: 18,
+    },
     scoreRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -282,10 +284,19 @@ const makeStyles = (theme) => StyleSheet.create({
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: theme.border,
+        backgroundColor: theme.card,
+    },
+    scoreButtonActive: {
+        backgroundColor: theme.accent,
+        borderColor: theme.accent,
     },
     scoreButtonText: {
         fontSize: 14,
         fontWeight: '600',
+        color: theme.text,
+    },
+    scoreButtonTextActive: {
+        color: '#fff',
     },
     notesInput: {
         backgroundColor: theme.card,

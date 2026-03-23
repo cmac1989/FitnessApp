@@ -63,7 +63,7 @@ const TrainerTabNavigator = () => {
                 }}
             />
             <Tab.Screen
-                name="Workout"
+                name="Workouts"
                 component={WorkoutListScreen}
                 options={{
                     tabBarIcon: ({ color }) => (

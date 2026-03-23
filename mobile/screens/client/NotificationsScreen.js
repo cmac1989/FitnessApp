@@ -18,6 +18,10 @@ const TYPE_LABELS = {
     invitation_accepted: 'Invitation Accepted',
     invitation_declined: 'Invitation Declined',
     workout_assigned:    'New Workout Assigned',
+    workout_liked:       'Someone Liked Your Workout',
+    workout_commented:   'New Comment on Workout',
+    workout_completed:   'Workout Completed',
+    message_liked:       'Message Liked',
 };
 
 // ── Invitation card ───────────────────────────────────────────────────────────

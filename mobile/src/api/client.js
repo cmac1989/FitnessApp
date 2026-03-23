@@ -100,6 +100,16 @@ export const markClientMessagesAsRead = async () => {
     return response.data;
 };
 
+export const deleteClientMessage = async (messageId) => {
+    const response = await api.delete(`api/client/messages/${messageId}`);
+    return response.data;
+};
+
+export const toggleClientMessageLike = async (messageId) => {
+    const response = await api.post(`api/client/messages/${messageId}/like`);
+    return response.data;
+};
+
 // ── Notifications ──────────────────────────────────────────────────────────
 
 export const getClientNotifications = async () => {

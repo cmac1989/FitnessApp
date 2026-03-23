@@ -14,6 +14,10 @@ const TYPE_LABELS = {
     invite_accepted:     'Client Accepted Invitation',
     invite_declined:     'Client Declined Invitation',
     workout_assigned:    'New Workout Assigned',
+    workout_liked:       'Workout Liked',
+    workout_commented:   'New Comment on Workout',
+    workout_completed:   'Client Completed Workout',
+    message_liked:       'Message Liked',
 };
 
 const formatDate = (dateString) => {
@@ -62,6 +66,7 @@ const NotificationDetailScreen = () => {
         trainer_name:     'Trainer',
         week_start:       'Week of',
         workout_id:       null, // hide raw IDs
+        assignment_id:    null,
         client_id:        null,
         trainer_id:       null,
         check_in_id:      null,

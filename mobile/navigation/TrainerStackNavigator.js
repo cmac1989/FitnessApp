@@ -17,8 +17,12 @@ import ProfileSettingsScreen from '../screens/trainer/ProfileSettingsScreen';
 import MessagesListScreen from '../screens/trainer/MessagesListScreen';
 import NotificationsScreen from '../screens/trainer/NotificationsScreen';
 import NotificationDetailScreen from '../screens/NotificationDetailScreen';
+import AssignmentDetailScreen from '../screens/AssignmentDetailScreen';
+import ClientAssignmentListScreen from '../screens/trainer/ClientAssignmentListScreen';
 import InviteClientScreen from '../screens/trainer/InviteClientScreen';
 import CheckInReviewScreen from '../screens/trainer/CheckInReviewScreen';
+import AIWorkoutScreen from '../screens/trainer/AIWorkoutScreen';
+import TrainerCheckInFormScreen from '../screens/trainer/TrainerCheckInFormScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,7 +57,8 @@ const TrainerStackNavigator = () => {
             <Stack.Screen name="ProfileEdit" options={{ title: 'Edit Profile' }} component={ProfileSettingsScreen} />
             <Stack.Screen name="TrainerProfileScreen" options={{ title: 'My Profile' }} component={TrainerProfileScreen} />
             <Stack.Screen name="ClientProfileScreen" options={{ title: 'My Profile' }} component={ClientProfileScreen} />
-            <Stack.Screen name="CreateWorkout" options={{ title: 'Create Workout' }} component={CreateWorkoutScreen} />
+            <Stack.Screen name="CreateWorkout" options={{ headerShown: false }} component={CreateWorkoutScreen} />
+            <Stack.Screen name="AIWorkout"     options={{ headerShown: false }} component={AIWorkoutScreen} />
             <Stack.Screen name="CreateSession" options={{ title: 'Create Session' }} component={CreateSessionScreen} />
             <Stack.Screen name="SessionDetail" options={{ title: 'Session Details' }} component={SessionDetailsScreen} />
             <Stack.Screen name="ClientDetails" options={{ title: 'Client Details' }} component={ClientDetailsScreen} />
@@ -64,8 +69,11 @@ const TrainerStackNavigator = () => {
             <Stack.Screen name="MessageList" options={{ headerShown: false }} component={MessagesListScreen} />
             <Stack.Screen name="Notifications" options={{ headerShown: false }} component={NotificationsScreen} />
             <Stack.Screen name="InviteClient" options={{ headerShown: false }} component={InviteClientScreen} />
-            <Stack.Screen name="CheckInReview" options={{ headerShown: false }} component={CheckInReviewScreen} />
-            <Stack.Screen name="NotificationDetail" options={{ headerShown: false }} component={NotificationDetailScreen} />
+            <Stack.Screen name="CheckInReview"       options={{ headerShown: false }} component={CheckInReviewScreen} />
+            <Stack.Screen name="TrainerCheckInForm"  options={{ headerShown: false }} component={TrainerCheckInFormScreen} />
+            <Stack.Screen name="NotificationDetail"      options={{ headerShown: false }} component={NotificationDetailScreen} />
+            <Stack.Screen name="AssignmentDetail"        options={{ headerShown: false }} component={AssignmentDetailScreen} />
+            <Stack.Screen name="ClientAssignmentList"    options={{ headerShown: false }} component={ClientAssignmentListScreen} />
         </Stack.Navigator>
     );
 };

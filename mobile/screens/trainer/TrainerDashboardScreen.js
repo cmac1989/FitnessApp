@@ -155,8 +155,8 @@ const TrainerDashboardScreen = () => {
                             <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('CreateWorkout')}>
                                 <Text style={styles.actionBtnText}>+ Workout</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('CreateSession')}>
-                                <Text style={styles.actionBtnText}>+ Session</Text>
+                            <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('TrainerCheckInForm')}>
+                                <Text style={styles.actionBtnText}>+ Check-in</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('MessageList')}>
                                 <Text style={styles.actionBtnText}>Messages</Text>
@@ -179,12 +179,22 @@ const TrainerDashboardScreen = () => {
                         <Text style={styles.sectionTitle}>Compliance</Text>
                         <View style={styles.card}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <Text style={styles.cardLabel}>Session Completion Rate</Text>
+                                <Text style={styles.cardLabel}>Check-in Completion</Text>
                                 <Text style={styles.cardValue}>{compliance.session_completion_rate ?? 0}%</Text>
                             </View>
                             <ProgressBar pct={compliance.session_completion_rate} theme={theme} />
                             <Text style={[styles.cardMeta, { marginTop: 6 }]}>
                                 {compliance.sessions_completed_this_week ?? 0} / {compliance.sessions_scheduled_this_week ?? 0} sessions this week
+                            </Text>
+                        </View>
+                        <View style={styles.card}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                                <Text style={styles.cardLabel}>Workout Completion</Text>
+                                <Text style={styles.cardValue}>{compliance.workout_completion_rate ?? 0}%</Text>
+                            </View>
+                            <ProgressBar pct={compliance.workout_completion_rate} theme={theme} />
+                            <Text style={[styles.cardMeta, { marginTop: 6 }]}>
+                                {compliance.workouts_completed_this_week ?? 0} / {compliance.workouts_scheduled_this_week ?? 0} workouts completed this week
                             </Text>
                         </View>
 

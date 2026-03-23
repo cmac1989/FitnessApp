@@ -62,7 +62,7 @@ const CreateSessionScreen = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.container}>
-                <Text style={styles.title}>Create New Session</Text>
+                <Text style={styles.title}>Create New Check-in</Text>
 
                 <Text style={styles.label}>Select Client</Text>
                 <DropDownPicker
@@ -115,7 +115,7 @@ const CreateSessionScreen = () => {
                     onChangeText={text => setSessionInfo(prev => ({ ...prev, location: text }))}
                 />
 
-                <CustomButton title="Create Session" onPress={handleCreateSession} />
+                <CustomButton title="Create Check-in" onPress={handleCreateSession} />
             </ScrollView>
         </SafeAreaView>
     );

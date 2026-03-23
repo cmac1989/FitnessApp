@@ -4,73 +4,63 @@ import CustomButton from '../../components/CustomButton';
 import { useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { userLogout } from '../../src/api/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getTrainerProfile, updateTrainerProfile } from '../../src/api/trainer';
+import { getClientProfile, updateClientProfile } from '../../src/api/client';
 import { useTheme } from '../../src/theme';
 
 const ProfileSettingsScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
+    const styles = makeStyles(theme);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [profile, setProfile] = useState({
-        id: '',
         name: '',
         email: '',
-        certifications: '',
-        years_experience: '',
-        specialties: '',
-        bio: '',
-        availability: '',
-        location: '',
+        age: '',
+        gender: '',
+        fitness_goals: '',
+        medical_conditions: '',
     });
 
-    const fetchProfile = async () => {
-        try {
-            const token = await AsyncStorage.getItem('auth_token');
-            if (!token) { return; }
-
-            const response = await getTrainerProfile(token);
-            const profileData = response.data || response;
-
-            setProfile({
-                ...profileData,
-                years_experience: profileData.years_experience?.toString() || '',
-                specialties: Array.isArray(profileData.specialties)
-                    ? profileData.specialties.join(', ')
-                    : (profileData.specialties || ''),
-                availability: profileData.availability || '',
-                location: profileData.location || '',
-                certifications: profileData.certifications || '',
-                bio: profileData.bio || '',
-            });
-        } catch (err) {
-            console.error('Error fetching profile:', err);
-            setError('Failed to load profile');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const data = await getClientProfile();
+                setProfile({
+                    name:               data.name ?? '',
+                    email:              data.email ?? '',
+                    age:                data.age != null ? data.age.toString() : '',
+                    gender:             data.gender ?? '',
+                    fitness_goals:      data.fitness_goals ?? '',
+                    medical_conditions: data.medical_conditions ?? '',
+                });
+            } catch (err) {
+                console.error('Error fetching client profile:', err);
+                setError('Failed to load profile.');
+            }
+        };
         fetchProfile();
     }, []);
 
     const handleSaveChanges = async () => {
+        setLoading(true);
         try {
-            await updateTrainerProfile(profile.id, {
-                ...profile,
-                years_experience: profile.years_experience === '' ? null : parseInt(profile.years_experience, 10),
+            await updateClientProfile({
+                name:               profile.name,
+                age:                profile.age === '' ? null : parseInt(profile.age, 10),
+                gender:             profile.gender,
+                fitness_goals:      profile.fitness_goals,
+                medical_conditions: profile.medical_conditions,
             });
+            Alert.alert('Profile Updated', 'Your changes have been saved.');
+            navigation.goBack();
         } catch (err) {
-            console.error('Cannot update profile', err);
-            Alert.alert('Error', 'Could not update profile.');
-            return;
+            console.error('Cannot update profile:', err);
+            Alert.alert('Error', 'Could not update profile. Please try again.');
+        } finally {
+            setLoading(false);
         }
-
-        navigation.goBack();
-        Alert.alert('Profile Updated', 'Your changes have been saved.');
     };
 
     const handleLogout = async () => {
@@ -83,12 +73,12 @@ const ProfileSettingsScreen = () => {
         }
     };
 
-    const styles = makeStyles(theme);
-
     return (
         <ScreenWrapper title="Profile">
-            <ScrollView contentContainerStyle={styles.container}>
+            <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
                 <Text style={styles.title}>Profile Settings</Text>
+
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                 <Text style={styles.label}>Name</Text>
                 <TextInput
@@ -103,70 +93,60 @@ const ProfileSettingsScreen = () => {
                 <TextInput
                     style={[styles.input, styles.inputDisabled]}
                     value={profile.email}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
-                    keyboardType="email-address"
                     editable={false}
                     placeholderTextColor={theme.placeholder}
                     color={theme.textSecondary}
                 />
 
-                <Text style={styles.label}>Certifications</Text>
+                <Text style={styles.label}>Age</Text>
                 <TextInput
                     style={styles.input}
-                    value={profile.certifications}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, certifications: text }))}
+                    value={profile.age}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, age: text }))}
+                    keyboardType="number-pad"
                     placeholderTextColor={theme.placeholder}
+                    placeholder="e.g. 28"
                     color={theme.text}
                 />
 
-                <Text style={styles.label}>Years Experience</Text>
+                <Text style={styles.label}>Gender</Text>
                 <TextInput
                     style={styles.input}
-                    value={profile.years_experience}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, years_experience: text }))}
-                    keyboardType="numeric"
+                    value={profile.gender}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, gender: text }))}
                     placeholderTextColor={theme.placeholder}
+                    placeholder="e.g. Male, Female, Non-binary"
                     color={theme.text}
                 />
 
-                <Text style={styles.label}>Specialties</Text>
+                <Text style={styles.label}>Fitness Goals</Text>
                 <TextInput
-                    style={styles.input}
-                    value={profile.specialties}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialties: text }))}
+                    style={[styles.input, styles.inputMultiline]}
+                    value={profile.fitness_goals}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, fitness_goals: text }))}
                     placeholderTextColor={theme.placeholder}
+                    placeholder="e.g. Lose weight, build muscle"
                     color={theme.text}
+                    multiline
                 />
 
-                <Text style={styles.label}>Bio</Text>
+                <Text style={styles.label}>Medical Conditions</Text>
                 <TextInput
-                    style={styles.input}
-                    value={profile.bio}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
+                    style={[styles.input, styles.inputMultiline]}
+                    value={profile.medical_conditions}
+                    onChangeText={(text) => setProfile(prev => ({ ...prev, medical_conditions: text }))}
                     placeholderTextColor={theme.placeholder}
+                    placeholder="Any conditions your trainer should know about"
                     color={theme.text}
-                />
-
-                <Text style={styles.label}>Availability</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.availability}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, availability: text }))}
-                    placeholderTextColor={theme.placeholder}
-                    color={theme.text}
-                />
-
-                <Text style={styles.label}>Location</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.location}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, location: text }))}
-                    placeholderTextColor={theme.placeholder}
-                    color={theme.text}
+                    multiline
                 />
 
                 <View style={styles.buttonRow}>
-                    <CustomButton title="Save Changes" onPress={handleSaveChanges} />
+                    <CustomButton
+                        title={loading ? 'Saving…' : 'Save Changes'}
+                        onPress={handleSaveChanges}
+                        disabled={loading}
+                    />
                 </View>
 
                 <View style={styles.divider} />
@@ -188,6 +168,11 @@ const makeStyles = (theme) => StyleSheet.create({
         marginBottom: 20,
         color: theme.text,
     },
+    errorText: {
+        color: theme.error,
+        fontSize: 14,
+        marginBottom: 12,
+    },
     label: {
         fontSize: 14,
         fontWeight: '600',
@@ -208,6 +193,10 @@ const makeStyles = (theme) => StyleSheet.create({
     },
     inputDisabled: {
         opacity: 0.6,
+    },
+    inputMultiline: {
+        minHeight: 80,
+        textAlignVertical: 'top',
     },
     buttonRow: {
         marginTop: 28,

@@ -135,6 +135,77 @@ class WorkoutController extends Controller
     }
 
     /**
+     * Trainer: batch-assign a workout to multiple clients on the same date.
+     */
+    public function batchAssign(Request $request, $id)
+    {
+        $trainer = Auth::user();
+
+        $workout = Workout::where('id', $id)
+            ->where('user_id', $trainer->id)
+            ->firstOrFail();
+
+        $request->validate([
+            'client_ids'     => 'required|array|min:1',
+            'client_ids.*'   => 'integer|exists:users,id',
+            'scheduled_date' => 'nullable|date|date_format:Y-m-d',
+        ]);
+
+        $scheduledDate = $request->input('scheduled_date');
+        $created  = 0;
+        $skipped  = 0;
+
+        foreach ($request->client_ids as $clientId) {
+            $isLinked = ClientProfile::where('user_id', $clientId)
+                ->where('trainer_id', $trainer->id)
+                ->exists();
+
+            if (!$isLinked) {
+                $skipped++;
+                continue;
+            }
+
+            $duplicate = WorkoutAssignment::where('workout_id', $workout->id)
+                ->where('client_id', $clientId)
+                ->where('scheduled_date', $scheduledDate)
+                ->exists();
+
+            if ($duplicate) {
+                $skipped++;
+                continue;
+            }
+
+            WorkoutAssignment::create([
+                'workout_id'     => $workout->id,
+                'client_id'      => $clientId,
+                'trainer_id'     => $trainer->id,
+                'scheduled_date' => $scheduledDate,
+            ]);
+
+            $dateLabel = $scheduledDate
+                ? ' for ' . Carbon::parse($scheduledDate)->format('M j')
+                : '';
+
+            Notification::create([
+                'user_id' => $clientId,
+                'type'    => 'workout_assigned',
+                'data'    => [
+                    'message'    => "{$trainer->name} scheduled \"{$workout->title}\"{$dateLabel}.",
+                    'workout_id' => $workout->id,
+                ],
+            ]);
+
+            $created++;
+        }
+
+        return response()->json([
+            'message' => "Assigned to {$created} client(s)." . ($skipped > 0 ? " {$skipped} skipped (already assigned or not linked)." : ''),
+            'created' => $created,
+            'skipped' => $skipped,
+        ]);
+    }
+
+    /**
      * Client: get their full workout schedule (assignments with workout details).
      */
     public function clientSchedule()
