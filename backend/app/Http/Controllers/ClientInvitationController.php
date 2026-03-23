@@ -66,13 +66,12 @@ class ClientInvitationController extends Controller
         Notification::create([
             'user_id' => $client->id,
             'type'    => 'trainer_invite',
-            'data'    => json_encode([
-                'title'            => 'Trainer Invitation',
-                'body'             => "{$trainer->name} has invited you to be their client.",
+            'data'    => [
+                'message'          => "{$trainer->name} has invited you to be their client.",
                 'invitation_token' => $invitation->token,
                 'trainer_name'     => $trainer->name,
                 'trainer_id'       => $trainer->id,
-            ]),
+            ],
         ]);
 
         return response()->json([
@@ -170,12 +169,11 @@ class ClientInvitationController extends Controller
         Notification::create([
             'user_id' => $invitation->trainer_id,
             'type'    => 'invite_accepted',
-            'data'    => json_encode([
-                'title'       => 'Invite Accepted',
-                'body'        => "{$client->name} accepted your invitation.",
+            'data'    => [
+                'message'     => "{$client->name} accepted your invitation.",
                 'client_id'   => $client->id,
                 'client_name' => $client->name,
-            ]),
+            ],
         ]);
 
         return response()->json([
@@ -201,12 +199,11 @@ class ClientInvitationController extends Controller
         Notification::create([
             'user_id' => $invitation->trainer_id,
             'type'    => 'invite_declined',
-            'data'    => json_encode([
-                'title'       => 'Invite Declined',
-                'body'        => "{$client->name} declined your invitation.",
+            'data'    => [
+                'message'     => "{$client->name} declined your invitation.",
                 'client_id'   => $client->id,
                 'client_name' => $client->name,
-            ]),
+            ],
         ]);
 
         return response()->json(['message' => 'Invitation declined.']);

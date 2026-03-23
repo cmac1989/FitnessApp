@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClientProfile;
+use Carbon\Carbon;
 use App\Models\Notification;
 use App\Models\Workout;
 use App\Models\WorkoutAssignment;
@@ -85,7 +86,8 @@ class WorkoutController extends Controller
             ->firstOrFail();
 
         $request->validate([
-            'client_id' => 'required|integer|exists:users,id',
+            'client_id'      => 'required|integer|exists:users,id',
+            'scheduled_date' => 'nullable|date|date_format:Y-m-d',
         ]);
 
         $isLinked = ClientProfile::where('user_id', $request->client_id)
@@ -96,23 +98,65 @@ class WorkoutController extends Controller
             return response()->json(['error' => 'Client is not linked to you.'], 403);
         }
 
-        WorkoutAssignment::firstOrCreate(
-            ['workout_id' => $workout->id, 'client_id' => $request->client_id],
-            ['trainer_id' => $trainer->id]
-        );
+        $scheduledDate = $request->input('scheduled_date');
+
+        // Prevent duplicate: same workout, same client, same date (or both null)
+        $duplicate = WorkoutAssignment::where('workout_id', $workout->id)
+            ->where('client_id', $request->client_id)
+            ->where('scheduled_date', $scheduledDate)
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json(['error' => 'This workout is already scheduled for that date.'], 422);
+        }
+
+        WorkoutAssignment::create([
+            'workout_id'     => $workout->id,
+            'client_id'      => $request->client_id,
+            'trainer_id'     => $trainer->id,
+            'scheduled_date' => $scheduledDate,
+        ]);
+
+        $dateLabel = $scheduledDate
+            ? ' for ' . Carbon::parse($scheduledDate)->format('M j')
+            : '';
 
         // Notify client
         Notification::create([
             'user_id' => $request->client_id,
             'type'    => 'workout_assigned',
-            'data'    => json_encode([
-                'title'      => 'New Workout Assigned',
-                'body'       => "{$trainer->name} assigned you \"{$workout->title}\".",
+            'data'    => [
+                'message'    => "{$trainer->name} scheduled \"{$workout->title}\"{$dateLabel}.",
                 'workout_id' => $workout->id,
-            ]),
+            ],
         ]);
 
         return response()->json(['message' => 'Workout assigned successfully.']);
+    }
+
+    /**
+     * Client: get their full workout schedule (assignments with workout details).
+     */
+    public function clientSchedule()
+    {
+        $user = Auth::user();
+
+        if ($user->role !== 'client') {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $assignments = WorkoutAssignment::with('workout')
+            ->where('client_id', $user->id)
+            ->orderByRaw('scheduled_date IS NULL ASC')
+            ->orderBy('scheduled_date', 'asc')
+            ->get()
+            ->map(fn ($a) => [
+                'id'             => $a->id,
+                'scheduled_date' => $a->scheduled_date?->format('Y-m-d'),
+                'workout'        => $a->workout,
+            ]);
+
+        return response()->json(['schedule' => $assignments]);
     }
 
     public function destroy($id) {

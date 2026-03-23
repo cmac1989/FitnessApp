@@ -6,7 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkoutAssignment extends Model
 {
-    protected $fillable = ['workout_id', 'client_id', 'trainer_id'];
+    protected $fillable = [
+        'workout_id', 'client_id', 'trainer_id',
+        'scheduled_date', 'completed_at',
+    ];
+
+    protected $casts = [
+        'scheduled_date' => 'date:Y-m-d',
+        'completed_at'   => 'datetime',
+    ];
 
     public function workout()
     {
@@ -21,5 +29,15 @@ class WorkoutAssignment extends Model
     public function trainer()
     {
         return $this->belongsTo(User::class, 'trainer_id');
+    }
+
+    public function reactions()
+    {
+        return $this->hasMany(WorkoutAssignmentReaction::class, 'assignment_id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(WorkoutAssignmentComment::class, 'assignment_id');
     }
 }

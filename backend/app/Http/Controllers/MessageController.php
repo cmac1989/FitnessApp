@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ClientProfile;
 use App\Models\Message;
+use App\Models\MessageReaction;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -46,7 +48,8 @@ class MessageController extends Controller
                         'name' => $otherUser->name,
                     ],
                     'last_message' => [
-                        'content'    => $message->content,
+                        'content'    => $message->deleted_at ? null : $message->content,
+                        'is_deleted' => !is_null($message->deleted_at),
                         'created_at' => $message->created_at,
                         'read_at'    => $message->read_at,
                         'is_mine'    => $message->sender_id === $authId,
@@ -63,16 +66,38 @@ class MessageController extends Controller
     {
         $authId = Auth::id();
 
-        $messages = Message::where(function ($q) use ($authId, $otherUserId) {
-            $q->where('sender_id', $authId)->where('receiver_id', $otherUserId);
-        })
-        ->orWhere(function ($q) use ($authId, $otherUserId) {
-            $q->where('sender_id', $otherUserId)->where('receiver_id', $authId);
-        })
-        ->orderBy('created_at', 'asc')
-        ->get();
+        $messages = Message::withTrashed()
+            ->where(function ($q) use ($authId, $otherUserId) {
+                $q->where('sender_id', $authId)->where('receiver_id', $otherUserId);
+            })
+            ->orWhere(function ($q) use ($authId, $otherUserId) {
+                $q->where('sender_id', $otherUserId)->where('receiver_id', $authId);
+            })
+            ->orderBy('created_at', 'asc')
+            ->get();
 
-        return response()->json($messages);
+        $messageIds  = $messages->pluck('id');
+        $myLikedIds  = MessageReaction::whereIn('message_id', $messageIds)
+            ->where('user_id', $authId)
+            ->pluck('message_id');
+        $likeCounts  = MessageReaction::whereIn('message_id', $messageIds)
+            ->selectRaw('message_id, count(*) as cnt')
+            ->groupBy('message_id')
+            ->pluck('cnt', 'message_id');
+
+        $formatted = $messages->map(fn ($m) => [
+            'id'          => $m->id,
+            'sender_id'   => $m->sender_id,
+            'receiver_id' => $m->receiver_id,
+            'content'     => $m->deleted_at ? null : $m->content,
+            'is_deleted'  => !is_null($m->deleted_at),
+            'created_at'  => $m->created_at,
+            'read_at'     => $m->read_at,
+            'like_count'  => (int) $likeCounts->get($m->id, 0),
+            'liked_by_me' => $myLikedIds->contains($m->id),
+        ]);
+
+        return response()->json($formatted);
     }
 
     // Send a message — sender is always Auth::user(), trainer_id auto-derived
@@ -87,7 +112,6 @@ class MessageController extends Controller
         $sender   = Auth::user();
         $senderId = $sender->id;
 
-        // Derive trainer_id from the relationship
         if ($sender->role === 'trainer') {
             $trainerId = $senderId;
         } else {
@@ -105,8 +129,67 @@ class MessageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $message,
+            'message' => array_merge($message->toArray(), [
+                'is_deleted'  => false,
+                'like_count'  => 0,
+                'liked_by_me' => false,
+            ]),
         ], 201);
+    }
+
+    // Delete own message (soft delete)
+    public function deleteMessage($id)
+    {
+        $message = Message::where('id', $id)
+            ->where('sender_id', Auth::id())
+            ->firstOrFail();
+
+        $message->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    // Toggle like on a message
+    public function toggleMessageLike($id)
+    {
+        $authId  = Auth::id();
+        $message = Message::findOrFail($id);
+
+        if ($message->sender_id !== $authId && $message->receiver_id !== $authId) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $existing = MessageReaction::where('message_id', $id)
+            ->where('user_id', $authId)
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+            $liked = false;
+        } else {
+            MessageReaction::create([
+                'message_id' => $id,
+                'user_id'    => $authId,
+            ]);
+            $liked = true;
+
+            // Notify the message sender (only if it's not the sender liking their own message)
+            if ($message->sender_id !== $authId) {
+                $liker = Auth::user();
+                Notification::create([
+                    'user_id' => $message->sender_id,
+                    'type'    => 'message_liked',
+                    'data'    => [
+                        'message' => "{$liker->name} liked your message.",
+                    ],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'liked'      => $liked,
+            'like_count' => MessageReaction::where('message_id', $id)->count(),
+        ]);
     }
 
     // Mark a specific message as read (only if you're the receiver)

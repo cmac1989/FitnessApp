@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ClientGoal;
 use App\Models\ClientMetric;
 use App\Models\ClientProfile;
-use App\Models\ProgressLog;
 use App\Models\TrainingSession;
-use App\Models\Workout;
+use App\Models\WorkoutAssignment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -98,11 +97,9 @@ class ClientDashboardController extends Controller
         $latestBodyFat = ClientMetric::where('client_id', $clientId)->where('type', 'body_fat')->latest('recorded_at')->value('value');
 
         // ── Workout Analytics ─────────────────────────────────────────────────
-        $workoutsAssigned = $trainerId
-            ? Workout::where('user_id', $trainerId)->count()
-            : 0;
+        $workoutsAssigned = WorkoutAssignment::where('client_id', $clientId)->count();
 
-        $workoutsCompleted = ProgressLog::where('client_id', $clientId)
+        $workoutsCompleted = WorkoutAssignment::where('client_id', $clientId)
             ->whereNotNull('completed_at')
             ->count();
 
@@ -110,13 +107,13 @@ class ClientDashboardController extends Controller
             ? (int) round(($workoutsCompleted / $workoutsAssigned) * 100)
             : 0;
 
-        $thisWeekCompleted = ProgressLog::where('client_id', $clientId)
+        $thisWeekCompleted = WorkoutAssignment::where('client_id', $clientId)
             ->whereNotNull('completed_at')
             ->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])
             ->count();
 
-        // Current streak — consecutive days ending today or yesterday
-        $completedDates = ProgressLog::where('client_id', $clientId)
+        // Current streak — consecutive days ending today or yesterday with a completed workout
+        $completedDates = WorkoutAssignment::where('client_id', $clientId)
             ->whereNotNull('completed_at')
             ->selectRaw('DATE(completed_at) as day')
             ->groupBy('day')
