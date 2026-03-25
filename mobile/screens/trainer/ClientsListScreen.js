@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View, Text, FlatList, StyleSheet,
-    TouchableOpacity, ActivityIndicator,
+    TouchableOpacity, ActivityIndicator, TextInput,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -46,8 +46,9 @@ const ClientsListScreen = () => {
     const { theme } = useTheme();
     const styles = makeStyles(theme);
 
-    const [clients, setClients] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [clients, setClients]       = useState([]);
+    const [loading, setLoading]       = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const fetchClients = useCallback(async (cancelled) => {
         try {
@@ -69,15 +70,28 @@ const ClientsListScreen = () => {
         }, [fetchClients])
     );
 
+    const filteredClients = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return clients;
+        return clients.filter((c) => {
+            const nameMatch  = c.name?.toLowerCase().includes(q);
+            const emailMatch = c.email?.toLowerCase().includes(q);
+            const goalMatch  = c.client_profile?.fitness_goals?.toLowerCase().includes(q);
+            return nameMatch || emailMatch || goalMatch;
+        });
+    }, [clients, searchQuery]);
+
+    const isFiltering = searchQuery.trim().length > 0;
+
     const renderClient = ({ item }) => {
         const profile = item.client_profile;
-        const goal = profile?.fitness_goals;
-        const age  = profile?.age;
-        const gender = profile?.gender;
+        const goal    = profile?.fitness_goals;
+        const age     = profile?.age;
+        const gender  = profile?.gender;
 
         const meta = [
-            age    ? `${age} yrs`     : null,
-            gender ? gender           : null,
+            age    ? `${age} yrs` : null,
+            gender ? gender       : null,
         ].filter(Boolean).join('  ·  ');
 
         return (
@@ -110,60 +124,113 @@ const ClientsListScreen = () => {
         );
     };
 
-    const renderEmpty = () => (
-        <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}>
-                <Text style={styles.emptyIconText}>👥</Text>
+    const renderEmpty = () => {
+        if (isFiltering) {
+            return (
+                <View style={styles.emptyContainer}>
+                    <View style={styles.emptyIcon}>
+                        <Text style={styles.emptyIconText}>🔍</Text>
+                    </View>
+                    <Text style={styles.emptyTitle}>No Results</Text>
+                    <Text style={styles.emptySubtitle}>
+                        No clients match "{searchQuery}". Try a different name or email.
+                    </Text>
+                </View>
+            );
+        }
+        return (
+            <View style={styles.emptyContainer}>
+                <View style={styles.emptyIcon}>
+                    <Text style={styles.emptyIconText}>👥</Text>
+                </View>
+                <Text style={styles.emptyTitle}>No Clients Yet</Text>
+                <Text style={styles.emptySubtitle}>
+                    Invite a client using the button above. Once they accept, they'll appear here.
+                </Text>
+                <TouchableOpacity
+                    style={styles.emptyBtn}
+                    onPress={() => navigation.navigate('InviteClient')}
+                    activeOpacity={0.8}
+                >
+                    <Text style={styles.emptyBtnText}>+ Invite Client</Text>
+                </TouchableOpacity>
             </View>
-            <Text style={styles.emptyTitle}>No Clients Yet</Text>
-            <Text style={styles.emptySubtitle}>
-                Invite a client using the button above. Once they accept, they'll appear here.
-            </Text>
-            <TouchableOpacity
-                style={styles.emptyBtn}
-                onPress={() => navigation.navigate('InviteClient')}
-                activeOpacity={0.8}
-            >
-                <Text style={styles.emptyBtnText}>+ Invite Client</Text>
-            </TouchableOpacity>
-        </View>
-    );
+        );
+    };
 
     return (
         <ScreenWrapper title="Clients">
             <View style={styles.container}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.title}>Your Clients</Text>
-                    <TouchableOpacity
-                        style={styles.inviteBtn}
-                        onPress={() => navigation.navigate('InviteClient')}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.inviteBtnText}>+ Invite</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Client count */}
-                {!loading && clients.length > 0 && (
-                    <Text style={styles.countLabel}>
-                        {clients.length} {clients.length === 1 ? 'client' : 'clients'}
-                    </Text>
-                )}
-
                 {loading ? (
                     <View style={styles.centered}>
                         <ActivityIndicator size="large" color={theme.accent} />
                     </View>
                 ) : (
-                    <FlatList
-                        data={clients}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={renderClient}
-                        contentContainerStyle={[styles.list, clients.length === 0 && styles.listEmpty]}
-                        ListEmptyComponent={renderEmpty}
-                        showsVerticalScrollIndicator={false}
-                    />
+                    <>
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <Text style={styles.title}>Your Clients</Text>
+                            <TouchableOpacity
+                                style={styles.inviteBtn}
+                                onPress={() => navigation.navigate('InviteClient')}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.inviteBtnText}>+ Invite</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Search bar */}
+                        {clients.length > 0 && (
+                            <View style={styles.searchRow}>
+                                <View style={[styles.searchBar, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+                                    <Text style={styles.searchIcon}>⌕</Text>
+                                    <TextInput
+                                        style={[styles.searchInput, { color: theme.text }]}
+                                        placeholder="Search by name, email or goal…"
+                                        placeholderTextColor={theme.textMuted}
+                                        value={searchQuery}
+                                        onChangeText={setSearchQuery}
+                                        returnKeyType="search"
+                                        autoCorrect={false}
+                                        autoCapitalize="none"
+                                    />
+                                    {searchQuery.length > 0 && (
+                                        <TouchableOpacity
+                                            onPress={() => setSearchQuery('')}
+                                            activeOpacity={0.6}
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                        >
+                                            <Text style={[styles.clearBtn, { color: theme.textMuted }]}>✕</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Count label */}
+                        {clients.length > 0 && (
+                            <Text style={styles.countLabel}>
+                                {isFiltering
+                                    ? `${filteredClients.length} of ${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`
+                                    : `${clients.length} ${clients.length === 1 ? 'client' : 'clients'}`
+                                }
+                            </Text>
+                        )}
+
+                        <FlatList
+                            data={filteredClients}
+                            keyExtractor={(item) => item.id.toString()}
+                            renderItem={renderClient}
+                            contentContainerStyle={[
+                                styles.list,
+                                filteredClients.length === 0 && styles.listEmpty,
+                            ]}
+                            ListEmptyComponent={renderEmpty}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                            keyboardDismissMode="on-drag"
+                        />
+                    </>
                 )}
             </View>
         </ScreenWrapper>
@@ -188,7 +255,7 @@ const makeStyles = (theme) => StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingTop: 20,
-        paddingBottom: 4,
+        paddingBottom: 12,
     },
     title: {
         fontSize: 26,
@@ -206,14 +273,46 @@ const makeStyles = (theme) => StyleSheet.create({
         fontWeight: '700',
         fontSize: 14,
     },
+
+    // Search
+    searchRow: {
+        paddingHorizontal: 16,
+        marginBottom: 8,
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 9,
+        gap: 8,
+    },
+    searchIcon: {
+        fontSize: 18,
+        color: theme.textMuted,
+        lineHeight: 22,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        paddingVertical: 0,
+    },
+    clearBtn: {
+        fontSize: 14,
+        fontWeight: '600',
+        paddingHorizontal: 2,
+    },
+
+    // Count
     countLabel: {
         fontSize: 13,
         color: theme.textMuted,
         fontWeight: '500',
         paddingHorizontal: 20,
-        marginBottom: 12,
-        marginTop: 6,
+        marginBottom: 8,
     },
+
     list: {
         paddingHorizontal: 16,
         paddingBottom: 24,

@@ -133,7 +133,7 @@ const AIWorkoutScreen = () => {
                 difficulty:   generated.difficulty,
                 duration:     generated.duration,
             });
-            navigation.navigate('Back', { screen: 'Workouts' });
+            navigation.navigate('Workouts');
         } catch {
             Alert.alert('Error', 'Could not save workout. Please try again.');
         } finally {
@@ -152,7 +152,7 @@ const AIWorkoutScreen = () => {
                 difficulty,
                 duration: duration ? parseInt(duration, 10) : null,
             });
-            navigation.navigate('Back', { screen: 'Workouts' });
+            navigation.navigate('Workouts');
         } catch {
             Alert.alert('Error', 'Could not save workout. Please try again.');
         } finally {

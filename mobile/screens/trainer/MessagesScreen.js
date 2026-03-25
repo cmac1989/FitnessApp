@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TextInput,
-    KeyboardAvoidingView, Platform, SafeAreaView, TouchableOpacity,
+    KeyboardAvoidingView, Platform, TouchableOpacity,
     ActivityIndicator, Alert,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
     fetchMessagesWithUser, sendMessage,
     deleteTrainerMessage, toggleTrainerMessageLike,
@@ -66,10 +67,29 @@ const DateSeparator = ({ iso, theme }) => (
 
 const MessagesScreen = () => {
     const route = useRoute();
+    const navigation = useNavigation();
     const client = route.params?.client;
     const { theme } = useTheme();
     const styles = makeStyles(theme);
     const flatListRef = useRef(null);
+    const insets = useSafeAreaInsets();
+
+    // Hide the bottom tab bar while in a conversation
+    useFocusEffect(
+        useCallback(() => {
+            const parent = navigation.getParent();
+            parent?.setOptions({ tabBarStyle: { display: 'none' } });
+            return () => parent?.setOptions({
+                tabBarStyle: {
+                    backgroundColor: theme.navBar,
+                    borderTopColor: theme.navBarBorder,
+                    borderTopWidth: 1,
+                    paddingVertical: 5,
+                    height: 70,
+                },
+            });
+        }, [navigation, theme])
+    );
 
     const [myId, setMyId]           = useState(null);
     const [messages, setMessages]   = useState([]);
@@ -242,20 +262,22 @@ const MessagesScreen = () => {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            {/* Conversation header */}
-            <View style={styles.convHeader}>
-                <Avatar name={client?.name} size={38} color={theme.accent} />
-                <View style={styles.convHeaderInfo}>
-                    <Text style={styles.convHeaderName} numberOfLines={1}>{client?.name ?? 'Client'}</Text>
-                </View>
-            </View>
-
+        <View style={styles.safeArea}>
             <KeyboardAvoidingView
                 style={styles.flex}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
             >
+                {/* Conversation header — extends into status bar */}
+                <View style={[styles.convHeader, { paddingTop: insets.top + 10 }]}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+                        <Text style={styles.backBtnText}>‹</Text>
+                    </TouchableOpacity>
+                    <Avatar name={client?.name} size={38} color={theme.accent} />
+                    <View style={styles.convHeaderInfo}>
+                        <Text style={styles.convHeaderName} numberOfLines={1}>{client?.name ?? 'Client'}</Text>
+                    </View>
+                </View>
                 {loading ? (
                     <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
                 ) : (
@@ -274,7 +296,7 @@ const MessagesScreen = () => {
 
                 {sendError ? <Text style={styles.errorText}>{sendError}</Text> : null}
 
-                <View style={styles.inputRow}>
+                <View style={[styles.inputRow, { paddingBottom: insets.bottom + (Platform.OS === 'ios' ? 2 : 2) }]}>
                     <TextInput
                         style={styles.input}
                         placeholder="Message..."
@@ -301,7 +323,7 @@ const MessagesScreen = () => {
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -322,14 +344,24 @@ const makeStyles = (theme) => StyleSheet.create({
     convHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: 12,
+        paddingBottom: 10,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.border,
         backgroundColor: theme.card,
-        gap: 12,
+        gap: 10,
     },
     convHeaderInfo: { flex: 1 },
+    backBtn: {
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    backBtnText: {
+        fontSize: 32,
+        color: theme.primary,
+        lineHeight: 36,
+        fontWeight: '300',
+    },
     convHeaderName: {
         fontSize: 16,
         fontWeight: '700',
@@ -433,7 +465,6 @@ const makeStyles = (theme) => StyleSheet.create({
         alignItems: 'flex-end',
         paddingHorizontal: 12,
         paddingTop: 8,
-        paddingBottom: Platform.OS === 'ios' ? 16 : 12,
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: theme.border,
         backgroundColor: theme.card,

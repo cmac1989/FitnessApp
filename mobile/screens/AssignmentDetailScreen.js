@@ -26,7 +26,7 @@ const formatTime = (iso) => {
 
 const AssignmentDetailScreen = () => {
     const route = useRoute();
-    const { assignment: initialAssignment, role } = route.params;
+    const { assignment: initialAssignment, role, scrollToComments } = route.params;
     const { theme } = useTheme();
     const styles = makeStyles(theme);
 
@@ -72,6 +72,13 @@ const AssignmentDetailScreen = () => {
     useEffect(() => {
         loadAll();
     }, [loadAll]);
+
+    // Auto-scroll to comments when arriving from a comment notification
+    useEffect(() => {
+        if (!loadingData && scrollToComments) {
+            setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
+        }
+    }, [loadingData, scrollToComments]);
 
     const handleToggleLike = async () => {
         if (toggling) return;

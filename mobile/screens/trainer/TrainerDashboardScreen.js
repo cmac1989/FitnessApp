@@ -126,6 +126,7 @@ const TrainerDashboardScreen = () => {
     const business = data?.business ?? {};
     const clientProgress = data?.client_progress ?? [];
     const inactiveAlerts = compliance.inactive_alerts ?? [];
+    const checkIns = data?.check_ins ?? {};
 
     return (
         <ScreenWrapper title="Dashboard">
@@ -163,6 +164,64 @@ const TrainerDashboardScreen = () => {
                             </TouchableOpacity>
                         </View>
 
+                        {/* ── Check-ins ── */}
+                        <View style={styles.sectionTitleRow}>
+                            <Text style={[styles.sectionTitle, { marginTop: 0, marginBottom: 0 }]}>Check-ins</Text>
+                            {checkIns.pending_review > 0 && (
+                                <View style={styles.pendingBadge}>
+                                    <Text style={styles.pendingBadgeText}>
+                                        {checkIns.pending_review} pending
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* This week stats row */}
+                        <View style={styles.checkInStatsRow}>
+                            <View style={styles.checkInStat}>
+                                <Text style={styles.checkInStatValue}>{checkIns.assigned_this_week ?? 0}</Text>
+                                <Text style={styles.checkInStatLabel}>Assigned</Text>
+                            </View>
+                            <View style={[styles.checkInStat, styles.checkInStatBorder]}>
+                                <Text style={styles.checkInStatValue}>{checkIns.submitted_this_week ?? 0}</Text>
+                                <Text style={styles.checkInStatLabel}>Submitted</Text>
+                            </View>
+                            <View style={[styles.checkInStat, styles.checkInStatBorder]}>
+                                <Text style={[styles.checkInStatValue, { color: theme.success }]}>
+                                    {checkIns.reviewed_this_week ?? 0}
+                                </Text>
+                                <Text style={styles.checkInStatLabel}>Reviewed</Text>
+                            </View>
+                        </View>
+
+                        {/* Pending review list */}
+                        {(checkIns.pending_review_list ?? []).length > 0 ? (
+                            <>
+                                <Text style={styles.pendingReviewTitle}>Awaiting Review</Text>
+                                {(checkIns.pending_review_list).map((item) => (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={styles.pendingReviewCard}
+                                        onPress={() => navigation.navigate('CheckInReview', { checkIn: item })}
+                                        activeOpacity={0.75}
+                                    >
+                                        <View style={styles.pendingReviewLeft}>
+                                            <Text style={styles.pendingReviewName}>{item.client_name}</Text>
+                                            <Text style={styles.pendingReviewWeek}>
+                                                Week of {new Date((item.week_start ?? '').slice(0, 10) + 'T12:00:00')
+                                                    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.pendingReviewChevron}>›</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </>
+                        ) : (
+                            <View style={styles.checkInEmptyRow}>
+                                <Text style={styles.checkInEmptyText}>No check-ins awaiting review</Text>
+                            </View>
+                        )}
+
                         {/* ── Client Progress ── */}
                         <Text style={styles.sectionTitle}>Client Progress</Text>
                         {clientProgress.length === 0 ? (
@@ -177,16 +236,6 @@ const TrainerDashboardScreen = () => {
 
                         {/* ── Compliance ── */}
                         <Text style={styles.sectionTitle}>Compliance</Text>
-                        <View style={styles.card}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <Text style={styles.cardLabel}>Check-in Completion</Text>
-                                <Text style={styles.cardValue}>{compliance.session_completion_rate ?? 0}%</Text>
-                            </View>
-                            <ProgressBar pct={compliance.session_completion_rate} theme={theme} />
-                            <Text style={[styles.cardMeta, { marginTop: 6 }]}>
-                                {compliance.sessions_completed_this_week ?? 0} / {compliance.sessions_scheduled_this_week ?? 0} sessions this week
-                            </Text>
-                        </View>
                         <View style={styles.card}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                                 <Text style={styles.cardLabel}>Workout Completion</Text>
@@ -299,6 +348,7 @@ const makeStyles = (theme) => StyleSheet.create({
         color: theme.text,
         marginBottom: 12,
         marginTop: 20,
+        // When inside sectionTitleRow the margin is controlled by the row
     },
     // Overview
     overviewGrid: {
@@ -331,6 +381,111 @@ const makeStyles = (theme) => StyleSheet.create({
         marginTop: 4,
         textAlign: 'center',
     },
+    // Section title with badge
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 20,
+        marginBottom: 12,
+    },
+    pendingBadge: {
+        backgroundColor: '#f59e0b22',
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderWidth: 1,
+        borderColor: '#f59e0b55',
+    },
+    pendingBadgeText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#b45309',
+    },
+
+    // Check-in stats
+    checkInStatsRow: {
+        flexDirection: 'row',
+        backgroundColor: theme.card,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.border,
+        marginBottom: 12,
+        overflow: 'hidden',
+    },
+    checkInStat: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 14,
+    },
+    checkInStatBorder: {
+        borderLeftWidth: StyleSheet.hairlineWidth,
+        borderLeftColor: theme.border,
+    },
+    checkInStatValue: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: theme.statValue,
+    },
+    checkInStatLabel: {
+        fontSize: 11,
+        color: theme.textMuted,
+        marginTop: 3,
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+    },
+
+    // Pending review list
+    pendingReviewTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 8,
+    },
+    pendingReviewCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.card,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#f59e0b44',
+        borderLeftWidth: 3,
+        borderLeftColor: '#f59e0b',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginBottom: 8,
+    },
+    pendingReviewLeft: {
+        flex: 1,
+    },
+    pendingReviewName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: theme.text,
+        marginBottom: 2,
+    },
+    pendingReviewWeek: {
+        fontSize: 12,
+        color: theme.textMuted,
+    },
+    pendingReviewChevron: {
+        fontSize: 20,
+        color: theme.textMuted,
+        fontWeight: '300',
+    },
+    checkInEmptyRow: {
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+        marginBottom: 4,
+    },
+    checkInEmptyText: {
+        fontSize: 13,
+        color: theme.textMuted,
+        fontStyle: 'italic',
+    },
+
     // Quick actions
     quickActions: {
         flexDirection: 'row',
