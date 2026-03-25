@@ -98,7 +98,7 @@ const ClientDashboardScreen = () => {
     const [loggingWeight, setLoggingWeight] = useState(false);
 
     const [goalModal, setGoalModal] = useState(false);
-    const [goalForm, setGoalForm] = useState({ type: 'weight_loss', description: '', start_value: '', target_value: '', unit: 'lbs', deadline: '' });
+    const [goalForm, setGoalForm] = useState({ type: 'weight_loss', description: '', exercise: '', activity: 'run', start_value: '', target_value: '', unit: 'lbs', deadline: '' });
     const [savingGoal, setSavingGoal] = useState(false);
     const [showAllTypes, setShowAllTypes] = useState(false);
 
@@ -145,36 +145,62 @@ const ClientDashboardScreen = () => {
 
     const openGoalModal = () => {
         if (data?.goal) {
+            const g = data.goal;
+            const t = g.type;
             setGoalForm({
-                type: data.goal.type,
-                description: data.goal.description ?? '',
-                start_value: data.goal.start_value?.toString() ?? '',
-                target_value: data.goal.target_value?.toString() ?? '',
-                unit: data.goal.unit ?? 'lbs',
-                deadline: data.goal.deadline ?? '',
+                type: t,
+                description: (t === 'strength' || t === 'endurance') ? '' : (g.description ?? ''),
+                exercise:    t === 'strength'  ? (g.description ?? '') : '',
+                activity:    t === 'endurance' ? (g.description ?? 'run') : 'run',
+                start_value: g.start_value?.toString() ?? '',
+                target_value: g.target_value?.toString() ?? '',
+                unit: g.unit ?? (t === 'body_composition' ? '%' : t === 'endurance' ? 'min' : 'lbs'),
+                deadline: g.deadline ?? '',
             });
         } else {
-            setGoalForm({ type: 'weight_loss', description: '', start_value: '', target_value: '', unit: 'lbs', deadline: '' });
+            setGoalForm({ type: 'weight_loss', description: '', exercise: '', activity: 'run', start_value: '', target_value: '', unit: 'lbs', deadline: '' });
         }
         setShowAllTypes(false);
         setGoalModal(true);
     };
 
     const handleSaveGoal = async () => {
-        if (!goalForm.target_value) {
-            Alert.alert('Required', 'Enter a target value.');
-            return;
+        const type = goalForm.type;
+        if (type === 'custom') {
+            if (!goalForm.description?.trim()) {
+                Alert.alert('Required', 'Please enter a description for your custom goal.');
+                return;
+            }
+        } else if (type === 'strength') {
+            if (!goalForm.exercise?.trim()) {
+                Alert.alert('Required', 'Please enter an exercise name.');
+                return;
+            }
+            if (!goalForm.target_value) {
+                Alert.alert('Required', 'Enter a target max weight.');
+                return;
+            }
+        } else {
+            if (!goalForm.target_value) {
+                Alert.alert('Required', 'Enter a target value.');
+                return;
+            }
         }
+
+        let description = goalForm.description || null;
+        if (type === 'strength')  description = goalForm.exercise.trim() || null;
+        if (type === 'endurance') description = goalForm.activity || null;
+
         try {
             setSavingGoal(true);
             const payload = {
-                type: goalForm.type,
-                description: goalForm.description || null,
-                start_value: goalForm.start_value ? parseFloat(goalForm.start_value) : null,
-                current_value: goalForm.start_value ? parseFloat(goalForm.start_value) : null,
-                target_value: parseFloat(goalForm.target_value),
-                unit: goalForm.unit || null,
-                deadline: goalForm.deadline || null,
+                type,
+                description,
+                start_value:   goalForm.start_value  ? parseFloat(goalForm.start_value)  : null,
+                current_value: goalForm.start_value  ? parseFloat(goalForm.start_value)  : null,
+                target_value:  goalForm.target_value ? parseFloat(goalForm.target_value) : null,
+                unit:          goalForm.unit || null,
+                deadline:      goalForm.deadline || null,
             };
             if (data?.goal?.id) {
                 await updateClientGoal(data.goal.id, payload);
@@ -475,7 +501,13 @@ const ClientDashboardScreen = () => {
             {/* ── Set / Edit Goal Modal ───────────────────────────────────── */}
             <Modal visible={goalModal} animationType="slide" transparent onRequestClose={() => setGoalModal(false)}>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-                    <ScrollView contentContainerStyle={[styles.modalSheet, { backgroundColor: theme.card, paddingTop: 48 }]} keyboardShouldPersistTaps="handled">
+                    <ScrollView contentContainerStyle={[styles.modalSheet, { backgroundColor: theme.card }]} keyboardShouldPersistTaps="handled">
+
+                        {/* Drag handle + title */}
+                        <View style={styles.modalHandle} />
+                        <Text style={styles.modalTitle}>
+                            {data?.goal ? 'Edit Goal' : 'Set a Goal'}
+                        </Text>
 
                         {/* Type selector */}
                         <Text style={styles.modalLabel}>Goal Type</Text>
@@ -488,7 +520,10 @@ const ClientDashboardScreen = () => {
                                         { borderColor: theme.border, backgroundColor: theme.inputBackground },
                                         goalForm.type === g.key && { backgroundColor: theme.accent, borderColor: theme.accent },
                                     ]}
-                                    onPress={() => setGoalForm(prev => ({ ...prev, type: g.key, unit: g.unit }))}
+                                    onPress={() => {
+                                        const defaultUnit = { weight_loss: 'lbs', body_composition: '%', strength: 'lbs', endurance: 'min', custom: '' }[g.key] ?? '';
+                                        setGoalForm(prev => ({ ...prev, type: g.key, unit: defaultUnit, start_value: '', target_value: '', exercise: '', activity: 'run', description: '' }));
+                                    }}
                                 >
                                     <Text style={{ fontSize: 14, color: goalForm.type === g.key ? '#fff' : theme.text }}>
                                         {g.label}
@@ -505,62 +540,290 @@ const ClientDashboardScreen = () => {
                             </Pressable>
                         </View>
 
-                        <Text style={styles.modalLabel}>Description (optional)</Text>
-                        <TextInput
-                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-                            placeholder="e.g. Lose 20 lbs before summer"
-                            placeholderTextColor={theme.placeholder}
-                            value={goalForm.description}
-                            onChangeText={v => setGoalForm(p => ({ ...p, description: v }))}
-                        />
-
-                        <View style={{ flexDirection: 'row', gap: 10 }}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.modalLabel}>Starting Value</Text>
-                                <TextInput
-                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-                                    placeholder="e.g. 200"
-                                    placeholderTextColor={theme.placeholder}
-                                    keyboardType="decimal-pad"
-                                    value={goalForm.start_value}
-                                    onChangeText={v => setGoalForm(p => ({ ...p, start_value: v }))}
-                                />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.modalLabel}>Target Value *</Text>
-                                <TextInput
-                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-                                    placeholder="e.g. 180"
-                                    placeholderTextColor={theme.placeholder}
-                                    keyboardType="decimal-pad"
-                                    value={goalForm.target_value}
-                                    onChangeText={v => setGoalForm(p => ({ ...p, target_value: v }))}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={{ flexDirection: 'row', gap: 10 }}>
-                            <View style={{ flex: 1 }}>
+                        {/* ── WEIGHT LOSS ──────────────────────────────────── */}
+                        {goalForm.type === 'weight_loss' && (
+                            <>
                                 <Text style={styles.modalLabel}>Unit</Text>
+                                <View style={styles.unitToggle}>
+                                    {['lbs', 'kg'].map(u => (
+                                        <Pressable
+                                            key={u}
+                                            style={[styles.unitBtn, goalForm.unit === u && { backgroundColor: theme.accent }]}
+                                            onPress={() => setGoalForm(p => ({ ...p, unit: u }))}
+                                        >
+                                            <Text style={[styles.unitBtnText, { color: goalForm.unit === u ? '#fff' : theme.textSecondary }]}>{u}</Text>
+                                        </Pressable>
+                                    ))}
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Current Weight</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder={`e.g. 200 ${goalForm.unit}`}
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.start_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, start_value: v }))}
+                                        />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Target Weight *</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder={`e.g. 175 ${goalForm.unit}`}
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.target_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, target_value: v }))}
+                                        />
+                                    </View>
+                                </View>
+                                <Text style={styles.modalLabel}>Description (optional)</Text>
                                 <TextInput
                                     style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-                                    placeholder="lbs / kg / %"
+                                    placeholder="e.g. Lose 20 lbs before summer"
                                     placeholderTextColor={theme.placeholder}
-                                    value={goalForm.unit}
-                                    onChangeText={v => setGoalForm(p => ({ ...p, unit: v }))}
+                                    value={goalForm.description}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, description: v }))}
                                 />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.modalLabel}>Deadline (YYYY-MM-DD)</Text>
+                                <Text style={styles.modalLabel}>Deadline (optional)</Text>
                                 <TextInput
                                     style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
-                                    placeholder="2026-06-01"
+                                    placeholder="YYYY-MM-DD"
                                     placeholderTextColor={theme.placeholder}
                                     value={goalForm.deadline}
                                     onChangeText={v => setGoalForm(p => ({ ...p, deadline: v }))}
                                 />
-                            </View>
-                        </View>
+                            </>
+                        )}
+
+                        {/* ── BODY FAT % ───────────────────────────────────── */}
+                        {goalForm.type === 'body_composition' && (
+                            <>
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Current Body Fat %</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder="e.g. 25"
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.start_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, start_value: v }))}
+                                        />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Target Body Fat % *</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder="e.g. 18"
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.target_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, target_value: v }))}
+                                        />
+                                    </View>
+                                </View>
+                                <Text style={styles.modalLabel}>Description (optional)</Text>
+                                <TextInput
+                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                    placeholder="e.g. Get lean for summer"
+                                    placeholderTextColor={theme.placeholder}
+                                    value={goalForm.description}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, description: v }))}
+                                />
+                                <Text style={styles.modalLabel}>Deadline (optional)</Text>
+                                <TextInput
+                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                    placeholder="YYYY-MM-DD"
+                                    placeholderTextColor={theme.placeholder}
+                                    value={goalForm.deadline}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, deadline: v }))}
+                                />
+                            </>
+                        )}
+
+                        {/* ── STRENGTH ─────────────────────────────────────── */}
+                        {goalForm.type === 'strength' && (
+                            <>
+                                <Text style={styles.modalLabel}>Exercise / Lift *</Text>
+                                <TextInput
+                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                    placeholder="e.g. Bench Press, Squat, Deadlift"
+                                    placeholderTextColor={theme.placeholder}
+                                    value={goalForm.exercise}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, exercise: v }))}
+                                />
+                                <Text style={styles.modalLabel}>Unit</Text>
+                                <View style={styles.unitToggle}>
+                                    {['lbs', 'kg'].map(u => (
+                                        <Pressable
+                                            key={u}
+                                            style={[styles.unitBtn, goalForm.unit === u && { backgroundColor: theme.accent }]}
+                                            onPress={() => setGoalForm(p => ({ ...p, unit: u }))}
+                                        >
+                                            <Text style={[styles.unitBtnText, { color: goalForm.unit === u ? '#fff' : theme.textSecondary }]}>{u}</Text>
+                                        </Pressable>
+                                    ))}
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Current Max</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder={`e.g. 185 ${goalForm.unit}`}
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.start_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, start_value: v }))}
+                                        />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Target Max *</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder={`e.g. 225 ${goalForm.unit}`}
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.target_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, target_value: v }))}
+                                        />
+                                    </View>
+                                </View>
+                                <Text style={styles.modalLabel}>Deadline (optional)</Text>
+                                <TextInput
+                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                    placeholder="YYYY-MM-DD"
+                                    placeholderTextColor={theme.placeholder}
+                                    value={goalForm.deadline}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, deadline: v }))}
+                                />
+                            </>
+                        )}
+
+                        {/* ── ENDURANCE ────────────────────────────────────── */}
+                        {goalForm.type === 'endurance' && (
+                            <>
+                                <Text style={styles.modalLabel}>Activity</Text>
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+                                    {['Run', 'Cycle', 'Swim', 'Row', 'Other'].map(a => (
+                                        <Pressable
+                                            key={a}
+                                            style={[
+                                                styles.typeChip,
+                                                { borderColor: theme.border, backgroundColor: theme.inputBackground },
+                                                goalForm.activity === a.toLowerCase() && { backgroundColor: theme.accent, borderColor: theme.accent },
+                                            ]}
+                                            onPress={() => setGoalForm(p => ({ ...p, activity: a.toLowerCase() }))}
+                                        >
+                                            <Text style={{ fontSize: 14, color: goalForm.activity === a.toLowerCase() ? '#fff' : theme.text }}>
+                                                {a}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
+                                </View>
+                                <Text style={styles.modalLabel}>Measure</Text>
+                                <View style={styles.unitToggle}>
+                                    {['km', 'mi', 'min'].map(u => (
+                                        <Pressable
+                                            key={u}
+                                            style={[styles.unitBtn, goalForm.unit === u && { backgroundColor: theme.accent }]}
+                                            onPress={() => setGoalForm(p => ({ ...p, unit: u }))}
+                                        >
+                                            <Text style={[styles.unitBtnText, { color: goalForm.unit === u ? '#fff' : theme.textSecondary }]}>{u}</Text>
+                                        </Pressable>
+                                    ))}
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Current Benchmark</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder={goalForm.unit === 'min' ? 'e.g. 35' : 'e.g. 5'}
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.start_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, start_value: v }))}
+                                        />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Target Benchmark *</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder={goalForm.unit === 'min' ? 'e.g. 25' : 'e.g. 10'}
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.target_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, target_value: v }))}
+                                        />
+                                    </View>
+                                </View>
+                                <Text style={styles.modalLabel}>Deadline (optional)</Text>
+                                <TextInput
+                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                    placeholder="YYYY-MM-DD"
+                                    placeholderTextColor={theme.placeholder}
+                                    value={goalForm.deadline}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, deadline: v }))}
+                                />
+                            </>
+                        )}
+
+                        {/* ── CUSTOM ───────────────────────────────────────── */}
+                        {goalForm.type === 'custom' && (
+                            <>
+                                <Text style={styles.modalLabel}>Description *</Text>
+                                <TextInput
+                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text, minHeight: 80, textAlignVertical: 'top' }]}
+                                    placeholder="Describe your goal"
+                                    placeholderTextColor={theme.placeholder}
+                                    multiline
+                                    value={goalForm.description}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, description: v }))}
+                                />
+                                <View style={{ flexDirection: 'row', gap: 10 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Start Value (optional)</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder="e.g. 0"
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.start_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, start_value: v }))}
+                                        />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.modalLabel}>Target Value (optional)</Text>
+                                        <TextInput
+                                            style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                            placeholder="e.g. 10"
+                                            placeholderTextColor={theme.placeholder}
+                                            keyboardType="decimal-pad"
+                                            value={goalForm.target_value}
+                                            onChangeText={v => setGoalForm(p => ({ ...p, target_value: v }))}
+                                        />
+                                    </View>
+                                </View>
+                                <Text style={styles.modalLabel}>Unit (optional)</Text>
+                                <TextInput
+                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                    placeholder="e.g. sessions, miles, reps"
+                                    placeholderTextColor={theme.placeholder}
+                                    value={goalForm.unit}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, unit: v }))}
+                                />
+                                <Text style={styles.modalLabel}>Deadline (optional)</Text>
+                                <TextInput
+                                    style={[styles.modalInput, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder, color: theme.text }]}
+                                    placeholder="YYYY-MM-DD"
+                                    placeholderTextColor={theme.placeholder}
+                                    value={goalForm.deadline}
+                                    onChangeText={v => setGoalForm(p => ({ ...p, deadline: v }))}
+                                />
+                            </>
+                        )}
 
                         <View style={[styles.modalActions, { marginTop: 8 }]}>
                             <Pressable style={[styles.modalBtn, { borderColor: theme.border }]} onPress={() => setGoalModal(false)}>
@@ -677,6 +940,14 @@ const makeStyles = (theme) => StyleSheet.create({
         borderTopRightRadius: 24,
         padding: 24,
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    },
+    modalHandle: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: theme.border,
+        alignSelf: 'center',
+        marginBottom: 16,
     },
     modalTitle: { fontSize: 20, fontWeight: '800', color: theme.text, marginBottom: 16 },
     modalLabel: { fontSize: 13, fontWeight: '600', color: theme.textSecondary, marginTop: 12, marginBottom: 4 },

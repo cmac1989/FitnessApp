@@ -136,29 +136,31 @@ const CheckInsScreen = () => {
     return (
         <ScreenWrapper title="Check-ins">
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Check-ins</Text>
-                    <TouchableOpacity
-                        style={styles.newBtn}
-                        onPress={() => navigation.navigate('TrainerCheckInForm')}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.newBtnText}>+ New</Text>
-                    </TouchableOpacity>
-                </View>
-
                 {loading ? (
                     <View style={styles.centered}>
                         <ActivityIndicator size="large" color={theme.accent} />
                     </View>
                 ) : (
-                    <FlatList
-                        data={checkIns}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={renderItem}
-                        contentContainerStyle={[styles.listContent, checkIns.length === 0 && styles.listEmpty]}
-                        ListEmptyComponent={renderEmpty}
-                    />
+                    <>
+                        <View style={styles.header}>
+                            <Text style={styles.title}>Check-ins</Text>
+                            <TouchableOpacity
+                                style={styles.newBtn}
+                                onPress={() => navigation.navigate('TrainerCheckInForm')}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.newBtnText}>+ New</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <FlatList
+                            data={checkIns}
+                            keyExtractor={(item) => item.id.toString()}
+                            renderItem={renderItem}
+                            contentContainerStyle={[styles.listContent, checkIns.length === 0 && styles.listEmpty]}
+                            ListEmptyComponent={renderEmpty}
+                        />
+                    </>
                 )}
             </View>
         </ScreenWrapper>
