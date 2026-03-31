@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, SafeAreaView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { updateSession } from '../../src/api/trainingSession';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 const EditSessionScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { session } = route.params;
     const { theme } = useTheme();
+    const { showToast } = useToast();
 
     const [client, setClient] = useState(session.client);
     const [date, setDate] = useState(session.date);
@@ -27,11 +29,11 @@ const EditSessionScreen = () => {
                 workout,
             };
             await updateSession(session.id, updatedSession);
-            Alert.alert('Success', 'Session details updated.');
+            showToast('Session details updated.', 'success');
             navigation.goBack();
         } catch (error) {
             console.error('Could not update session', error);
-            Alert.alert('Error', 'Could not update session.');
+            showToast('Could not update session.', 'error');
         }
     };
 

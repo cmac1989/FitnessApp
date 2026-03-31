@@ -12,6 +12,7 @@ import {
 } from '../../src/api/message';
 import { getUser } from '../../src/services/authService';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ const MessagesScreen = () => {
     const client = route.params?.client;
     const { theme } = useTheme();
     const styles = makeStyles(theme);
+    const { showToast } = useToast();
     const flatListRef = useRef(null);
     const insets = useSafeAreaInsets();
 
@@ -181,7 +183,7 @@ const MessagesScreen = () => {
                                 m.id === messageId ? { ...m, is_deleted: true, content: null } : m
                             ));
                         } catch {
-                            Alert.alert('Error', 'Could not delete message.');
+                            showToast('Could not delete message.', 'error');
                         }
                     },
                 },

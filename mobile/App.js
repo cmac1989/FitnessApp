@@ -1,11 +1,15 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ThemeProvider, useTheme } from './src/theme';
+import { ToastProvider } from './src/context/ToastContext';
+import { UserProvider } from './src/context/UserContext';
 import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import TrainerStackNavigator from './navigation/TrainerStackNavigator';
 import ClientStackNavigator from './navigation/ClientStackNavigator';
 
@@ -32,9 +36,10 @@ const RootNavigator = () => {
                 },
             }}
         >
-            <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Sign In' }} />
-            <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Create Account' }} />
+            <Stack.Screen name="Home"           component={HomeScreen}           options={{ headerShown: false }} />
+            <Stack.Screen name="Login"          component={LoginScreen}          options={{ title: 'Sign In' }} />
+            <Stack.Screen name="Register"       component={RegisterScreen}       options={{ title: 'Create Account' }} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
 
             <Stack.Screen
                 name="TrainerHome"
@@ -52,11 +57,17 @@ const RootNavigator = () => {
 
 const App = () => {
     return (
-        <ThemeProvider>
-            <NavigationContainer>
-                <RootNavigator />
-            </NavigationContainer>
-        </ThemeProvider>
+        <SafeAreaProvider>
+            <ThemeProvider>
+                <UserProvider>
+                    <ToastProvider>
+                        <NavigationContainer>
+                            <RootNavigator />
+                        </NavigationContainer>
+                    </ToastProvider>
+                </UserProvider>
+            </ThemeProvider>
+        </SafeAreaProvider>
     );
 };
 

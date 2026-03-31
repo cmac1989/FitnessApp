@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CheckIn;
 use App\Models\ClientGoal;
 use App\Models\ClientMetric;
 use App\Models\ClientProfile;
@@ -177,6 +178,21 @@ class TrainerDashboardController extends Controller
             ? (int) round((($sessionsThisMonth - $sessionsLastMonth) / $sessionsLastMonth) * 100)
             : null;
 
+        // ── Check-ins ─────────────────────────────────────────────────────────
+        $currentWeekStart = now()->startOfWeek(Carbon::MONDAY)->toDateString();
+
+        // All check-ins submitted but not yet reviewed — action items for trainer
+        $pendingReviewCheckIns = CheckIn::with('client')
+            ->where('trainer_id', $trainerId)
+            ->whereNotNull('submitted_at')
+            ->whereNull('reviewed_at')
+            ->orderBy('submitted_at', 'asc')
+            ->get();
+
+        $assignedThisWeek  = CheckIn::where('trainer_id', $trainerId)->where('week_start', $currentWeekStart)->count();
+        $submittedThisWeek = CheckIn::where('trainer_id', $trainerId)->where('week_start', $currentWeekStart)->whereNotNull('submitted_at')->count();
+        $reviewedThisWeek  = CheckIn::where('trainer_id', $trainerId)->where('week_start', $currentWeekStart)->whereNotNull('reviewed_at')->count();
+
         // Retention: clients who had sessions last month who also have them this month
         $lastMonthClientIds = TrainingSession::where('trainer_id', $trainerId)
             ->whereBetween('scheduled_at', [$lastMonthStart, $lastMonthEnd])
@@ -193,6 +209,20 @@ class TrainerDashboardController extends Controller
 
         return response()->json([
             'trainer_name'    => $trainer->name,
+            'check_ins'       => [
+                'pending_review'       => $pendingReviewCheckIns->count(),
+                'assigned_this_week'   => $assignedThisWeek,
+                'submitted_this_week'  => $submittedThisWeek,
+                'reviewed_this_week'   => $reviewedThisWeek,
+                'pending_review_list'  => $pendingReviewCheckIns->map(fn ($c) => [
+                    'id'           => $c->id,
+                    'client_id'    => $c->client_id,
+                    'client_name'  => $c->client?->name ?? 'Unknown',
+                    'week_start'   => $c->week_start?->toDateString(),
+                    'submitted_at' => $c->submitted_at,
+                    'status'       => 'completed',
+                ])->values()->toArray(),
+            ],
             'overview'        => [
                 'total_clients'       => $totalClients,
                 'active_clients'      => $activeClientsCount,

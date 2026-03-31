@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import { useToast } from '../../src/context/ToastContext';
 
 const EditWorkoutScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
+    const { showToast } = useToast();
     const { workout } = route.params;
 
     const [name, setName] = useState(workout.name);
@@ -16,7 +18,7 @@ const EditWorkoutScreen = () => {
 
     const handleSave = () => {
         // Here you'd make your API call to update the workout
-        Alert.alert('Success', 'Workout details updated.');
+        showToast('Workout details updated.', 'success');
         navigation.goBack();
     };
 

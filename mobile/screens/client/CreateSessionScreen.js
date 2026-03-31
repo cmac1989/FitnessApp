@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation } from '@react-navigation/native';
 import ScreenWrapper from "../../components/ScreenWrapper";
+import { useToast } from '../../src/context/ToastContext';
 
 const CreateSessionScreen = () => {
     const navigation = useNavigation();
+    const { showToast } = useToast();
 
     const [sessionInfo, setSessionInfo] = useState({
         client: '',
@@ -16,14 +18,14 @@ const CreateSessionScreen = () => {
 
     const handleCreateSession = () => {
         if (!sessionInfo.client || !sessionInfo.date || !sessionInfo.time || !sessionInfo.location) {
-            Alert.alert('Missing Info', 'Please fill out all fields.');
+            showToast('Please fill out all fields.', 'info');
             return;
         }
 
         // You can replace this with a POST API call later
         console.log('New Session:', sessionInfo);
 
-        Alert.alert('Session Created', `Session with ${sessionInfo.client} scheduled!`);
+        showToast(`Session with ${sessionInfo.client} scheduled!`, 'success');
         navigation.goBack();
     };
 

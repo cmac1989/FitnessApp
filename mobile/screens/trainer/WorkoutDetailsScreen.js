@@ -1,48 +1,17 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, Alert, SafeAreaView, ScrollView,
-    ActivityIndicator, Modal, TouchableOpacity,
+    ActivityIndicator, Modal, TouchableOpacity, Image,
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import CustomButton from '../../components/CustomButton';
+import Icon from 'react-native-vector-icons/Ionicons';
+import WorkoutCalendar, { toYMD } from '../../components/WorkoutCalendar';
 import { deleteWorkout, getTrainerWorkout, batchAssignWorkout } from '../../src/api/workout';
 import { getClients } from '../../src/api/user';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
-// ── Date picker helpers ────────────────────────────────────────────────────────
-
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const toYMD = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-};
-
-const buildDays = (count = 21) => {
-    const days = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    for (let i = 0; i < count; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        days.push({
-            ymd:     toYMD(d),
-            dayName: DAY_NAMES[d.getDay()],
-            dayNum:  d.getDate(),
-            month:   MONTH_NAMES[d.getMonth()],
-            isToday: i === 0,
-        });
-    }
-    return days;
-};
-
-const DAYS = buildDays(21);
-
-// ── Avatar helpers ─────────────────────────────────────────────────────────────
+// ── Avatar helpers (for client list in modal) ──────────────────────────────────
 
 const AVATAR_COLORS = ['#6366f1', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
 
@@ -59,6 +28,16 @@ const getInitials = (name = '') => {
         : name.substring(0, 2).toUpperCase();
 };
 
+// ── Difficulty color ───────────────────────────────────────────────────────────
+
+const difficultyColor = (level = '') => {
+    const l = level.toLowerCase();
+    if (l.includes('easy')     || l.includes('beginner'))    return '#22c55e';
+    if (l.includes('moderate') || l.includes('intermediate')) return '#f59e0b';
+    if (l.includes('hard')     || l.includes('advanced'))    return '#ef4444';
+    return '#6366f1';
+};
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 const WorkoutDetailsScreen = () => {
@@ -67,6 +46,7 @@ const WorkoutDetailsScreen = () => {
     const { workout } = route.params;
     const { theme }  = useTheme();
     const styles     = makeStyles(theme);
+    const { showToast } = useToast();
 
     const [currentWorkout, setCurrentWorkout] = useState(workout);
     const [isLoading, setIsLoading]           = useState(false);
@@ -77,10 +57,18 @@ const WorkoutDetailsScreen = () => {
     const [loadingClients, setLoadingClients] = useState(false);
 
     // Step 1: multi-select clients; Step 2: pick date
-    const [step, setStep]                     = useState(1); // 1 | 2
-    const [selectedIds, setSelectedIds]       = useState(new Set());
-    const [selectedDate, setSelectedDate]     = useState(null);
-    const [assigning, setAssigning]           = useState(false);
+    const [step, setStep]                 = useState(1);
+    const [selectedIds, setSelectedIds]   = useState(new Set());
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [assigning, setAssigning]       = useState(false);
+
+    // Remove back button text on iOS; Android has no text by default
+    useEffect(() => {
+        navigation.setOptions({
+            headerBackTitle: '',
+            headerBackTitleVisible: false,
+        });
+    }, [navigation]);
 
     useFocusEffect(
         useCallback(() => {
@@ -109,10 +97,10 @@ const WorkoutDetailsScreen = () => {
                 onPress: async () => {
                     try {
                         await deleteWorkout(currentWorkout.id);
-                        Alert.alert('Deleted', 'Workout deleted successfully.');
+                        showToast('Workout deleted successfully.', 'success');
                         navigation.goBack();
                     } catch {
-                        Alert.alert('Error', 'Failed to delete workout. Please try again.');
+                        showToast('Failed to delete workout. Please try again.', 'error');
                     }
                 },
             },
@@ -129,7 +117,7 @@ const WorkoutDetailsScreen = () => {
             const data = await getClients();
             setClients(data || []);
         } catch {
-            Alert.alert('Error', 'Could not load clients.');
+            showToast('Could not load clients.', 'error');
             setAssignVisible(false);
         } finally {
             setLoadingClients(false);
@@ -163,10 +151,10 @@ const WorkoutDetailsScreen = () => {
             setAssigning(true);
             const res = await batchAssignWorkout(currentWorkout.id, [...selectedIds], selectedDate);
             closeAssignModal();
-            Alert.alert('Assigned', res.message);
+            showToast(res.message, 'success');
         } catch (err) {
             const msg = err.response?.data?.error ?? err.response?.data?.message ?? 'Failed to assign workout.';
-            Alert.alert('Error', msg);
+            showToast(msg, 'error');
         } finally {
             setAssigning(false);
         }
@@ -185,11 +173,14 @@ const WorkoutDetailsScreen = () => {
     if (!currentWorkout) {
         return (
             <SafeAreaView style={styles.safeArea}>
-                <Text style={styles.errorText}>No workout details available.</Text>
+                <View style={styles.centered}>
+                    <Text style={styles.errorText}>No workout details available.</Text>
+                </View>
             </SafeAreaView>
         );
     }
 
+    const diffColor  = difficultyColor(currentWorkout.difficulty ?? '');
     const allSelected = clients.length > 0 && selectedIds.size === clients.length;
 
     // ── Step 1: client multi-select ────────────────────────────────────────────
@@ -208,7 +199,7 @@ const WorkoutDetailsScreen = () => {
             </View>
 
             {loadingClients ? (
-                <ActivityIndicator color={theme.primary} style={{ marginTop: 30 }} />
+                <ActivityIndicator color={theme.accent} style={{ marginTop: 30 }} />
             ) : clients.length === 0 ? (
                 <Text style={styles.emptyText}>No linked clients yet.</Text>
             ) : (
@@ -228,17 +219,17 @@ const WorkoutDetailsScreen = () => {
                                     onPress={() => toggleClient(item.id)}
                                     activeOpacity={0.7}
                                 >
-                                    <View style={[styles.avatar, { backgroundColor: bg }]}>
-                                        <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+                                    <View style={[styles.clientAvatar, { backgroundColor: bg }]}>
+                                        <Text style={styles.clientAvatarText}>{getInitials(item.name)}</Text>
                                     </View>
                                     <View style={styles.clientInfo}>
-                                        <Text style={[styles.clientName, isSelected && styles.clientNameActive]}>
+                                        <Text style={[styles.clientName, isSelected && { color: theme.accent }]}>
                                             {item.name}
                                         </Text>
                                         <Text style={styles.clientEmail}>{item.email}</Text>
                                     </View>
                                     <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-                                        {isSelected && <Text style={styles.checkboxCheck}>✓</Text>}
+                                        {isSelected && <Icon name="checkmark" size={13} color="#fff" />}
                                     </View>
                                 </TouchableOpacity>
                             );
@@ -248,15 +239,16 @@ const WorkoutDetailsScreen = () => {
             )}
 
             <TouchableOpacity
-                style={[styles.nextBtn, selectedIds.size === 0 && styles.nextBtnDisabled]}
+                style={[styles.modalPrimaryBtn, selectedIds.size === 0 && styles.modalPrimaryBtnDisabled]}
                 onPress={() => setStep(2)}
                 disabled={selectedIds.size === 0}
                 activeOpacity={0.8}
             >
-                <Text style={styles.nextBtnText}>
+                <Icon name="arrow-forward" size={16} color="#fff" />
+                <Text style={styles.modalPrimaryBtnText}>
                     {selectedIds.size === 0
-                        ? 'Next: Pick Date'
-                        : `Next: Pick Date for ${selectedIds.size} ${selectedIds.size === 1 ? 'client' : 'clients'}`}
+                        ? 'Pick Date'
+                        : `Next — ${selectedIds.size} ${selectedIds.size === 1 ? 'client' : 'clients'} selected`}
                 </Text>
             </TouchableOpacity>
         </>
@@ -266,80 +258,198 @@ const WorkoutDetailsScreen = () => {
 
     const renderDatePicker = () => (
         <>
-            <TouchableOpacity onPress={() => setStep(1)} style={styles.backBtn}>
-                <Text style={styles.backBtnText}>← Back</Text>
+            <TouchableOpacity onPress={() => setStep(1)} style={styles.backBtn} activeOpacity={0.7}>
+                <Icon name="arrow-back" size={16} color={theme.accent} />
+                <Text style={styles.backBtnText}>Back to clients</Text>
             </TouchableOpacity>
 
             <Text style={styles.stepHint}>
-                Pick a date ({selectedIds.size} {selectedIds.size === 1 ? 'client' : 'clients'})
+                Pick a date · {selectedIds.size} {selectedIds.size === 1 ? 'client' : 'clients'}
             </Text>
 
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.dateScroll}
-            >
-                {DAYS.map((day) => {
-                    const isSelected = selectedDate === day.ymd;
-                    return (
-                        <TouchableOpacity
-                            key={day.ymd}
-                            style={[styles.dayChip, isSelected && styles.dayChipSelected]}
-                            onPress={() => setSelectedDate(isSelected ? null : day.ymd)}
-                            activeOpacity={0.75}
-                        >
-                            <Text style={[styles.dayName, isSelected && styles.dayTextSelected]}>
-                                {day.isToday ? 'Today' : day.dayName}
-                            </Text>
-                            <Text style={[styles.dayNum, isSelected && styles.dayTextSelected]}>
-                                {day.dayNum}
-                            </Text>
-                            <Text style={[styles.dayMonth, isSelected && styles.dayTextSelected]}>
-                                {day.month}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </ScrollView>
+            <WorkoutCalendar
+                selectedDate={selectedDate}
+                onSelectDate={(ymd) => setSelectedDate(prev => prev === ymd ? null : ymd)}
+                minDate={toYMD(new Date())}
+                theme={theme}
+                style={styles.assignCalendar}
+            />
 
             {!selectedDate && (
                 <Text style={styles.noDateHint}>
-                    No date selected — workout will be assigned without a schedule.
+                    No date — assign without a scheduled date
                 </Text>
             )}
 
             <TouchableOpacity
-                style={[styles.assignBtn, assigning && styles.assignBtnDisabled]}
+                style={[styles.modalPrimaryBtn, assigning && styles.modalPrimaryBtnDisabled]}
                 onPress={handleConfirmAssign}
                 disabled={assigning}
                 activeOpacity={0.8}
             >
                 {assigning ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                    <Text style={styles.assignBtnText}>
-                        {selectedDate ? `Assign for ${selectedDate}` : 'Assign Without Date'}
-                    </Text>
+                    <>
+                        <Icon name="checkmark-circle" size={16} color="#fff" />
+                        <Text style={styles.modalPrimaryBtnText}>
+                            {selectedDate ? `Assign · ${selectedDate}` : 'Assign Without Date'}
+                        </Text>
+                    </>
                 )}
             </TouchableOpacity>
         </>
     );
 
+    // ── Main render ────────────────────────────────────────────────────────────
+
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScrollView contentContainerStyle={styles.container}>
-                <Text style={styles.title}>{currentWorkout.title}</Text>
+            <ScrollView
+                contentContainerStyle={styles.scroll}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* ── Hero ──────────────────────────────────────────────────────
+                    Banner height = heroIcon.marginTop + heroIcon.height / 2
+                    = 40 + 80/2 = 80  →  banner bisects the icon vertically
+                ── */}
+                <View style={styles.hero}>
+                    <View style={[styles.heroBanner, { backgroundColor: theme.accent + '20' }]} />
 
-                <View style={styles.detailCard}>
-                    <DetailRow label="Description"  value={currentWorkout.description}  theme={theme} />
-                    <DetailRow label="Duration"      value={currentWorkout.duration ? `${currentWorkout.duration} min` : null} theme={theme} />
-                    <DetailRow label="Difficulty"    value={currentWorkout.difficulty}   theme={theme} />
-                    <DetailRow label="Workout List"  value={currentWorkout.workout_list} theme={theme} />
+                    <View style={[styles.heroIcon, { backgroundColor: theme.accent }]}>
+                        <Icon name="barbell-outline" size={36} color="#fff" />
+                    </View>
+
+                    <Text style={styles.heroTitle}>{currentWorkout.title}</Text>
+
+                    <View style={styles.heroTags}>
+                        {currentWorkout.difficulty && (
+                            <View style={[styles.tag, { backgroundColor: diffColor + '20', borderColor: diffColor + '50' }]}>
+                                <View style={[styles.tagDot, { backgroundColor: diffColor }]} />
+                                <Text style={[styles.tagText, { color: diffColor }]}>{currentWorkout.difficulty}</Text>
+                            </View>
+                        )}
+                        {currentWorkout.duration && (
+                            <View style={[styles.tag, { backgroundColor: theme.accent + '18', borderColor: theme.accent + '40' }]}>
+                                <Icon name="time-outline" size={12} color={theme.accent} />
+                                <Text style={[styles.tagText, { color: theme.accent }]}>{currentWorkout.duration} min</Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
 
-                <CustomButton title="Assign to Clients" onPress={openAssignModal} />
-                <CustomButton title="Edit Workout" onPress={() => navigation.navigate('EditWorkout', { workout: currentWorkout })} />
-                <CustomButton title="Delete Workout" onPress={handleDelete} color="#ff4d4d" />
+                {/* ── Description ── */}
+                {currentWorkout.description ? (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>Description</Text>
+                        <View style={styles.card}>
+                            <Text style={styles.bodyText}>{currentWorkout.description}</Text>
+                        </View>
+                    </View>
+                ) : null}
+
+                {/* ── Exercises (structured library exercises or legacy text) ── */}
+                {currentWorkout.workout_exercises?.length > 0 ? (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>Exercises ({currentWorkout.workout_exercises.length})</Text>
+                        {currentWorkout.workout_exercises.map((we, i) => {
+                            const ex = we.exercise ?? {};
+                            return (
+                                <View key={we.id ?? i} style={styles.exerciseCard}>
+                                    <View style={styles.exNumBadge}>
+                                        <Text style={styles.exNumText}>{i + 1}</Text>
+                                    </View>
+                                    {ex.gif_url ? (
+                                        <Image source={{ uri: ex.gif_url }} style={styles.exGif} resizeMode="cover" />
+                                    ) : null}
+                                    <View style={styles.exBody}>
+                                        <Text style={styles.exName} numberOfLines={2}>
+                                            {ex.name ? ex.name.charAt(0).toUpperCase() + ex.name.slice(1) : 'Exercise'}
+                                        </Text>
+                                        <Text style={styles.exMeta}>
+                                            {[we.sets && `${we.sets} sets`, we.reps && `${we.reps} reps`].filter(Boolean).join(' × ')}
+                                        </Text>
+                                        <View style={styles.exPills}>
+                                            {ex.body_part ? (
+                                                <View style={[styles.exPill, { backgroundColor: theme.accent + '20' }]}>
+                                                    <Text style={[styles.exPillText, { color: theme.accent }]}>{ex.body_part}</Text>
+                                                </View>
+                                            ) : null}
+                                            {ex.equipment ? (
+                                                <View style={[styles.exPill, { backgroundColor: theme.border }]}>
+                                                    <Text style={[styles.exPillText, { color: theme.textMuted }]}>{ex.equipment}</Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                ) : currentWorkout.workout_list ? (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>Exercises</Text>
+                        <View style={styles.card}>
+                            <Text style={styles.bodyText}>{currentWorkout.workout_list}</Text>
+                        </View>
+                    </View>
+                ) : null}
+
+                {/* ── Actions ── */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>Actions</Text>
+
+                    <TouchableOpacity
+                        style={[styles.actionBtn, { backgroundColor: theme.accent }]}
+                        onPress={openAssignModal}
+                        activeOpacity={0.82}
+                    >
+                        <View style={styles.actionBtnInner}>
+                            <View style={styles.actionIconWrap}>
+                                <Icon name="people-outline" size={20} color="#fff" />
+                            </View>
+                            <View style={styles.actionContent}>
+                                <Text style={styles.actionTitle}>Assign to Clients</Text>
+                                <Text style={styles.actionSub}>Schedule this workout for one or more clients</Text>
+                            </View>
+                            <Icon name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.actionBtn, styles.actionBtnOutline]}
+                        onPress={() => navigation.navigate('EditWorkout', { workout: currentWorkout })}
+                        activeOpacity={0.82}
+                    >
+                        <View style={styles.actionBtnInner}>
+                            <View style={[styles.actionIconWrap, { backgroundColor: theme.accent + '20' }]}>
+                                <Icon name="create-outline" size={20} color={theme.accent} />
+                            </View>
+                            <View style={styles.actionContent}>
+                                <Text style={[styles.actionTitle, { color: theme.text }]}>Edit Workout</Text>
+                                <Text style={styles.actionSub}>Update details and exercises</Text>
+                            </View>
+                            <Icon name="chevron-forward" size={18} color={theme.textMuted} />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.actionBtn, styles.actionBtnDanger]}
+                        onPress={handleDelete}
+                        activeOpacity={0.82}
+                    >
+                        <View style={styles.actionBtnInner}>
+                            <View style={[styles.actionIconWrap, { backgroundColor: '#ef444420' }]}>
+                                <Icon name="trash-outline" size={20} color="#ef4444" />
+                            </View>
+                            <View style={styles.actionContent}>
+                                <Text style={[styles.actionTitle, { color: '#ef4444' }]}>Delete Workout</Text>
+                                <Text style={styles.actionSub}>Permanently remove this workout</Text>
+                            </View>
+                            <Icon name="chevron-forward" size={18} color="#ef444480" />
+                        </View>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
 
             {/* ── Assign modal ── */}
@@ -351,11 +461,22 @@ const WorkoutDetailsScreen = () => {
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalSheet}>
+                        <View style={styles.modalHandle} />
+
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Assign Workout</Text>
-                            <TouchableOpacity onPress={closeAssignModal}>
-                                <Text style={styles.modalClose}>Cancel</Text>
+                            <View>
+                                <Text style={styles.modalTitle}>Assign Workout</Text>
+                                <Text style={styles.modalSubtitle}>{currentWorkout.title}</Text>
+                            </View>
+                            <TouchableOpacity onPress={closeAssignModal} style={styles.modalCloseBtn} activeOpacity={0.7}>
+                                <Icon name="close" size={18} color={theme.textMuted} />
                             </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.stepIndicator}>
+                            <View style={[styles.stepDot, step === 1 && styles.stepDotActive]} />
+                            <View style={[styles.stepLine, step === 2 && styles.stepLineActive]} />
+                            <View style={[styles.stepDot, step === 2 && styles.stepDotActive]} />
                         </View>
 
                         {step === 1 ? renderClientPicker() : renderDatePicker()}
@@ -366,125 +487,324 @@ const WorkoutDetailsScreen = () => {
     );
 };
 
-const DetailRow = ({ label, value, theme }) => {
-    const styles = makeStyles(theme);
-    return (
-        <View style={styles.row}>
-            <Text style={styles.label}>{label}</Text>
-            <Text style={styles.value}>{value ?? 'N/A'}</Text>
-        </View>
-    );
-};
+// ── Styles ─────────────────────────────────────────────────────────────────────
 
 const makeStyles = (theme) => StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: theme.background,
     },
-    container: {
-        flexGrow: 1,
-        padding: 20,
+    scroll: {
+        paddingBottom: 48,
         backgroundColor: theme.background,
     },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    title: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        color: theme.text,
-    },
-    detailCard: {
-        backgroundColor: theme.card,
-        padding: 20,
-        borderRadius: 12,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    row: { marginBottom: 16 },
-    label: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.textMuted,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    value: {
-        fontSize: 16,
-        color: theme.text,
-        marginTop: 4,
+        backgroundColor: theme.background,
     },
     errorText: {
-        fontSize: 17,
+        fontSize: 16,
         color: theme.error,
         textAlign: 'center',
-        margin: 20,
     },
-    // ── Modal ──
+
+    // ── Hero ──────────────────────────────────────────────────────────────────
+    // Layout:  heroBanner.height = heroIcon.marginTop + heroIcon.height / 2
+    //          = 40 + 80/2 = 80  →  banner ends at the icon's vertical midpoint
+    hero: {
+        alignItems: 'center',
+        paddingBottom: 28,
+        marginBottom: 8,
+    },
+    heroBanner: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 80,           // ends at midpoint of heroIcon (marginTop 40 + half of 80)
+    },
+    heroIcon: {
+        width: 80,
+        height: 80,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 40,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    heroTitle: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: theme.text,
+        textAlign: 'center',
+        paddingHorizontal: 24,
+        letterSpacing: 0.2,
+        marginBottom: 14,
+    },
+    heroTags: {
+        flexDirection: 'row',
+        gap: 8,
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+    },
+    tag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        borderWidth: 1,
+    },
+    tagDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    tagText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+
+    // ── Sections ──────────────────────────────────────────────────────────────
+    section: {
+        marginBottom: 20,
+        paddingHorizontal: 16,
+    },
+    sectionLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: 10,
+        paddingLeft: 4,
+    },
+    card: {
+        backgroundColor: theme.card,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.border,
+        padding: 16,
+    },
+    bodyText: {
+        fontSize: 15,
+        color: theme.text,
+        lineHeight: 22,
+    },
+
+    // ── Structured exercise cards ──────────────────────────────────────────────
+    exerciseCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.card,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.border,
+        padding: 12,
+        marginBottom: 8,
+        gap: 10,
+    },
+    exNumBadge: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: theme.accent + '20',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+    },
+    exNumText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.accent,
+    },
+    exGif: {
+        width: 60,
+        height: 60,
+        borderRadius: 10,
+        flexShrink: 0,
+    },
+    exBody: {
+        flex: 1,
+        gap: 3,
+    },
+    exName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: theme.text,
+    },
+    exMeta: {
+        fontSize: 12,
+        color: theme.textSecondary,
+        fontWeight: '600',
+    },
+    exPills: {
+        flexDirection: 'row',
+        gap: 6,
+        marginTop: 2,
+        flexWrap: 'wrap',
+    },
+    exPill: {
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    exPillText: {
+        fontSize: 10,
+        fontWeight: '600',
+    },
+
+    // ── Action buttons ────────────────────────────────────────────────────────
+    actionBtn: {
+        borderRadius: 14,
+        marginBottom: 10,
+    },
+    actionBtnOutline: {
+        backgroundColor: theme.card,
+        borderWidth: 1,
+        borderColor: theme.border,
+    },
+    actionBtnDanger: {
+        backgroundColor: theme.card,
+        borderWidth: 1,
+        borderColor: '#ef444428',
+    },
+    actionBtnInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        gap: 12,
+    },
+    actionIconWrap: {
+        width: 42,
+        height: 42,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+    },
+    actionContent: {
+        flex: 1,
+    },
+    actionTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 2,
+    },
+    actionSub: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.65)',
+    },
+
+    // ── Modal ─────────────────────────────────────────────────────────────────
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.45)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     modalSheet: {
         backgroundColor: theme.card,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingTop: 12,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingTop: 8,
         paddingHorizontal: 20,
-        maxHeight: '80%',
+        maxHeight: '92%',
         paddingBottom: 34,
+    },
+    modalHandle: {
+        width: 36,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: theme.border,
+        alignSelf: 'center',
+        marginBottom: 16,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingBottom: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border,
-        marginBottom: 12,
+        alignItems: 'flex-start',
+        marginBottom: 16,
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: '700',
+        fontSize: 20,
+        fontWeight: '800',
         color: theme.text,
     },
-    modalClose: {
-        fontSize: 15,
-        color: theme.primary,
-        fontWeight: '600',
+    modalSubtitle: {
+        fontSize: 13,
+        color: theme.textMuted,
+        marginTop: 2,
     },
+    modalCloseBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: theme.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    // Step indicator
+    stepIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    stepDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: theme.border,
+    },
+    stepDotActive: {
+        backgroundColor: theme.accent,
+    },
+    stepLine: {
+        flex: 1,
+        height: 2,
+        backgroundColor: theme.border,
+        marginHorizontal: 4,
+    },
+    stepLineActive: {
+        backgroundColor: theme.accent,
+    },
+
     stepHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 10,
+        marginBottom: 12,
     },
     stepHint: {
-        fontSize: 13,
-        fontWeight: '600',
+        fontSize: 12,
+        fontWeight: '700',
         color: theme.textMuted,
         textTransform: 'uppercase',
-        letterSpacing: 0.4,
+        letterSpacing: 0.5,
     },
     selectAllText: {
         fontSize: 13,
         fontWeight: '600',
-        color: theme.primary,
+        color: theme.accent,
     },
     backBtn: {
-        marginBottom: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 12,
     },
     backBtnText: {
         fontSize: 14,
-        color: theme.primary,
+        color: theme.accent,
         fontWeight: '600',
     },
     emptyText: {
@@ -494,41 +814,42 @@ const makeStyles = (theme) => StyleSheet.create({
         marginTop: 30,
         marginBottom: 20,
     },
-    // Client list
+
+    // Client list in modal
     clientScroll: {
         maxHeight: 280,
     },
     clientList: {
         backgroundColor: theme.background,
-        borderRadius: 12,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: theme.border,
         overflow: 'hidden',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     clientRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        gap: 10,
+        paddingVertical: 11,
+        paddingHorizontal: 14,
+        gap: 12,
     },
     clientRowBorder: {
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.border,
     },
     clientRowSelected: {
-        backgroundColor: theme.primary + '0e',
+        backgroundColor: theme.accent + '10',
     },
-    avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+    clientAvatar: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
     },
-    avatarText: {
+    clientAvatarText: {
         color: '#fff',
         fontWeight: '700',
         fontSize: 13,
@@ -540,9 +861,6 @@ const makeStyles = (theme) => StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: theme.text,
-    },
-    clientNameActive: {
-        color: theme.primary,
     },
     clientEmail: {
         fontSize: 12,
@@ -560,90 +878,42 @@ const makeStyles = (theme) => StyleSheet.create({
         flexShrink: 0,
     },
     checkboxSelected: {
-        backgroundColor: theme.primary,
-        borderColor: theme.primary,
+        backgroundColor: theme.accent,
+        borderColor: theme.accent,
     },
-    checkboxCheck: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: '700',
-    },
-    // Next button
-    nextBtn: {
-        backgroundColor: theme.primary,
-        borderRadius: 10,
-        paddingVertical: 13,
+
+    // Modal primary button
+    modalPrimaryBtn: {
+        backgroundColor: theme.accent,
+        borderRadius: 14,
+        paddingVertical: 15,
+        flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 4,
     },
-    nextBtnDisabled: {
+    modalPrimaryBtnDisabled: {
         opacity: 0.45,
     },
-    nextBtnText: {
+    modalPrimaryBtnText: {
         color: '#fff',
         fontSize: 15,
         fontWeight: '700',
     },
-    // Date picker
-    dateScroll: {
-        paddingVertical: 12,
-        paddingHorizontal: 4,
-        gap: 8,
-    },
-    dayChip: {
-        width: 60,
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignItems: 'center',
-        backgroundColor: theme.background,
-        borderWidth: 1,
-        borderColor: theme.border,
-    },
-    dayChipSelected: {
-        backgroundColor: theme.accent,
-        borderColor: theme.accent,
-    },
-    dayName: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: theme.textMuted,
-        marginBottom: 2,
-    },
-    dayNum: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: theme.text,
-    },
-    dayMonth: {
-        fontSize: 10,
-        color: theme.textMuted,
-        marginTop: 2,
-    },
-    dayTextSelected: {
-        color: '#fff',
+
+    // Calendar in modal
+    assignCalendar: {
+        marginTop: 8,
+        marginBottom: 4,
     },
     noDateHint: {
         fontSize: 12,
         color: theme.textMuted,
         textAlign: 'center',
         marginTop: 8,
+        marginBottom: 4,
         fontStyle: 'italic',
-    },
-    // Confirm assign button
-    assignBtn: {
-        backgroundColor: theme.accent,
-        borderRadius: 10,
-        paddingVertical: 14,
-        alignItems: 'center',
-        marginTop: 16,
-    },
-    assignBtnDisabled: {
-        opacity: 0.6,
-    },
-    assignBtnText: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '700',
     },
 });
 

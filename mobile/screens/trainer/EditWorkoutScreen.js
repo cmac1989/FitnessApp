@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    View, Text, StyleSheet, TextInput, ScrollView, Alert,
+    View, Text, StyleSheet, TextInput, ScrollView,
     KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -8,6 +8,7 @@ import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { updateWorkout } from '../../src/api/workout';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 const EditWorkoutScreen = () => {
     const navigation = useNavigation();
@@ -15,6 +16,7 @@ const EditWorkoutScreen = () => {
     const { workout } = route.params;
     const { theme } = useTheme();
     const styles = makeStyles(theme);
+    const { showToast } = useToast();
 
     const [title, setTitle]           = useState(workout.title || '');
     const [description, setDescription] = useState(workout.description || '');
@@ -34,10 +36,10 @@ const EditWorkoutScreen = () => {
                 difficulty,
                 duration: duration ? parseInt(duration, 10) : null,
             });
-            Alert.alert('Success', 'Workout updated successfully.');
+            showToast('Workout updated successfully.', 'success');
             navigation.goBack();
         } catch (error) {
-            Alert.alert('Error', 'Failed to update workout. Please try again.');
+            showToast('Failed to update workout. Please try again.', 'error');
         } finally {
             setSaving(false);
         }

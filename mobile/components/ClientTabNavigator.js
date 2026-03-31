@@ -135,6 +135,12 @@ const ClientTabNavigator = () => {
                     tabBarLabel: 'Home',
                     tabBarIcon: ({ color }) => <Icon name="home-outline" color={color} size={24} />,
                 }}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.navigate(route.name, { screen: 'ClientDashboard' });
+                    },
+                })}
             />
             <Tab.Screen
                 name="Sessions"
@@ -143,6 +149,12 @@ const ClientTabNavigator = () => {
                     tabBarLabel: 'Check-ins',
                     tabBarIcon: ({ color }) => <Icon name="clipboard-outline" color={color} size={24} />,
                 }}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.navigate(route.name, { screen: 'Sessions' });
+                    },
+                })}
             />
             <Tab.Screen
                 name="Workouts"
@@ -151,6 +163,12 @@ const ClientTabNavigator = () => {
                     tabBarLabel: 'Workouts',
                     tabBarIcon: ({ color }) => <Icon name="barbell-outline" color={color} size={24} />,
                 }}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.navigate(route.name, { screen: 'Workouts' });
+                    },
+                })}
             />
             <Tab.Screen
                 name="Profile"
@@ -158,6 +176,12 @@ const ClientTabNavigator = () => {
                 options={{
                     tabBarIcon: ({ color }) => <Icon name="person-outline" color={color} size={24} />,
                 }}
+                listeners={({ navigation, route }) => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.navigate(route.name, { screen: 'Profile' });
+                    },
+                })}
             />
         </Tab.Navigator>
     );

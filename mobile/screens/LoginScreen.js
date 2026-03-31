@@ -5,7 +5,7 @@ import { useTheme } from '../src/theme';
 
 const LoginScreen = ({ navigation }) => {
     const { theme } = useTheme();
-    const styles = makeStyles(theme);
+    const styles    = makeStyles(theme);
 
     return (
         <SafeAreaView style={styles.container}>

@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import Avatar from '../../components/Avatar';
 import { getClientConversations, markClientMessagesAsRead, getClientProfile } from '../../src/api/client';
 import { useTheme } from '../../src/theme';
 
@@ -12,21 +13,6 @@ import { useTheme } from '../../src/theme';
 const PREVIEW_LIMIT = 10;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-const AVATAR_COLORS = ['#6366f1', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
-
-const avatarColor = (name = '') => {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-};
-
-const getInitials = (name = '') => {
-    const parts = name.trim().split(' ');
-    return parts.length >= 2
-        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-        : name.substring(0, 2).toUpperCase();
-};
 
 const timeAgo = (dateString) => {
     if (!dateString) return '';
@@ -41,22 +27,6 @@ const timeAgo = (dateString) => {
     if (days < 7)  return new Date(dateString).toLocaleDateString('en-US', { weekday: 'short' });
     return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
-
-// ── Avatar ────────────────────────────────────────────────────────────────────
-
-const Avatar = ({ name, size = 46 }) => (
-    <View style={[
-        avatarStyles.circle,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: avatarColor(name) },
-    ]}>
-        <Text style={[avatarStyles.initials, { fontSize: size * 0.36 }]}>{getInitials(name)}</Text>
-    </View>
-);
-
-const avatarStyles = StyleSheet.create({
-    circle:   { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    initials: { color: '#fff', fontWeight: '700' },
-});
 
 // ── Conversation card ─────────────────────────────────────────────────────────
 
@@ -76,7 +46,7 @@ const ConvoCard = ({ item, onPress, theme, styles }) => {
         >
             {isUnread && <View style={styles.unreadBar} />}
 
-            <Avatar name={item.trainer.name} size={46} />
+            <Avatar name={item.trainer.name} photoUri={item.trainer.photoUri} size={46} />
 
             <View style={styles.cardBody}>
                 <View style={styles.cardTop}>
@@ -125,7 +95,11 @@ const MessagesListScreen = () => {
 
             setConversations(convData.map(item => ({
                 id:          item.user.id,
-                trainer:     { id: item.user.id, name: item.user.name },
+                trainer:     {
+                    id:       item.user.id,
+                    name:     item.user.name,
+                    photoUri: item.user.profile_picture ?? null,
+                },
                 lastMessage: item.last_message.content,
                 isDeleted:   item.last_message.is_deleted,
                 isMine:      item.last_message.is_mine,

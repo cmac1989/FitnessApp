@@ -5,9 +5,11 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import Avatar from '../../components/Avatar';
 import { getClientNotifications, markClientNotificationsAsRead } from '../../src/api/client';
 import { getPendingInvitations, acceptInvitation, declineInvitation } from '../../src/api/invitations';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -29,52 +31,36 @@ const TYPE_LABELS = {
     message_liked:       'Message Liked',
 };
 
-// ── Avatar helpers ─────────────────────────────────────────────────────────────
+// ── Avatar colour helpers ──────────────────────────────────────────────────────
 // Client receives notifications FROM the trainer.
-// Initials come from the trainer's name; colour is fixed per notification category.
+// Avatar falls back to type-based colour so each category stays visually distinct.
 
-/**
- * Type-based colour palette for client notifications.
- * Each category has a distinct, consistent colour regardless of trainer name.
- */
 const TYPE_COLORS = {
-    // Check-in family → emerald (health / progress)
     check_in_assigned:   '#10b981',
     check_in_reviewed:   '#10b981',
     check_in_submitted:  '#10b981',
-    // Workout family → amber (energy / activity)
     workout_assigned:    '#f59e0b',
     workout_liked:       '#f59e0b',
     workout_commented:   '#f59e0b',
     workout_completed:   '#f59e0b',
     comment_liked:       '#f59e0b',
-    // Invitation family → violet (relationship / onboarding)
     trainer_invite:      '#8b5cf6',
     invitation_sent:     '#8b5cf6',
     invitation_accepted: '#8b5cf6',
     invitation_declined: '#8b5cf6',
-    // Messaging family → blue (communication)
     message_liked:       '#3b82f6',
 };
-const DEFAULT_TYPE_COLOR = '#6366f1'; // indigo fallback
+const DEFAULT_TYPE_COLOR = '#6366f1';
 
 const getTypeColor = (type) => TYPE_COLORS[type] ?? DEFAULT_TYPE_COLOR;
 
-const getInitials = (name = '') => {
-    const parts = name.trim().split(' ');
-    return parts.length >= 2
-        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-        : name.substring(0, 2).toUpperCase();
-};
-
 /**
- * Returns the name to derive initials from.
+ * Returns the name to use for initials.
  * For the client, the sender is always the trainer.
  */
 const getTrainerSenderName = (item) => {
     const d = item.data || {};
     if (d.trainer_name) return d.trainer_name;
-    // No trainer name in payload — use a type-based short label for initials
     const t = item.type ?? '';
     if (t.startsWith('check_in')) return 'Check In';
     if (t.startsWith('workout'))  return 'Workout';
@@ -101,7 +87,7 @@ const timeAgo = (dateString) => {
 
 // ── Notification card ──────────────────────────────────────────────────────────
 
-const NotifCard = ({ item, bg, initials, onPress, theme, styles }) => {
+const NotifCard = ({ item, senderName, bg, onPress, theme, styles }) => {
     const isRead  = item.read_at !== null;
     const title   = item.data?.title ?? TYPE_LABELS[item.type] ?? item.type ?? 'Notification';
     const preview = item.data?.message ?? item.data?.body ?? null;
@@ -114,9 +100,12 @@ const NotifCard = ({ item, bg, initials, onPress, theme, styles }) => {
         >
             {!isRead && <View style={styles.unreadBar} />}
 
-            <View style={[styles.avatar, { backgroundColor: bg }]}>
-                <Text style={styles.avatarText}>{initials}</Text>
-            </View>
+            <Avatar
+                name={senderName}
+                photoUri={item.data?.sender_photo ?? null}
+                backgroundColor={bg}
+                size={46}
+            />
 
             <View style={styles.cardBody}>
                 <View style={styles.cardTop}>
@@ -141,9 +130,12 @@ const NotifCard = ({ item, bg, initials, onPress, theme, styles }) => {
 const InviteCard = ({ invite, onAccept, onDecline, theme, styles }) => (
     <View style={styles.inviteCard}>
         <View style={styles.inviteCardLeft}>
-            <View style={[styles.avatar, { backgroundColor: getTypeColor('trainer_invite') }]}>
-                <Text style={styles.avatarText}>{getInitials(invite.trainer_name ?? 'Trainer')}</Text>
-            </View>
+            <Avatar
+                name={invite.trainer_name ?? 'Trainer'}
+                photoUri={invite.trainer_photo ?? null}
+                backgroundColor={getTypeColor('trainer_invite')}
+                size={46}
+            />
             <View style={styles.inviteBody}>
                 <Text style={styles.inviteTitle}>Trainer Invitation</Text>
                 <Text style={styles.inviteText} numberOfLines={2}>
@@ -170,6 +162,7 @@ const NotificationsScreen = () => {
     const navigation = useNavigation();
     const { theme }  = useTheme();
     const styles     = makeStyles(theme);
+    const { showToast } = useToast();
 
     const [notifications, setNotifications] = useState([]);
     const [invitations, setInvitations]     = useState([]);
@@ -212,10 +205,10 @@ const NotificationsScreen = () => {
                     onPress: async () => {
                         try {
                             const res = await acceptInvitation(invite.token);
-                            Alert.alert('Linked!', res.message);
+                            showToast(res.message, 'success');
                             setInvitations(prev => prev.filter(i => i.id !== invite.id));
                         } catch (err) {
-                            Alert.alert('Error', err.response?.data?.error ?? 'Could not accept invitation.');
+                            showToast(err.response?.data?.error ?? 'Could not accept invitation.', 'error');
                         }
                     },
                 },
@@ -237,7 +230,7 @@ const NotificationsScreen = () => {
                             await declineInvitation(invite.token);
                             setInvitations(prev => prev.filter(i => i.id !== invite.id));
                         } catch {
-                            Alert.alert('Error', 'Could not decline invitation.');
+                            showToast('Could not decline invitation.', 'error');
                         }
                     },
                 },
@@ -261,8 +254,8 @@ const NotificationsScreen = () => {
     const renderItem = ({ item }) => (
         <NotifCard
             item={item}
+            senderName={getTrainerSenderName(item)}
             bg={getTypeColor(item.type)}
-            initials={getInitials(getTrainerSenderName(item))}
             theme={theme}
             styles={styles}
             onPress={() => navigation.navigate('NotificationDetail', { notification: item, role: 'client' })}
@@ -428,19 +421,6 @@ const makeStyles = (theme) => StyleSheet.create({
         backgroundColor: theme.accent,
         borderTopLeftRadius: 14,
         borderBottomLeftRadius: 14,
-    },
-    avatar: {
-        width: 46,
-        height: 46,
-        borderRadius: 23,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-    },
-    avatarText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 16,
     },
     cardBody: {
         flex: 1,

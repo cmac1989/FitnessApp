@@ -31,6 +31,11 @@ class Workout extends Model
         return $this->hasMany(Exercise::class);
     }
 
+    public function workoutExercises()
+    {
+        return $this->hasMany(WorkoutExercise::class)->orderBy('order_index');
+    }
+
     public function progressLogs()
     {
         return $this->hasMany(ProgressLog::class);

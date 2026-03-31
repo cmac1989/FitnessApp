@@ -9,6 +9,9 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/doctrine/dbal" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/doctrine/deprecations" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/psr/cache" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/http-client" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/http-client-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/mailgun-mailer" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

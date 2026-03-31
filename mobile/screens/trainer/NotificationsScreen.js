@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import Avatar from '../../components/Avatar';
 import { getUserNotifications, markNotificationsAsRead } from '../../src/api/notification';
 import { useTheme } from '../../src/theme';
 
@@ -28,30 +29,12 @@ const TYPE_LABELS = {
     message_liked:       'Message Liked',
 };
 
-// ── Avatar helpers ─────────────────────────────────────────────────────────────
+// ── Sender helpers ─────────────────────────────────────────────────────────────
 // Trainer receives notifications FROM clients — avatar always reflects the client.
-
-const AVATAR_COLORS = ['#6366f1', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
-
-const hashColor = (str = '') => {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
-    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-};
-
-const getInitials = (name = '') => {
-    const parts = name.trim().split(' ');
-    return parts.length >= 2
-        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-        : name.substring(0, 2).toUpperCase();
-};
 
 /**
  * All trainer-side notifications originate from a client.
  * Priority: explicit client_name field → name extracted from the message string.
- * Message format is always "{Client Name} verb..." or "{Client Name}: ...",
- * so we can reliably parse the name even for older stored notifications that
- * predate the client_name field.
  */
 const extractNameFromMessage = (msg = '') => {
     if (!msg) return null;
@@ -85,7 +68,7 @@ const timeAgo = (dateString) => {
 
 // ── Notification card ──────────────────────────────────────────────────────────
 
-const NotifCard = ({ item, bg, initials, onPress, theme, styles }) => {
+const NotifCard = ({ item, senderName, onPress, theme, styles }) => {
     const isRead  = item.read_at !== null;
     const title   = item.data?.title ?? TYPE_LABELS[item.type] ?? item.type ?? 'Notification';
     const preview = item.data?.message ?? item.data?.body ?? null;
@@ -98,9 +81,7 @@ const NotifCard = ({ item, bg, initials, onPress, theme, styles }) => {
         >
             {!isRead && <View style={styles.unreadBar} />}
 
-            <View style={[styles.avatar, { backgroundColor: bg }]}>
-                <Text style={styles.avatarText}>{initials}</Text>
-            </View>
+            <Avatar name={senderName} photoUri={item.data?.sender_photo ?? null} size={46} />
 
             <View style={styles.cardBody}>
                 <View style={styles.cardTop}>
@@ -169,8 +150,7 @@ const NotificationsScreen = () => {
         return (
             <NotifCard
                 item={item}
-                bg={hashColor(senderName)}
-                initials={getInitials(senderName)}
+                senderName={senderName}
                 theme={theme}
                 styles={styles}
                 onPress={() => navigation.navigate('NotificationDetail', { notification: item, role: 'trainer' })}
@@ -305,19 +285,6 @@ const makeStyles = (theme) => StyleSheet.create({
         backgroundColor: theme.accent,
         borderTopLeftRadius: 14,
         borderBottomLeftRadius: 14,
-    },
-    avatar: {
-        width: 46,
-        height: 46,
-        borderRadius: 23,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-    },
-    avatarText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 16,
     },
     cardBody: {
         flex: 1,

@@ -10,7 +10,7 @@ const RegisterScreen = ({ navigation }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <StatusBar
                 barStyle={theme.dark ? 'light-content' : 'dark-content'}
-                backgroundColor={theme.navBar}
+                backgroundColor={theme.background}
             />
             <RegisterForm navigation={navigation} />
         </SafeAreaView>
@@ -18,9 +18,7 @@ const RegisterScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
 });
 
 export default RegisterScreen;

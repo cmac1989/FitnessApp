@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { userLogout } from '../../src/api/auth';
 import { getClientProfile, updateClientProfile } from '../../src/api/client';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 const ProfileSettingsScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
     const styles = makeStyles(theme);
+    const { showToast } = useToast();
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -53,11 +55,11 @@ const ProfileSettingsScreen = () => {
                 fitness_goals:      profile.fitness_goals,
                 medical_conditions: profile.medical_conditions,
             });
-            Alert.alert('Profile Updated', 'Your changes have been saved.');
+            showToast('Your changes have been saved.', 'success');
             navigation.goBack();
         } catch (err) {
             console.error('Cannot update profile:', err);
-            Alert.alert('Error', 'Could not update profile. Please try again.');
+            showToast('Could not update profile. Please try again.', 'error');
         } finally {
             setLoading(false);
         }
@@ -69,7 +71,7 @@ const ProfileSettingsScreen = () => {
             navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
         } catch (err) {
             console.error('Error logging out:', err);
-            Alert.alert('Error', 'Something went wrong logging out.');
+            showToast('Something went wrong logging out.', 'error');
         }
     };
 

@@ -33,6 +33,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FitnessTrainer needs access to your photo library to update your profile picture.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>FitnessTrainer needs camera access to take a profile photo.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

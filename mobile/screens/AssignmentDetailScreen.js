@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-    ActivityIndicator, Alert,
+    ActivityIndicator, Alert, Image,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import ScreenWrapper from '../components/ScreenWrapper';
@@ -10,6 +10,7 @@ import {
     deleteComment, toggleCommentLike,
 } from '../src/api/assignment';
 import { useTheme } from '../src/theme';
+import { useToast } from '../src/context/ToastContext';
 
 const formatDate = (iso) => {
     if (!iso) return null;
@@ -28,6 +29,7 @@ const AssignmentDetailScreen = () => {
     const route = useRoute();
     const { assignment: initialAssignment, role, scrollToComments } = route.params;
     const { theme } = useTheme();
+    const { showToast } = useToast();
     const styles = makeStyles(theme);
 
     const [assignment, setAssignment]   = useState(initialAssignment);
@@ -106,7 +108,7 @@ const AssignmentDetailScreen = () => {
             const res = await toggleComplete(assignment.id);
             setCompletedAt(res.completed_at);
         } catch {
-            Alert.alert('Error', 'Could not update completion status.');
+            showToast('Could not update completion status.', 'error');
         } finally {
             setCompleting(false);
         }
@@ -123,7 +125,7 @@ const AssignmentDetailScreen = () => {
             setShowCommentInput(false);
             setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
         } catch {
-            Alert.alert('Error', 'Could not post comment.');
+            showToast('Could not post comment.', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -143,7 +145,7 @@ const AssignmentDetailScreen = () => {
                             await deleteComment(role, assignment.id, commentId);
                             setComments((prev) => prev.filter((c) => c.id !== commentId));
                         } catch {
-                            Alert.alert('Error', 'Could not delete comment.');
+                            showToast('Could not delete comment.', 'error');
                         }
                     },
                 },
@@ -244,12 +246,55 @@ const AssignmentDetailScreen = () => {
                                 <Text style={styles.fieldValue}>{workout.description}</Text>
                             </View>
                         )}
-                        {workout.workout_list && (
+                        {/* Structured exercises (library) or legacy text */}
+                        {workout.workout_exercises?.length > 0 ? (
+                            <View style={styles.fieldRow}>
+                                <Text style={styles.fieldLabel}>Exercises ({workout.workout_exercises.length})</Text>
+                                <View style={styles.exerciseList}>
+                                    {workout.workout_exercises.map((we, i) => {
+                                        const ex = we.exercise ?? {};
+                                        return (
+                                            <View key={we.id ?? i} style={[styles.exerciseCard, i < workout.workout_exercises.length - 1 && styles.exerciseCardBorder]}>
+                                                {ex.gif_url ? (
+                                                    <Image source={{ uri: ex.gif_url }} style={styles.exGif} resizeMode="cover" />
+                                                ) : (
+                                                    <View style={[styles.exGif, styles.exGifPlaceholder]}>
+                                                        <Text style={{ fontSize: 20 }}>🏋️</Text>
+                                                    </View>
+                                                )}
+                                                <View style={styles.exBody}>
+                                                    <Text style={styles.exName} numberOfLines={2}>
+                                                        {ex.name ? ex.name.charAt(0).toUpperCase() + ex.name.slice(1) : 'Exercise'}
+                                                    </Text>
+                                                    {(we.sets || we.reps) ? (
+                                                        <Text style={styles.exSetsReps}>
+                                                            {[we.sets && `${we.sets} sets`, we.reps && `${we.reps} reps`].filter(Boolean).join(' × ')}
+                                                        </Text>
+                                                    ) : null}
+                                                    <View style={styles.exPills}>
+                                                        {ex.body_part ? (
+                                                            <View style={styles.exPill}>
+                                                                <Text style={styles.exPillText}>{ex.body_part}</Text>
+                                                            </View>
+                                                        ) : null}
+                                                        {ex.equipment ? (
+                                                            <View style={[styles.exPill, styles.exPillGray]}>
+                                                                <Text style={[styles.exPillText, { color: '#666' }]}>{ex.equipment}</Text>
+                                                            </View>
+                                                        ) : null}
+                                                    </View>
+                                                </View>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        ) : workout.workout_list ? (
                             <View style={styles.fieldRow}>
                                 <Text style={styles.fieldLabel}>Exercises</Text>
                                 <Text style={styles.fieldValue}>{workout.workout_list}</Text>
                             </View>
-                        )}
+                        ) : null}
 
                         {/* Client name for trainer view */}
                         {role === 'trainer' && assignment.client?.name && (
@@ -460,6 +505,72 @@ const makeStyles = (theme) => StyleSheet.create({
         color: theme.text,
         lineHeight: 22,
     },
+    // ── Exercise cards ──
+    exerciseList: {
+        marginTop: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        overflow: 'hidden',
+    },
+    exerciseCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        gap: 12,
+        backgroundColor: '#fafafa',
+    },
+    exerciseCardBorder: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#e5e7eb',
+    },
+    exGif: {
+        width: 72,
+        height: 72,
+        borderRadius: 8,
+        flexShrink: 0,
+    },
+    exGifPlaceholder: {
+        backgroundColor: '#f3f4f6',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    exBody: {
+        flex: 1,
+        gap: 3,
+    },
+    exName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#111',
+        lineHeight: 18,
+    },
+    exSetsReps: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6366f1',
+    },
+    exPills: {
+        flexDirection: 'row',
+        gap: 6,
+        flexWrap: 'wrap',
+        marginTop: 2,
+    },
+    exPill: {
+        backgroundColor: '#ede9fe',
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    exPillGray: {
+        backgroundColor: '#f3f4f6',
+    },
+    exPillText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#6366f1',
+    },
+
     // ── Actions ──
     actionsRow: {
         flexDirection: 'row',

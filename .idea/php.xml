@@ -132,6 +132,9 @@
       <path value="$PROJECT_DIR$/backend/vendor/psr/cache" />
       <path value="$PROJECT_DIR$/backend/vendor/doctrine/deprecations" />
       <path value="$PROJECT_DIR$/backend/vendor/doctrine/dbal" />
+      <path value="$PROJECT_DIR$/backend/vendor/symfony/http-client" />
+      <path value="$PROJECT_DIR$/backend/vendor/symfony/mailgun-mailer" />
+      <path value="$PROJECT_DIR$/backend/vendor/symfony/http-client-contracts" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.2" />

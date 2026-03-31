@@ -2,13 +2,14 @@ import React, { useCallback, useState } from 'react';
 import {
     View, Text, ScrollView, ActivityIndicator, StyleSheet,
     Pressable, Modal, TextInput, KeyboardAvoidingView,
-    Platform, Alert,
+    Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
 import { getClientDashboard, logClientMetric, setClientGoal, updateClientGoal } from '../../src/api/client';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 const Sparkline = ({ data, color }) => {
@@ -85,6 +86,7 @@ const goalConfig = (type) => GOAL_TYPES.find(g => g.key === type) ?? GOAL_TYPES[
 const ClientDashboardScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
+    const { showToast } = useToast();
 
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -126,7 +128,7 @@ const ClientDashboardScreen = () => {
     const handleLogWeight = async () => {
         const val = parseFloat(logWeight);
         if (!logWeight || isNaN(val) || val <= 0) {
-            Alert.alert('Invalid', 'Enter a valid weight.');
+            showToast('Enter a valid weight.', 'info');
             return;
         }
         try {
@@ -137,7 +139,7 @@ const ClientDashboardScreen = () => {
             setLogWeightNotes('');
             fetchDashboard({ value: false });
         } catch {
-            Alert.alert('Error', 'Could not log weight. Please try again.');
+            showToast('Could not log weight. Please try again.', 'error');
         } finally {
             setLoggingWeight(false);
         }
@@ -168,21 +170,21 @@ const ClientDashboardScreen = () => {
         const type = goalForm.type;
         if (type === 'custom') {
             if (!goalForm.description?.trim()) {
-                Alert.alert('Required', 'Please enter a description for your custom goal.');
+                showToast('Please enter a description for your custom goal.', 'info');
                 return;
             }
         } else if (type === 'strength') {
             if (!goalForm.exercise?.trim()) {
-                Alert.alert('Required', 'Please enter an exercise name.');
+                showToast('Please enter an exercise name.', 'info');
                 return;
             }
             if (!goalForm.target_value) {
-                Alert.alert('Required', 'Enter a target max weight.');
+                showToast('Enter a target max weight.', 'info');
                 return;
             }
         } else {
             if (!goalForm.target_value) {
-                Alert.alert('Required', 'Enter a target value.');
+                showToast('Enter a target value.', 'info');
                 return;
             }
         }
@@ -210,7 +212,7 @@ const ClientDashboardScreen = () => {
             setGoalModal(false);
             fetchDashboard({ value: false });
         } catch {
-            Alert.alert('Error', 'Could not save goal. Please try again.');
+            showToast('Could not save goal. Please try again.', 'error');
         } finally {
             setSavingGoal(false);
         }

@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     View, Text, TextInput, ScrollView, StyleSheet,
-    TouchableOpacity, Animated, Easing, Alert,
+    TouchableOpacity, Animated, Easing,
     KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { generateWorkout, createWorkout } from '../../src/api/workout';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ const AIWorkoutScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
     const styles = makeStyles(theme);
+    const { showToast } = useToast();
 
     // 'prompt' | 'loading' | 'result' | 'edit'
     const [phase, setPhase] = useState('prompt');
@@ -101,7 +103,7 @@ const AIWorkoutScreen = () => {
 
     const handleGenerate = async () => {
         if (!prompt.trim()) {
-            Alert.alert('Describe your workout', 'Enter a prompt to get started.');
+            showToast('Enter a prompt to get started.', 'info');
             return;
         }
         fadeTransition(() => setPhase('loading'));
@@ -118,7 +120,7 @@ const AIWorkoutScreen = () => {
         } catch (err) {
             fadeTransition(() => setPhase('prompt'));
             const msg = err?.response?.data?.error ?? 'Could not generate workout. Please try again.';
-            Alert.alert('Generation Failed', msg);
+            showToast(msg, 'error');
         }
     };
 
@@ -135,7 +137,7 @@ const AIWorkoutScreen = () => {
             });
             navigation.navigate('Workouts');
         } catch {
-            Alert.alert('Error', 'Could not save workout. Please try again.');
+            showToast('Could not save workout. Please try again.', 'error');
         } finally {
             setSaving(false);
         }
@@ -154,7 +156,7 @@ const AIWorkoutScreen = () => {
             });
             navigation.navigate('Workouts');
         } catch {
-            Alert.alert('Error', 'Could not save workout. Please try again.');
+            showToast('Could not save workout. Please try again.', 'error');
         } finally {
             setSaving(false);
         }

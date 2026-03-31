@@ -1,16 +1,17 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import CustomButton from './CustomButton';
 import TextButton from './TextButton';
 import { validateLoginForm, validateField } from '../src/utils/validation';
 import { userLogin } from '../src/api/auth';
 import { useFocusEffect } from '@react-navigation/native';
 import { saveToken } from '../src/services/authService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/theme';
+import { useUser } from '../src/context/UserContext';
 
 const LoginForm = ({ navigation }) => {
     const { theme } = useTheme();
+    const { setUser } = useUser();
 
     const [userInfo, setUserInfo] = useState({ email: '', password: '' });
     const [errors, setErrors] = useState({});
@@ -48,7 +49,7 @@ const LoginForm = ({ navigation }) => {
                 bio: response.user.bio,
             };
 
-            await AsyncStorage.setItem('user', JSON.stringify(userData));
+            await setUser(userData);
 
             if (response.user.role === 'trainer') {
                 navigation.navigate('TrainerHome');
@@ -109,6 +110,14 @@ const LoginForm = ({ navigation }) => {
 
             {errors.general ? <Text style={styles.errorText}>{errors.general}</Text> : null}
 
+            <TouchableOpacity
+                style={styles.forgotBtn}
+                onPress={() => navigation.navigate('ForgotPassword')}
+                activeOpacity={0.7}
+            >
+                <Text style={[styles.forgotText, { color: theme.primary }]}>Forgot password?</Text>
+            </TouchableOpacity>
+
             <CustomButton title="Login" onPress={handleLogin} />
 
             <View style={styles.registerContainer}>
@@ -151,6 +160,15 @@ const makeStyles = (theme) => StyleSheet.create({
     },
     errorSpacer: {
         height: 18,
+    },
+    forgotBtn: {
+        alignSelf: 'flex-end',
+        marginBottom: 6,
+        paddingVertical: 2,
+    },
+    forgotText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     registerContainer: {
         flexDirection: 'row',

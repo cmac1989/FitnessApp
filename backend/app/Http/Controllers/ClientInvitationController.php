@@ -136,11 +136,12 @@ class ClientInvitationController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(fn ($i) => [
-                'id'            => $i->id,
-                'token'         => $i->token,
-                'trainer_name'  => $i->trainer->name,
-                'trainer_email' => $i->trainer->email,
-                'expires_at'    => $i->expires_at->toDateString(),
+                'id'             => $i->id,
+                'token'          => $i->token,
+                'trainer_name'   => $i->trainer->name,
+                'trainer_email'  => $i->trainer->email,
+                'trainer_photo'  => $i->trainer->profile_picture,
+                'expires_at'     => $i->expires_at->toDateString(),
             ]);
 
         return response()->json($invitations);

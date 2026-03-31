@@ -11,16 +11,22 @@ use App\Http\Controllers\TrainerProfileController;
 use App\Http\Controllers\TrainingSessionController;
 use App\Http\Controllers\TrainerDashboardController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\WorkoutController;
 use App\Http\Controllers\AIWorkoutController;
 use App\Http\Controllers\CheckInController;
+use App\Http\Controllers\ExerciseLibraryController;
+use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\WorkoutAssignmentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\Log;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/password/forgot', [PasswordResetController::class, 'sendCode']);
+Route::post('/password/reset', [PasswordResetController::class, 'resetPassword']);
 Route::get('/test', function () {
     return response()->json(['message' => 'API is working']);
 });
@@ -28,6 +34,7 @@ Route::get('/test', function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [UserController::class, 'getUserProfile']);
+    Route::post('/user/avatar', [AvatarController::class, 'upload']);
 
     Route::prefix('client')->group(function () {
         Route::get('/dashboard', [ClientDashboardController::class, 'getDashboard']);
@@ -139,5 +146,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/check-ins/batch', [CheckInController::class, 'batchStore']);
         Route::get('/check-ins/{id}', [CheckInController::class, 'trainerShow']);
         Route::patch('/check-ins/{id}/review', [CheckInController::class, 'review']);
+
+        // Exercise Library (proxies ExerciseDB API, caches results)
+        Route::get('/exercise-library/body-parts', [ExerciseLibraryController::class, 'bodyParts']);
+        Route::get('/exercise-library', [ExerciseLibraryController::class, 'index']);
+
+        // Programs
+        Route::get('/programs', [ProgramController::class, 'index']);
+        Route::post('/programs', [ProgramController::class, 'store']);
+        Route::get('/programs/{id}', [ProgramController::class, 'show']);
+        Route::patch('/programs/{id}', [ProgramController::class, 'update']);
+        Route::delete('/programs/{id}', [ProgramController::class, 'destroy']);
+        Route::post('/programs/{id}/assign-batch', [ProgramController::class, 'batchAssign']);
     });
 });
