@@ -1,52 +1,50 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-    View, Text, StyleSheet, SectionList, TouchableOpacity,
-    ActivityIndicator, RefreshControl,
+    View, Text, StyleSheet, TouchableOpacity,
+    ActivityIndicator, ScrollView, RefreshControl,
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import WorkoutCalendar, { toYMD } from '../../components/WorkoutCalendar';
 import { getTrainerClientSchedule } from '../../src/api/assignment';
 import { useTheme } from '../../src/theme';
 
-const toYMD = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-};
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-const formatDate = (ymd) => {
-    if (!ymd) return null;
+const formatDayHeading = (ymd) => {
+    if (!ymd) return '';
     const today    = toYMD(new Date());
     const tomorrow = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return toYMD(d); })();
     if (ymd === today)    return 'Today';
     if (ymd === tomorrow) return 'Tomorrow';
     const d = new Date(ymd + 'T12:00:00');
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 };
 
-const buildSections = (schedule) => {
-    const today  = toYMD(new Date());
-    const in7    = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return toYMD(d); })();
-    const todayItems = [], upcoming = [], later = [], unscheduled = [], completed = [];
-
+const buildMarkedDates = (schedule, accent) => {
+    const marks = {};
     for (const item of schedule) {
-        if (item.completed_at) { completed.push(item); continue; }
-        if (!item.scheduled_date) { unscheduled.push(item); continue; }
-        if (item.scheduled_date === today)                           todayItems.push(item);
-        else if (item.scheduled_date > today && item.scheduled_date <= in7) upcoming.push(item);
-        else if (item.scheduled_date > today)                        later.push(item);
-        else                                                         completed.push(item);
+        const ymd = item.scheduled_date;
+        if (!ymd) continue;
+        const color = item.completed_at ? '#22c55e' : accent;
+        if (!marks[ymd]) marks[ymd] = [];
+        marks[ymd].push(color);
     }
-
-    const sections = [];
-    if (todayItems.length)  sections.push({ title: "Today's Plan",  data: todayItems, isToday: true });
-    if (upcoming.length)    sections.push({ title: 'This Week',     data: upcoming });
-    if (later.length)       sections.push({ title: 'Later',         data: later });
-    if (unscheduled.length) sections.push({ title: 'Unscheduled',   data: unscheduled });
-    if (completed.length)   sections.push({ title: 'Completed',     data: completed, isDone: true });
-    return sections;
+    return marks;
 };
+
+const pickDefaultDate = (schedule) => {
+    const today = toYMD(new Date());
+    if (schedule.some(item => item.scheduled_date === today)) return today;
+    const upcoming = schedule
+        .map(item => item.scheduled_date)
+        .filter(d => d && d >= today)
+        .sort();
+    return upcoming[0] ?? today;
+};
+
+// ── Screen ─────────────────────────────────────────────────────────────────────
 
 const ClientAssignmentListScreen = () => {
     const navigation = useNavigation();
@@ -58,6 +56,7 @@ const ClientAssignmentListScreen = () => {
     const [loading, setLoading]       = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError]           = useState(null);
+    const [selectedDate, setSelectedDate] = useState(toYMD(new Date()));
 
     const fetchSchedule = useCallback(async (cancelled, isRefresh = false) => {
         try {
@@ -65,7 +64,11 @@ const ClientAssignmentListScreen = () => {
             else setLoading(true);
             setError(null);
             const data = await getTrainerClientSchedule(client.id);
-            if (!cancelled.value) setSchedule(data.schedule || []);
+            const list = data.schedule || [];
+            if (!cancelled.value) {
+                setSchedule(list);
+                setSelectedDate(pickDefaultDate(list));
+            }
         } catch {
             if (!cancelled.value) setError('Could not load schedule.');
         } finally {
@@ -81,7 +84,22 @@ const ClientAssignmentListScreen = () => {
         }, [fetchSchedule])
     );
 
+    const markedDates = useMemo(() => buildMarkedDates(schedule, theme.accent), [schedule, theme.accent]);
+    const dayWorkouts = useMemo(
+        () => schedule.filter(item => item.scheduled_date === selectedDate),
+        [schedule, selectedDate]
+    );
+    const unscheduled = useMemo(
+        () => schedule.filter(item => !item.scheduled_date && !item.completed_at),
+        [schedule]
+    );
+    const completed   = useMemo(
+        () => schedule.filter(item => item.completed_at),
+        [schedule]
+    );
+
     const styles = makeStyles(theme);
+    const today  = toYMD(new Date());
 
     if (loading) {
         return (
@@ -93,118 +111,373 @@ const ClientAssignmentListScreen = () => {
         );
     }
 
-    const sections = buildSections(schedule);
-
-    const renderItem = ({ item, section }) => {
-        const workout    = item.workout || {};
-        const dateLabel  = formatDate(item.scheduled_date);
-        const isToday    = section.isToday;
-        const isComplete = !!item.completed_at;
-
-        return (
-            <TouchableOpacity
-                style={[styles.card, isToday && styles.cardToday, isComplete && styles.cardDone]}
-                onPress={() => navigation.navigate('AssignmentDetail', { assignment: item, role: 'trainer' })}
-                activeOpacity={0.75}
-            >
-                <View style={styles.cardRow}>
-                    <Text style={styles.cardTitle}>{workout.title}</Text>
-                    <View style={styles.badges}>
-                        {isComplete && (
-                            <View style={styles.doneBadge}>
-                                <Text style={styles.doneBadgeText}>Done</Text>
-                            </View>
-                        )}
-                        {dateLabel && !isComplete && (
-                            <View style={[styles.dateBadge, isToday && styles.dateBadgeToday]}>
-                                <Text style={[styles.dateBadgeText, isToday && styles.dateBadgeTextToday]}>
-                                    {dateLabel}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-                {workout.difficulty ? <Text style={styles.cardDetail}>Difficulty: {workout.difficulty}</Text> : null}
-                {workout.duration   ? <Text style={styles.cardDetail}>Duration: {workout.duration} min</Text>  : null}
-                {(item.like_count > 0 || item.comment_count > 0) && (
-                    <View style={styles.statsRow}>
-                        {item.like_count > 0    && <Text style={styles.stat}>{item.like_count} like{item.like_count !== 1 ? 's' : ''}</Text>}
-                        {item.comment_count > 0 && <Text style={styles.stat}>{item.comment_count} comment{item.comment_count !== 1 ? 's' : ''}</Text>}
-                    </View>
-                )}
-            </TouchableOpacity>
-        );
-    };
-
-    const renderSectionHeader = ({ section }) => (
-        <Text style={[styles.sectionHeader, section.isToday && styles.sectionHeaderToday, section.isDone && styles.sectionHeaderDone]}>
-            {section.title}
-        </Text>
-    );
-
-    const renderEmpty = () => (
-        <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>No Workouts Assigned</Text>
-            <Text style={styles.emptySubtitle}>Assign workouts to {client.name} from the Workouts tab.</Text>
-        </View>
-    );
-
     return (
         <ScreenWrapper title={`${client.name}'s Schedule`} showBack>
-            <View style={styles.container}>
-                <SectionList
-                    sections={sections}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={renderItem}
-                    renderSectionHeader={renderSectionHeader}
-                    contentContainerStyle={styles.listContent}
-                    ListEmptyComponent={renderEmpty}
-                    stickySectionHeadersEnabled={false}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={() => fetchSchedule({ value: false }, true)}
-                            tintColor={theme.accent}
-                            colors={[theme.accent]}
+            <ScrollView
+                contentContainerStyle={styles.scroll}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => {
+                            const cancelled = { value: false };
+                            fetchSchedule(cancelled, true);
+                        }}
+                        tintColor={theme.accent}
+                        colors={[theme.accent]}
+                    />
+                }
+            >
+                {/* ── Header ── */}
+                <View style={styles.header}>
+                    <Text style={styles.title}>Workout Schedule</Text>
+                    <View style={styles.legend}>
+                        <View style={[styles.legendDot, { backgroundColor: theme.accent }]} />
+                        <Text style={styles.legendText}>Scheduled</Text>
+                        <View style={[styles.legendDot, { backgroundColor: '#22c55e' }]} />
+                        <Text style={styles.legendText}>Done</Text>
+                    </View>
+                </View>
+
+                {error ? (
+                    <View style={styles.errorBox}>
+                        <Text style={styles.errorText}>{error}</Text>
+                        <TouchableOpacity
+                            style={styles.retryBtn}
+                            onPress={() => fetchSchedule({ value: false })}
+                        >
+                            <Text style={styles.retryBtnText}>Try Again</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : schedule.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <View style={[styles.emptyIcon, { backgroundColor: theme.accent + '20' }]}>
+                            <Icon name="barbell-outline" size={32} color={theme.accent} />
+                        </View>
+                        <Text style={styles.emptyTitle}>No Workouts Assigned</Text>
+                        <Text style={styles.emptySubtitle}>
+                            Assign workouts to {client.name} from the Workouts tab.
+                        </Text>
+                    </View>
+                ) : (
+                    <>
+                        {/* ── Calendar ── */}
+                        <WorkoutCalendar
+                            markedDates={markedDates}
+                            selectedDate={selectedDate}
+                            onSelectDate={setSelectedDate}
+                            theme={theme}
+                            style={styles.calendar}
                         />
-                    }
-                />
-            </View>
+
+                        {/* ── Day detail ── */}
+                        <View style={styles.daySection}>
+                            <Text style={styles.dayHeading}>{formatDayHeading(selectedDate)}</Text>
+
+                            {dayWorkouts.length === 0 ? (
+                                <View style={styles.noDayWorkouts}>
+                                    <Text style={styles.noDayText}>No workouts scheduled</Text>
+                                </View>
+                            ) : (
+                                dayWorkouts.map(item => (
+                                    <WorkoutCard
+                                        key={item.id}
+                                        item={item}
+                                        isToday={selectedDate === today}
+                                        onPress={() => navigation.navigate('AssignmentDetail', { assignment: item, role: 'trainer' })}
+                                        theme={theme}
+                                        styles={styles}
+                                    />
+                                ))
+                            )}
+                        </View>
+
+                        {/* ── Unscheduled ── */}
+                        {unscheduled.length > 0 && (
+                            <View style={styles.daySection}>
+                                <Text style={styles.sectionLabel}>Unscheduled</Text>
+                                {unscheduled.map(item => (
+                                    <WorkoutCard
+                                        key={item.id}
+                                        item={item}
+                                        isToday={false}
+                                        onPress={() => navigation.navigate('AssignmentDetail', { assignment: item, role: 'trainer' })}
+                                        theme={theme}
+                                        styles={styles}
+                                    />
+                                ))}
+                            </View>
+                        )}
+
+                        {/* ── Completed ── */}
+                        {completed.length > 0 && (
+                            <View style={styles.daySection}>
+                                <Text style={[styles.sectionLabel, styles.sectionLabelDone]}>Completed</Text>
+                                {completed.map(item => (
+                                    <WorkoutCard
+                                        key={item.id}
+                                        item={item}
+                                        isToday={false}
+                                        onPress={() => navigation.navigate('AssignmentDetail', { assignment: item, role: 'trainer' })}
+                                        theme={theme}
+                                        styles={styles}
+                                    />
+                                ))}
+                            </View>
+                        )}
+                    </>
+                )}
+            </ScrollView>
         </ScreenWrapper>
     );
 };
 
+// ── Workout card ───────────────────────────────────────────────────────────────
+
+const WorkoutCard = ({ item, isToday, onPress, theme, styles }) => {
+    const workout     = item.workout || {};
+    const isCompleted = !!item.completed_at;
+
+    return (
+        <TouchableOpacity
+            style={[
+                styles.card,
+                isToday     && !isCompleted && styles.cardToday,
+                isCompleted && styles.cardDone,
+            ]}
+            onPress={onPress}
+            activeOpacity={0.75}
+        >
+            <View style={styles.cardRow}>
+                <Text style={styles.cardTitle} numberOfLines={1}>{workout.title}</Text>
+                {isCompleted && (
+                    <View style={styles.doneBadge}>
+                        <Icon name="checkmark-circle" size={13} color="#16a34a" />
+                        <Text style={styles.doneBadgeText}>Done</Text>
+                    </View>
+                )}
+            </View>
+
+            <View style={styles.cardMeta}>
+                {workout.difficulty && (
+                    <Text style={styles.cardMetaText}>{workout.difficulty}</Text>
+                )}
+                {workout.duration && (
+                    <Text style={styles.cardMetaText}>{workout.duration} min</Text>
+                )}
+                {(item.like_count > 0 || item.comment_count > 0) && (
+                    <>
+                        {item.like_count > 0 && (
+                            <Text style={styles.cardMetaText}>
+                                {item.like_count} like{item.like_count !== 1 ? 's' : ''}
+                            </Text>
+                        )}
+                        {item.comment_count > 0 && (
+                            <Text style={styles.cardMetaText}>
+                                {item.comment_count} comment{item.comment_count !== 1 ? 's' : ''}
+                            </Text>
+                        )}
+                    </>
+                )}
+            </View>
+
+            <Icon name="chevron-forward" size={18} color={theme.textMuted} style={styles.cardChevron} />
+        </TouchableOpacity>
+    );
+};
+
+// ── Styles ─────────────────────────────────────────────────────────────────────
+
 const makeStyles = (theme) => StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.background, padding: 20 },
-    centered:  { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
-    listContent: { paddingBottom: 30 },
-    sectionHeader: {
-        fontSize: 12, fontWeight: '700', color: theme.textMuted,
-        textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 16, marginBottom: 8,
+    scroll: {
+        padding: 16,
+        paddingBottom: 40,
+        backgroundColor: theme.background,
     },
-    sectionHeaderToday: { color: theme.accent },
-    sectionHeaderDone:  { color: '#16a34a' },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: theme.background,
+    },
+
+    // Header
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    title: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: theme.text,
+    },
+    legend: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+    },
+    legendDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    legendText: {
+        fontSize: 11,
+        color: theme.textMuted,
+        fontWeight: '500',
+        marginRight: 6,
+    },
+
+    // Calendar
+    calendar: {
+        marginBottom: 20,
+    },
+
+    // Day section
+    daySection: {
+        marginBottom: 20,
+    },
+    dayHeading: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: theme.text,
+        marginBottom: 12,
+    },
+    sectionLabel: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: theme.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.7,
+        marginBottom: 10,
+    },
+    sectionLabelDone: {
+        color: '#16a34a',
+    },
+    noDayWorkouts: {
+        paddingVertical: 20,
+        alignItems: 'center',
+        backgroundColor: theme.card,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.border,
+    },
+    noDayText: {
+        fontSize: 14,
+        color: theme.textMuted,
+        fontStyle: 'italic',
+    },
+
+    // Cards
     card: {
-        backgroundColor: theme.card, padding: 16, borderRadius: 12,
-        marginBottom: 10, borderWidth: 1, borderColor: theme.border,
+        backgroundColor: theme.card,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: theme.border,
+        padding: 14,
+        marginBottom: 10,
     },
-    cardToday: { borderLeftWidth: 4, borderLeftColor: theme.accent, backgroundColor: theme.accent + '0D' },
-    cardDone:  { borderLeftWidth: 4, borderLeftColor: '#22c55e', backgroundColor: '#22c55e0D' },
-    cardRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-    cardTitle: { fontSize: 15, fontWeight: '600', color: theme.text, flex: 1, marginRight: 6 },
-    cardDetail:{ fontSize: 13, color: theme.textSecondary, marginTop: 2 },
-    badges:    { flexDirection: 'row', gap: 4 },
-    dateBadge: { backgroundColor: theme.border, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-    dateBadgeToday: { backgroundColor: theme.accent },
-    dateBadgeText:  { fontSize: 11, fontWeight: '600', color: theme.textSecondary },
-    dateBadgeTextToday: { color: '#fff' },
-    doneBadge: { backgroundColor: '#22c55e22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-    doneBadgeText: { fontSize: 11, fontWeight: '700', color: '#16a34a' },
-    statsRow:  { flexDirection: 'row', gap: 12, marginTop: 6 },
-    stat:      { fontSize: 13, color: theme.textMuted },
-    emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 30 },
-    emptyTitle:     { fontSize: 20, fontWeight: '700', color: theme.text, marginBottom: 8 },
-    emptySubtitle:  { fontSize: 14, color: theme.textSecondary, textAlign: 'center', lineHeight: 20 },
+    cardToday: {
+        borderLeftWidth: 3,
+        borderLeftColor: theme.accent,
+        backgroundColor: theme.accent + '0a',
+    },
+    cardDone: {
+        borderLeftWidth: 3,
+        borderLeftColor: '#22c55e',
+        backgroundColor: '#22c55e0a',
+    },
+    cardRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 6,
+    },
+    cardTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: theme.text,
+        flex: 1,
+        marginRight: 8,
+    },
+    cardMeta: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    cardMetaText: {
+        fontSize: 13,
+        color: theme.textSecondary,
+    },
+    cardChevron: {
+        position: 'absolute',
+        right: 14,
+        top: '50%',
+    },
+    doneBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#22c55e18',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+    },
+    doneBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#16a34a',
+    },
+
+    // Error
+    errorBox: {
+        alignItems: 'center',
+        padding: 24,
+    },
+    errorText: {
+        color: theme.error,
+        fontSize: 15,
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    retryBtn: {
+        backgroundColor: theme.accent,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 10,
+    },
+    retryBtnText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+
+    // Empty
+    emptyContainer: {
+        alignItems: 'center',
+        paddingTop: 60,
+        paddingHorizontal: 30,
+        gap: 12,
+    },
+    emptyIcon: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: theme.text,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: theme.textSecondary,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
 });
 
 export default ClientAssignmentListScreen;

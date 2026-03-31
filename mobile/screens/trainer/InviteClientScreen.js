@@ -9,10 +9,12 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
 import { sendInvitation, getTrainerInvitations, cancelInvitation } from '../../src/api/invitations';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 const InviteClientScreen = () => {
     const { theme } = useTheme();
     const styles = makeStyles(theme);
+    const { showToast } = useToast();
 
     const [email, setEmail]         = useState('');
     const [sending, setSending]     = useState(false);
@@ -42,18 +44,18 @@ const InviteClientScreen = () => {
     const handleSend = async () => {
         const trimmed = email.trim().toLowerCase();
         if (!trimmed) {
-            Alert.alert('Required', 'Please enter the client\'s email address.');
+            showToast('Please enter the client\'s email address.', 'info');
             return;
         }
         try {
             setSending(true);
             const res = await sendInvitation(trimmed);
             setEmail('');
-            Alert.alert('Invite Sent', res.message);
+            showToast(res.message, 'success');
             fetchPending({});
         } catch (err) {
             const msg = err.response?.data?.error ?? 'Failed to send invitation. Please try again.';
-            Alert.alert('Error', msg);
+            showToast(msg, 'error');
         } finally {
             setSending(false);
         }
@@ -73,7 +75,7 @@ const InviteClientScreen = () => {
                             await cancelInvitation(id);
                             setPending(prev => prev.filter(i => i.id !== id));
                         } catch (err) {
-                            Alert.alert('Error', 'Could not cancel invitation.');
+                            showToast('Could not cancel invitation.', 'error');
                         }
                     },
                 },

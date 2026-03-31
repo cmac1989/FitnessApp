@@ -1,13 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, ScrollView,
-    TouchableOpacity, ActivityIndicator, Alert,
+    TouchableOpacity, ActivityIndicator,
 } from 'react-native';
-import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect, StackActions } from '@react-navigation/native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useTheme } from '../src/theme';
+import { useToast } from '../src/context/ToastContext';
 import { getClientCheckIn, getTrainerCheckIn } from '../src/api/checkin';
 import { getAssignment } from '../src/api/assignment';
+import { getClientSchedule } from '../src/api/workout';
 
 // ── Avatar helpers ─────────────────────────────────────────────────────────────
 
@@ -132,30 +134,55 @@ const buildAction = (notification, data, role) => {
             return {
                 label: 'Fill Out Check-in',
                 fetch: () => getClientCheckIn(data.check_in_id),
-                navigate: (nav, result) => nav.navigate('CheckInForm', { checkIn: result.check_in ?? result }),
+                navigate: (nav, result) => nav.navigate('Sessions', {
+                    screen: 'CheckInForm',
+                    params: { checkIn: result.check_in ?? result },
+                }),
             };
         }
         if (type === 'check_in_reviewed' && data.check_in_id) {
             return {
                 label: 'View Trainer Feedback',
                 fetch: () => getClientCheckIn(data.check_in_id),
-                navigate: (nav, result) => nav.navigate('CheckInDetail', { checkIn: result.check_in ?? result }),
-            };
-        }
-        if (
-            ['workout_assigned', 'workout_liked', 'workout_commented', 'workout_completed'].includes(type)
-            && data.assignment_id
-        ) {
-            const toComments = type === 'workout_commented';
-            return {
-                label: toComments ? 'View Comments' : (type === 'workout_assigned' ? 'View Workout' : 'Go to Workout'),
-                fetch: () => getAssignment('client', data.assignment_id),
-                navigate: (nav, result) => nav.navigate('AssignmentDetail', {
-                    assignment: result.assignment ?? result,
-                    role: 'client',
-                    scrollToComments: toComments,
+                navigate: (nav, result) => nav.navigate('Sessions', {
+                    screen: 'CheckInDetail',
+                    params: { checkIn: result.check_in ?? result },
                 }),
             };
+        }
+        if (['workout_assigned', 'workout_liked', 'workout_commented', 'workout_completed'].includes(type)) {
+            const toComments = type === 'workout_commented';
+            const label = toComments ? 'View Comments' : (type === 'workout_assigned' ? 'View Workout' : 'Go to Workout');
+
+            if (data.assignment_id) {
+                return {
+                    label,
+                    fetch: () => getAssignment('client', data.assignment_id),
+                    navigate: (nav, result) => nav.navigate('AssignmentDetail', {
+                        assignment: result.assignment ?? result,
+                        role: 'client',
+                        scrollToComments: toComments,
+                    }),
+                };
+            }
+            // Fallback for legacy notifications that only carry workout_id:
+            // search the client schedule for the matching assignment
+            if (data.workout_id) {
+                return {
+                    label,
+                    fetch: async () => {
+                        const { schedule } = await getClientSchedule();
+                        const found = (schedule ?? []).find(a => a.workout?.id === data.workout_id);
+                        if (!found) throw new Error('Assignment not found');
+                        return getAssignment('client', found.id);
+                    },
+                    navigate: (nav, result) => nav.navigate('AssignmentDetail', {
+                        assignment: result.assignment ?? result,
+                        role: 'client',
+                        scrollToComments: toComments,
+                    }),
+                };
+            }
         }
         if (type === 'comment_liked' && data.assignment_id) {
             return {
@@ -184,7 +211,10 @@ const buildAction = (notification, data, role) => {
             return {
                 label: 'Review Check-in',
                 fetch: () => getTrainerCheckIn(data.check_in_id),
-                navigate: (nav, result) => nav.navigate('CheckInReview', { checkIn: result.check_in ?? result }),
+                navigate: (nav, result) => nav.navigate('Sessions', {
+                    screen: 'CheckInReview',
+                    params: { checkIn: result.check_in ?? result },
+                }),
             };
         }
         if (
@@ -206,8 +236,9 @@ const buildAction = (notification, data, role) => {
             return {
                 label: 'View Client Profile',
                 fetch: null,
-                navigate: (nav) => nav.navigate('ClientDetails', {
-                    clients: { id: data.client_id, name: data.client_name ?? 'Client' },
+                navigate: (nav) => nav.navigate('Clients', {
+                    screen: 'ClientDetails',
+                    params: { clients: { id: data.client_id, name: data.client_name ?? 'Client' } },
                 }),
             };
         }
@@ -243,6 +274,7 @@ const NotificationDetailScreen = () => {
     const navigation = useNavigation();
     const { theme }  = useTheme();
     const styles     = makeStyles(theme);
+    const { showToast } = useToast();
 
     const { notification, role: roleParam } = route.params;
 
@@ -308,9 +340,12 @@ const NotificationDetailScreen = () => {
             if (action.fetch) {
                 result = await action.fetch();
             }
+            // Pop the notification stack back to the tab root so the originating
+            // tab (e.g. Home) shows its root screen when the user returns to it.
+            navigation.dispatch(StackActions.popToTop());
             action.navigate(navigation, result);
         } catch {
-            Alert.alert('Error', 'Could not load the linked content. Please try again.');
+            showToast('Could not load the linked content. Please try again.', 'error');
         } finally {
             setActionLoading(false);
         }

@@ -8,3 +8,6 @@
  *   - Production: https://api.yourdomain.com
  */
 export const API_BASE_URL = 'http://localhost:8000';
+
+// RapidAPI key for ExerciseDB — add your key to the backend .env as EXERCISE_DB_API_KEY
+// The app calls the backend proxy at /api/trainer/exercise-library, not ExerciseDB directly.

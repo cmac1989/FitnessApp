@@ -44,8 +44,9 @@ class MessageController extends Controller
             if (!isset($conversations[$otherUser->id])) {
                 $conversations[$otherUser->id] = [
                     'user' => [
-                        'id'   => $otherUser->id,
-                        'name' => $otherUser->name,
+                        'id'              => $otherUser->id,
+                        'name'            => $otherUser->name,
+                        'profile_picture' => $otherUser->profile_picture,
                     ],
                     'last_message' => [
                         'content'    => $message->deleted_at ? null : $message->content,
@@ -175,12 +176,15 @@ class MessageController extends Controller
 
             // Notify the message sender (only if it's not the sender liking their own message)
             if ($message->sender_id !== $authId) {
-                $liker = Auth::user();
+                $liker       = Auth::user();
+                $senderField = $liker->role === 'client' ? 'client_name' : 'trainer_name';
                 Notification::create([
                     'user_id' => $message->sender_id,
                     'type'    => 'message_liked',
                     'data'    => [
-                        'message' => "{$liker->name} liked your message.",
+                        'message'    => "{$liker->name} liked your message.",
+                        $senderField => $liker->name,
+                        'sender_id'  => $authId,
                     ],
                 ]);
             }

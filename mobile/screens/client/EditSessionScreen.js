@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import { useToast } from '../../src/context/ToastContext';
 
 const EditSessionScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
+    const { showToast } = useToast();
     const { session } = route.params;
 
     const [client, setClient] = useState(session.client);
@@ -17,7 +19,7 @@ const EditSessionScreen = () => {
 
     const handleSave = () => {
         // Normally here you'd make an API call to update the session
-        Alert.alert('Success', 'Session details updated.');
+        showToast('Session details updated.', 'success');
         navigation.goBack();
     };
 

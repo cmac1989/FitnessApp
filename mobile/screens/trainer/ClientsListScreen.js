@@ -5,39 +5,9 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import Avatar from '../../components/Avatar';
 import { getClients } from '../../src/api/user';
 import { useTheme } from '../../src/theme';
-
-// ── Avatar helpers ────────────────────────────────────────────────────────────
-
-const AVATAR_COLORS = ['#6366f1', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
-
-const avatarColor = (name = '') => {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-};
-
-const getInitials = (name = '') => {
-    const parts = name.trim().split(' ');
-    return parts.length >= 2
-        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-        : name.substring(0, 2).toUpperCase();
-};
-
-const Avatar = ({ name, size = 48 }) => {
-    const bg = avatarColor(name);
-    return (
-        <View style={{
-            width: size, height: size, borderRadius: size / 2,
-            backgroundColor: bg, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.36 }}>
-                {getInitials(name)}
-            </Text>
-        </View>
-    );
-};
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -46,8 +16,8 @@ const ClientsListScreen = () => {
     const { theme } = useTheme();
     const styles = makeStyles(theme);
 
-    const [clients, setClients]       = useState([]);
-    const [loading, setLoading]       = useState(true);
+    const [clients, setClients]         = useState([]);
+    const [loading, setLoading]         = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
     const fetchClients = useCallback(async (cancelled) => {
@@ -100,7 +70,7 @@ const ClientsListScreen = () => {
                 onPress={() => navigation.navigate('ClientDetails', { clients: item })}
                 activeOpacity={0.7}
             >
-                <Avatar name={item.name} size={50} />
+                <Avatar name={item.name} photoUri={item.profile_picture ?? null} size={50} />
 
                 <View style={styles.cardBody}>
                     <View style={styles.cardTop}>

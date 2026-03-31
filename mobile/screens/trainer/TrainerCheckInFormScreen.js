@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, ScrollView, StyleSheet,
-    TouchableOpacity, ActivityIndicator, Alert,
+    TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { getClients } from '../../src/api/user';
 import { trainerBatchCreateCheckIns } from '../../src/api/checkin';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ const TrainerCheckInFormScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
     const styles = makeStyles(theme);
+    const { showToast } = useToast();
 
     const [clients, setClients]               = useState([]);
     const [clientsLoading, setClientsLoading] = useState(true);
@@ -72,7 +74,7 @@ const TrainerCheckInFormScreen = () => {
 
     const handleAssign = async () => {
         if (selectedIds.size === 0) {
-            Alert.alert('Select Clients', 'Please choose at least one client.');
+            showToast('Please choose at least one client.', 'info');
             return;
         }
         if (saving) return;
@@ -81,11 +83,11 @@ const TrainerCheckInFormScreen = () => {
             const res = await trainerBatchCreateCheckIns([...selectedIds]);
             navigation.goBack();
             if (res.skipped > 0) {
-                Alert.alert('Done', res.message);
+                showToast(res.message, 'info');
             }
         } catch (err) {
             const msg = err?.response?.data?.message ?? 'Could not assign check-ins. Please try again.';
-            Alert.alert('Error', msg);
+            showToast(msg, 'error');
         } finally {
             setSaving(false);
         }

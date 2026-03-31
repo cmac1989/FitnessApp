@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
 import CustomButton from '../../components/CustomButton';
 import { useNavigation } from '@react-navigation/native';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -8,10 +8,12 @@ import { getClients } from '../../src/api/user';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import moment from 'moment';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 const CreateSessionScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
+    const { showToast } = useToast();
     const [clients, setClients] = useState([]);
     const [open, setOpen] = useState(false);
     const [value, setValue] = useState(null);
@@ -38,16 +40,16 @@ const CreateSessionScreen = () => {
     const handleCreateSession = async () => {
         const { client_id, scheduled_at, location } = sessionInfo;
         if (!client_id || !scheduled_at || !location) {
-            Alert.alert('Missing Info', 'Please fill out all fields.');
+            showToast('Please fill out all fields.', 'info');
             return;
         }
         try {
             await createSession(sessionInfo);
-            Alert.alert('Success', 'Session created!');
+            showToast('Session created!', 'success');
             navigation.goBack();
         } catch (error) {
             console.error(error.response?.data || error);
-            Alert.alert('Error', 'Could not create session.');
+            showToast('Could not create session.', 'error');
         }
     };
 

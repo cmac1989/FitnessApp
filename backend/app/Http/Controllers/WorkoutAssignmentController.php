@@ -18,7 +18,7 @@ class WorkoutAssignmentController extends Controller
     private function resolveAssignment(int $id): ?WorkoutAssignment
     {
         $user = Auth::user();
-        return WorkoutAssignment::with(['workout', 'client', 'trainer'])
+        return WorkoutAssignment::with(['workout.workoutExercises.exercise', 'client', 'trainer'])
             ->where('id', $id)
             ->where(function ($q) use ($user) {
                 $q->where('client_id', $user->id)
@@ -94,6 +94,7 @@ class WorkoutAssignmentController extends Controller
                     'message'       => "{$user->name} completed \"{$assignment->workout->title}\".",
                     'assignment_id' => $assignment->id,
                     'client_name'   => $user->name,
+                    'sender_id'     => $user->id,
                 ],
             ]);
         }
@@ -129,13 +130,16 @@ class WorkoutAssignmentController extends Controller
             $liked = true;
 
             // Notify the other party
-            $recipientId = $this->otherPartyId($assignment, $user->id);
+            $recipientId  = $this->otherPartyId($assignment, $user->id);
+            $senderField  = $user->role === 'client' ? 'client_name' : 'trainer_name';
             Notification::create([
                 'user_id' => $recipientId,
                 'type'    => 'workout_liked',
                 'data'    => [
                     'message'       => "{$user->name} liked your workout \"{$assignment->workout->title}\".",
                     'assignment_id' => $assignment->id,
+                    $senderField    => $user->name,
+                    'sender_id'     => $user->id,
                 ],
             ]);
         }
@@ -203,9 +207,10 @@ class WorkoutAssignmentController extends Controller
         ]);
 
         // Notify the other party
-        $recipientId = $this->otherPartyId($assignment, $user->id);
-        $preview     = mb_substr($validated['body'], 0, 80);
-        $ellipsis    = mb_strlen($validated['body']) > 80 ? '...' : '';
+        $recipientId  = $this->otherPartyId($assignment, $user->id);
+        $preview      = mb_substr($validated['body'], 0, 80);
+        $ellipsis     = mb_strlen($validated['body']) > 80 ? '...' : '';
+        $senderField  = $user->role === 'client' ? 'client_name' : 'trainer_name';
 
         Notification::create([
             'user_id' => $recipientId,
@@ -214,6 +219,8 @@ class WorkoutAssignmentController extends Controller
                 'message'       => "{$user->name}: \"{$preview}{$ellipsis}\"",
                 'assignment_id' => $assignment->id,
                 'workout_title' => $assignment->workout->title,
+                $senderField    => $user->name,
+                'sender_id'     => $user->id,
             ],
         ]);
 
@@ -288,6 +295,23 @@ class WorkoutAssignmentController extends Controller
                 'user_id'    => $user->id,
             ]);
             $liked = true;
+
+            // Notify comment author — skip if user is liking their own comment
+            if ($comment->user_id !== $user->id) {
+                $comment->loadMissing('user:id,name');
+                $senderField = $user->role === 'client' ? 'client_name' : 'trainer_name';
+                Notification::create([
+                    'user_id' => $comment->user_id,
+                    'type'    => 'comment_liked',
+                    'data'    => [
+                        'message'       => "{$user->name} liked your comment on \"{$assignment->workout->title}\".",
+                        'assignment_id' => $assignmentId,
+                        'workout_title' => $assignment->workout->title,
+                        $senderField    => $user->name,
+                        'sender_id'     => $user->id,
+                    ],
+                ]);
+            }
         }
 
         return response()->json([

@@ -1,14 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { getAllSessions } from '../../src/api/trainingSession';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
 
 const SessionsScreen = () => {
     const navigation = useNavigation();
     const { theme } = useTheme();
+    const { showToast } = useToast();
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -26,7 +28,7 @@ const SessionsScreen = () => {
             setSessions(formattedSessions);
         } catch (error) {
             console.error('Could not load sessions', error);
-            Alert.alert('Error', 'Could not load sessions.');
+            showToast('Could not load sessions.', 'error');
         } finally {
             setLoading(false);
         }

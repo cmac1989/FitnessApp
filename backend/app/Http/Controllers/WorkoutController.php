@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClientProfile;
+use App\Models\ExerciseLibrary;
+use App\Models\WorkoutExercise;
 use Carbon\Carbon;
 use App\Models\Notification;
 use App\Models\Workout;
@@ -14,34 +16,62 @@ class WorkoutController extends Controller
 {
     public function getTrainerWorkouts() {
         $userId = Auth::id();
-        $workouts = Workout::where('user_id', $userId) ->get();
+        $workouts = Workout::where('user_id', $userId)->get();
 
         return response()->json($workouts);
     }
 
     public function store(Request $request) {
         $request->validate([
-            'title' => 'required|string',
-            'description' => 'required|string',
-            'duration' => 'required|integer',
-            'workout_list' => 'required|string',
-            'difficulty' => 'nullable|string'
+            'title'       => 'required|string',
+            'description' => 'nullable|string',
+            'duration'    => 'nullable|integer',
+            'workout_list'=> 'nullable|string',
+            'difficulty'  => 'nullable|string',
+            'exercises'   => 'nullable|array',
         ]);
 
         $userId = Auth::id();
 
         $workout = Workout::create([
-            'user_id' => $userId,
-            'title' => $request->input('title'),
-            'description' => $request->input('description'),
-            'duration' => $request->input('duration'),
-            'workout_list' => $request->input('workout_list'),
-            'difficulty' => $request->input('difficulty') ?? 'Medium'
+            'user_id'      => $userId,
+            'title'        => $request->input('title'),
+            'description'  => $request->input('description') ?? null,
+            'duration'     => $request->input('duration') ?? null,
+            'workout_list' => $request->input('workout_list') ?? null,
+            'difficulty'   => $request->input('difficulty') ?? null,
         ]);
+
+        // Attach structured library exercises if provided
+        if ($request->has('exercises') && is_array($request->exercises)) {
+            foreach ($request->exercises as $i => $ex) {
+                $lib = ExerciseLibrary::updateOrCreate(
+                    ['external_id' => $ex['external_id'] ?? ''],
+                    [
+                        'name'              => $ex['name']      ?? '',
+                        'body_part'         => $ex['body_part'] ?? '',
+                        'equipment'         => $ex['equipment'] ?? '',
+                        'target'            => $ex['target']    ?? '',
+                        'gif_url'           => $ex['gif_url']   ?? '',
+                        'secondary_muscles' => $ex['secondary_muscles'] ?? [],
+                        'instructions'      => $ex['instructions']      ?? [],
+                    ]
+                );
+
+                WorkoutExercise::create([
+                    'workout_id'          => $workout->id,
+                    'exercise_library_id' => $lib->id,
+                    'order_index'         => $ex['order_index'] ?? $i,
+                    'sets'                => $ex['sets']  ?? null,
+                    'reps'                => $ex['reps']  ?? null,
+                    'notes'               => $ex['notes'] ?? null,
+                ]);
+            }
+        }
 
         return response()->json([
             'message' => 'Workout created successfully.',
-            'workout' => $workout
+            'workout' => $workout,
         ]);
     }
 
@@ -50,6 +80,7 @@ class WorkoutController extends Controller
 
         $workout = Workout::where('id', $id)
             ->where('user_id', $user->id)
+            ->with('workoutExercises.exercise')
             ->first();
 
         if (!$workout) {
@@ -61,19 +92,50 @@ class WorkoutController extends Controller
 
     public function update(Request $request, Workout $workout) {
         $validatedData = $request->validate([
-            'title' => 'nullable|string',
-            'description' => 'nullable|string',
+            'title'        => 'nullable|string',
+            'description'  => 'nullable|string',
             'workout_list' => 'nullable|string',
-            'difficulty' => 'nullable|string',
-            'duration' => 'nullable|integer'
+            'difficulty'   => 'nullable|string',
+            'duration'     => 'nullable|integer',
+            'exercises'    => 'nullable|array',
         ]);
 
-        $workout->update($validatedData);
-        $workout->refresh();
+        $workout->update(array_diff_key($validatedData, ['exercises' => null]));
+
+        // Replace structured exercises if provided
+        if ($request->has('exercises') && is_array($request->exercises)) {
+            WorkoutExercise::where('workout_id', $workout->id)->delete();
+
+            foreach ($request->exercises as $i => $ex) {
+                $lib = ExerciseLibrary::updateOrCreate(
+                    ['external_id' => $ex['external_id'] ?? ''],
+                    [
+                        'name'              => $ex['name']      ?? '',
+                        'body_part'         => $ex['body_part'] ?? '',
+                        'equipment'         => $ex['equipment'] ?? '',
+                        'target'            => $ex['target']    ?? '',
+                        'gif_url'           => $ex['gif_url']   ?? '',
+                        'secondary_muscles' => $ex['secondary_muscles'] ?? [],
+                        'instructions'      => $ex['instructions']      ?? [],
+                    ]
+                );
+
+                WorkoutExercise::create([
+                    'workout_id'          => $workout->id,
+                    'exercise_library_id' => $lib->id,
+                    'order_index'         => $ex['order_index'] ?? $i,
+                    'sets'                => $ex['sets']  ?? null,
+                    'reps'                => $ex['reps']  ?? null,
+                    'notes'               => $ex['notes'] ?? null,
+                ]);
+            }
+        }
+
+        $workout->refresh()->load('workoutExercises.exercise');
 
         return response()->json([
             'message' => 'Workout updated successfully',
-            'workout' => $workout
+            'workout' => $workout,
         ]);
     }
 
@@ -100,7 +162,6 @@ class WorkoutController extends Controller
 
         $scheduledDate = $request->input('scheduled_date');
 
-        // Prevent duplicate: same workout, same client, same date (or both null)
         $duplicate = WorkoutAssignment::where('workout_id', $workout->id)
             ->where('client_id', $request->client_id)
             ->where('scheduled_date', $scheduledDate)
@@ -110,7 +171,7 @@ class WorkoutController extends Controller
             return response()->json(['error' => 'This workout is already scheduled for that date.'], 422);
         }
 
-        WorkoutAssignment::create([
+        $assignment = WorkoutAssignment::create([
             'workout_id'     => $workout->id,
             'client_id'      => $request->client_id,
             'trainer_id'     => $trainer->id,
@@ -121,22 +182,21 @@ class WorkoutController extends Controller
             ? ' for ' . Carbon::parse($scheduledDate)->format('M j')
             : '';
 
-        // Notify client
         Notification::create([
             'user_id' => $request->client_id,
             'type'    => 'workout_assigned',
             'data'    => [
-                'message'    => "{$trainer->name} scheduled \"{$workout->title}\"{$dateLabel}.",
-                'workout_id' => $workout->id,
+                'message'       => "{$trainer->name} scheduled \"{$workout->title}\"{$dateLabel}.",
+                'workout_id'    => $workout->id,
+                'assignment_id' => $assignment->id,
+                'trainer_name'  => $trainer->name,
+                'trainer_id'    => $trainer->id,
             ],
         ]);
 
         return response()->json(['message' => 'Workout assigned successfully.']);
     }
 
-    /**
-     * Trainer: batch-assign a workout to multiple clients on the same date.
-     */
     public function batchAssign(Request $request, $id)
     {
         $trainer = Auth::user();
@@ -175,7 +235,7 @@ class WorkoutController extends Controller
                 continue;
             }
 
-            WorkoutAssignment::create([
+            $assignment = WorkoutAssignment::create([
                 'workout_id'     => $workout->id,
                 'client_id'      => $clientId,
                 'trainer_id'     => $trainer->id,
@@ -190,8 +250,11 @@ class WorkoutController extends Controller
                 'user_id' => $clientId,
                 'type'    => 'workout_assigned',
                 'data'    => [
-                    'message'    => "{$trainer->name} scheduled \"{$workout->title}\"{$dateLabel}.",
-                    'workout_id' => $workout->id,
+                    'message'       => "{$trainer->name} scheduled \"{$workout->title}\"{$dateLabel}.",
+                    'workout_id'    => $workout->id,
+                    'assignment_id' => $assignment->id,
+                    'trainer_name'  => $trainer->name,
+                    'trainer_id'    => $trainer->id,
                 ],
             ]);
 
@@ -205,9 +268,6 @@ class WorkoutController extends Controller
         ]);
     }
 
-    /**
-     * Client: get their full workout schedule (assignments with workout details).
-     */
     public function clientSchedule()
     {
         $user = Auth::user();
@@ -216,7 +276,7 @@ class WorkoutController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $assignments = WorkoutAssignment::with('workout')
+        $assignments = WorkoutAssignment::with('workout.workoutExercises.exercise')
             ->where('client_id', $user->id)
             ->orderByRaw('scheduled_date IS NULL ASC')
             ->orderBy('scheduled_date', 'asc')
@@ -233,7 +293,7 @@ class WorkoutController extends Controller
     public function destroy($id) {
         $workout = Workout::find($id);
 
-        if(!$workout) {
+        if (!$workout) {
             return response()->json(['message' => 'Session not found'], 404);
         }
 

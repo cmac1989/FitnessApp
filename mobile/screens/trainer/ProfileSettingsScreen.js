@@ -1,247 +1,451 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Alert, Switch } from 'react-native';
-import CustomButton from '../../components/CustomButton';
+import {
+    View, Text, TextInput, StyleSheet, ScrollView,
+    Alert, Switch, TouchableOpacity, KeyboardAvoidingView, Platform,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
-import { userLogout } from '../../src/api/auth';
+import { userLogout, uploadAvatar } from '../../src/api/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTrainerProfile, updateTrainerProfile } from '../../src/api/trainer';
 import { useTheme } from '../../src/theme';
+import { useToast } from '../../src/context/ToastContext';
+import { useUser } from '../../src/context/UserContext';
+import Avatar from '../../components/Avatar';
+
+// ── Field row ──────────────────────────────────────────────────────────────────
+
+const FieldRow = ({ label, last, children, styles }) => (
+    <View style={[styles.fieldRow, !last && styles.fieldRowBorder]}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        {children}
+    </View>
+);
+
+// ── Screen ─────────────────────────────────────────────────────────────────────
 
 const ProfileSettingsScreen = () => {
     const navigation = useNavigation();
     const { theme, isDark, toggleTheme } = useTheme();
+    const { showToast } = useToast();
+    const { user, updateUser, clearUser } = useUser();
 
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [profile, setProfile] = useState({
-        id: '',
-        name: '',
-        email: '',
-        certifications: '',
-        years_experience: '',
-        specialties: '',
-        bio: '',
-        availability: '',
-        location: '',
+        id: '', name: '', email: '',
+        certifications: '', years_experience: '',
+        specialties: '', bio: '', availability: '', location: '',
+        profile_picture: user?.profile_picture ?? null,
     });
+
+    const set = (key) => (text) => setProfile(prev => ({ ...prev, [key]: text }));
 
     const fetchTrainerProfile = async () => {
         try {
             const token = await AsyncStorage.getItem('auth_token');
-            if (!token) { return; }
-
+            if (!token) return;
             const response = await getTrainerProfile(token);
-            const profileData = response.data || response;
-
+            const d = response.data || response;
             setProfile({
-                ...profileData,
-                specialties: Array.isArray(profileData.specialties)
-                    ? profileData.specialties.join(', ')
-                    : profileData.specialties ?? '',
-                years_experience: profileData.years_experience?.toString() ?? '',
+                ...d,
+                specialties: Array.isArray(d.specialties) ? d.specialties.join(', ') : d.specialties ?? '',
+                years_experience: d.years_experience?.toString() ?? '',
+                profile_picture: d.profile_picture ?? null,
             });
         } catch (err) {
             if (err.response?.status !== 404) {
                 console.error('Error fetching profile:', err);
-                setError('Failed to load profile');
             }
-        } finally {
-            setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchTrainerProfile();
-    }, []);
+    useEffect(() => { fetchTrainerProfile(); }, []);
 
-    const handleSaveChanges = async () => {
+    const handleSave = async () => {
+        if (saving) return;
+        setSaving(true);
         try {
             await updateTrainerProfile(profile.id, {
                 ...profile,
                 years_experience: parseInt(profile.years_experience) || 0,
-                specialties: profile.specialties
-                    .split(',')
-                    .map(s => s.trim())
-                    .filter(Boolean),
+                specialties: profile.specialties.split(',').map(s => s.trim()).filter(Boolean),
             });
+            showToast('Your profile has been updated.', 'success');
             navigation.goBack();
-            Alert.alert('Profile Updated', 'Your changes have been saved.');
-        } catch (error) {
-            console.error('Cannot update profile', error);
-            Alert.alert('Error', 'Failed to save changes.');
+        } catch {
+            showToast('Failed to save changes. Please try again.', 'error');
+        } finally {
+            setSaving(false);
         }
     };
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
+        Alert.alert('Log Out', 'Are you sure you want to log out?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Log Out', style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await userLogout();
+                        await clearUser();
+                        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+                    } catch {
+                        showToast('Something went wrong logging out.', 'error');
+                    }
+                },
+            },
+        ]);
+    };
+
+    const handlePickAvatar = async () => {
+        const res = await launchImageLibrary({ mediaType: 'photo', quality: 0.8, selectionLimit: 1, includeBase64: true });
+        if (res.didCancel || res.errorCode) return;
+        const asset = res.assets?.[0];
+        if (!asset?.uri) return;
+
+        setUploading(true);
         try {
-            await userLogout();
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-        } catch (error) {
-            console.error('Error logging out:', error);
-            Alert.alert('Error', 'Something went wrong logging out.');
+            const result = await uploadAvatar(asset);
+            const url = result.profile_picture;
+            setProfile(prev => ({ ...prev, profile_picture: `${url}?t=${Date.now()}` }));
+            await updateUser({ profile_picture: url });
+            showToast('Profile photo updated!', 'success');
+        } catch {
+            showToast('Failed to upload photo. Try again.', 'error');
+            setProfile(prev => ({ ...prev, profile_picture: null }));
+        } finally {
+            setUploading(false);
         }
     };
 
     const styles = makeStyles(theme);
 
+    const inputStyle = [styles.fieldInput, { color: theme.text }];
+    const multiStyle = [styles.fieldInput, styles.fieldInputMulti, { color: theme.text }];
+
     return (
-        <ScreenWrapper title="Profile">
-            <ScrollView contentContainerStyle={styles.container}>
-                <Text style={styles.title}>Profile Settings</Text>
+        <ScreenWrapper title="Edit Profile" showBack>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
+            >
+                <ScrollView
+                    contentContainerStyle={styles.scroll}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* ── Avatar header ──────────────────────────────────────── */}
+                    <View style={styles.avatarHeader}>
+                        <Avatar
+                            name={profile.name}
+                            photoUri={profile.profile_picture}
+                            size={80}
+                            editable
+                            uploading={uploading}
+                            onPress={handlePickAvatar}
+                        />
+                        <Text style={[styles.avatarName, { marginTop: 12 }]}>{profile.name || 'Your Name'}</Text>
+                        <Text style={styles.avatarSub}>Personal Trainer</Text>
+                    </View>
 
-                <Text style={styles.label}>Name</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.name}
-                    placeholderTextColor={theme.placeholder}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, name: text }))}
-                />
+                    {/* ── Personal ───────────────────────────────────────────── */}
+                    <Text style={styles.sectionLabel}>Personal</Text>
+                    <View style={styles.card}>
+                        <FieldRow label="Name" last={false} styles={styles}>
+                            <TextInput
+                                style={inputStyle}
+                                value={profile.name}
+                                onChangeText={set('name')}
+                                placeholderTextColor={theme.placeholder}
+                                returnKeyType="next"
+                            />
+                        </FieldRow>
+                        <FieldRow label="Email" last={false} styles={styles}>
+                            <TextInput
+                                style={[...inputStyle, styles.fieldInputDisabled]}
+                                value={profile.email}
+                                editable={false}
+                                placeholderTextColor={theme.placeholder}
+                                keyboardType="email-address"
+                            />
+                        </FieldRow>
+                        <FieldRow label="Location" last={true} styles={styles}>
+                            <TextInput
+                                style={inputStyle}
+                                value={profile.location}
+                                onChangeText={set('location')}
+                                placeholder="City, State"
+                                placeholderTextColor={theme.placeholder}
+                                returnKeyType="next"
+                            />
+                        </FieldRow>
+                    </View>
 
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.email}
-                    placeholderTextColor={theme.placeholder}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
-                    keyboardType="email-address"
-                />
+                    {/* ── Professional ───────────────────────────────────────── */}
+                    <Text style={styles.sectionLabel}>Professional</Text>
+                    <View style={styles.card}>
+                        <FieldRow label="Certifications" last={false} styles={styles}>
+                            <TextInput
+                                style={inputStyle}
+                                value={profile.certifications}
+                                onChangeText={set('certifications')}
+                                placeholder="e.g. CPT, CSCS"
+                                placeholderTextColor={theme.placeholder}
+                                returnKeyType="next"
+                            />
+                        </FieldRow>
+                        <FieldRow label="Years Exp." last={false} styles={styles}>
+                            <TextInput
+                                style={inputStyle}
+                                value={profile.years_experience}
+                                onChangeText={set('years_experience')}
+                                keyboardType="number-pad"
+                                placeholderTextColor={theme.placeholder}
+                            />
+                        </FieldRow>
+                        <FieldRow label="Specialties" last={false} styles={styles}>
+                            <TextInput
+                                style={inputStyle}
+                                value={profile.specialties}
+                                onChangeText={set('specialties')}
+                                placeholder="Weight Loss, Strength…"
+                                placeholderTextColor={theme.placeholder}
+                                returnKeyType="next"
+                            />
+                        </FieldRow>
+                        <FieldRow label="Availability" last={true} styles={styles}>
+                            <TextInput
+                                style={inputStyle}
+                                value={profile.availability}
+                                onChangeText={set('availability')}
+                                placeholder="Mon–Fri 6am–8pm"
+                                placeholderTextColor={theme.placeholder}
+                                returnKeyType="next"
+                            />
+                        </FieldRow>
+                    </View>
 
-                <Text style={styles.label}>Certifications</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.certifications}
-                    placeholderTextColor={theme.placeholder}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, certifications: text }))}
-                />
+                    {/* ── Bio ────────────────────────────────────────────────── */}
+                    <Text style={styles.sectionLabel}>Bio</Text>
+                    <View style={styles.card}>
+                        <TextInput
+                            style={[styles.bioInput, { color: theme.text }]}
+                            value={profile.bio}
+                            onChangeText={set('bio')}
+                            placeholder="Tell clients about yourself…"
+                            placeholderTextColor={theme.placeholder}
+                            multiline
+                            textAlignVertical="top"
+                        />
+                    </View>
 
-                <Text style={styles.label}>Years Experience</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.years_experience?.toString() ?? ''}
-                    placeholderTextColor={theme.placeholder}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, years_experience: text }))}
-                    keyboardType="number-pad"
-                />
+                    {/* ── Save ───────────────────────────────────────────────── */}
+                    <TouchableOpacity
+                        style={[styles.saveBtn, saving && styles.saveBtnDisabled, { backgroundColor: theme.primary }]}
+                        onPress={handleSave}
+                        disabled={saving}
+                        activeOpacity={0.82}
+                    >
+                        <Icon name="checkmark-outline" size={18} color="#fff" />
+                        <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save Changes'}</Text>
+                    </TouchableOpacity>
 
-                <Text style={styles.label}>Specialties</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.specialties}
-                    placeholder="e.g. Weight Loss, Strength Training"
-                    placeholderTextColor={theme.placeholder}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, specialties: text }))}
-                />
+                    {/* ── Preferences ────────────────────────────────────────── */}
+                    <Text style={styles.sectionLabel}>Preferences</Text>
+                    <View style={styles.card}>
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleInfo}>
+                                <Icon name={isDark ? 'moon' : 'sunny-outline'} size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
+                                <Text style={styles.toggleLabel}>Dark Mode</Text>
+                            </View>
+                            <Switch
+                                value={isDark}
+                                onValueChange={toggleTheme}
+                                trackColor={{ false: theme.border, true: theme.primary }}
+                                thumbColor="#fff"
+                            />
+                        </View>
+                    </View>
 
-                <Text style={styles.label}>Bio</Text>
-                <TextInput
-                    style={[styles.input, styles.multilineInput]}
-                    value={profile.bio}
-                    placeholderTextColor={theme.placeholder}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
-                    multiline
-                    numberOfLines={3}
-                />
+                    {/* ── Danger zone ────────────────────────────────────────── */}
+                    <Text style={styles.sectionLabel}>Account</Text>
+                    <TouchableOpacity
+                        style={styles.logoutBtn}
+                        onPress={handleLogout}
+                        activeOpacity={0.78}
+                    >
+                        <Icon name="log-out-outline" size={18} color="#ef4444" />
+                        <Text style={styles.logoutBtnText}>Log Out</Text>
+                    </TouchableOpacity>
 
-                <Text style={styles.label}>Availability</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.availability}
-                    placeholder="e.g. Mon–Fri 6am–8pm"
-                    placeholderTextColor={theme.placeholder}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, availability: text }))}
-                />
-
-                <Text style={styles.label}>Location</Text>
-                <TextInput
-                    style={styles.input}
-                    value={profile.location}
-                    placeholderTextColor={theme.placeholder}
-                    onChangeText={(text) => setProfile(prev => ({ ...prev, location: text }))}
-                />
-
-                <CustomButton title="Save Changes" onPress={handleSaveChanges} />
-
-                <View style={styles.divider} />
-
-                {/* Appearance */}
-                <Text style={styles.sectionHeading}>Appearance</Text>
-                <View style={styles.toggleRow}>
-                    <Text style={styles.toggleLabel}>Dark Mode</Text>
-                    <Switch
-                        value={isDark}
-                        onValueChange={toggleTheme}
-                        trackColor={{ false: theme.border, true: theme.primary }}
-                        thumbColor={isDark ? theme.primaryText === '#000000' ? '#fff' : theme.primary : '#f4f3f4'}
-                    />
-                </View>
-
-                <View style={styles.divider} />
-
-                <CustomButton title="Log Out" onPress={handleLogout} color="#ff4d4d" />
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </ScreenWrapper>
     );
 };
 
+// ── Styles ─────────────────────────────────────────────────────────────────────
+
 const makeStyles = (theme) => StyleSheet.create({
-    container: {
-        padding: 20,
+    scroll: {
+        padding: 16,
+        paddingBottom: 48,
         backgroundColor: theme.background,
     },
-    title: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        marginBottom: 20,
+
+    // Avatar header
+    avatarHeader: {
+        alignItems: 'center',
+        paddingVertical: 24,
+        marginBottom: 8,
+    },
+    avatar: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 4,
+    },
+    avatarText: {
+        color: '#fff',
+        fontSize: 28,
+        fontWeight: '800',
+    },
+    avatarName: {
+        fontSize: 18,
+        fontWeight: '700',
         color: theme.text,
     },
-    label: {
-        fontSize: 15,
-        fontWeight: '600',
-        marginTop: 16,
-        color: theme.textSecondary,
-    },
-    input: {
-        backgroundColor: theme.inputBackground,
-        padding: 12,
-        borderRadius: 10,
-        marginTop: 6,
-        fontSize: 16,
-        color: theme.text,
-        borderWidth: 1,
-        borderColor: theme.inputBorder,
-    },
-    multilineInput: {
-        minHeight: 80,
-        textAlignVertical: 'top',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: theme.divider,
-        marginVertical: 28,
-    },
-    sectionHeading: {
+    avatarSub: {
         fontSize: 13,
+        color: theme.textMuted,
+        marginTop: 2,
+    },
+
+    // Section label
+    sectionLabel: {
+        fontSize: 11,
         fontWeight: '700',
         color: theme.textMuted,
         textTransform: 'uppercase',
         letterSpacing: 0.8,
-        marginBottom: 12,
+        marginBottom: 8,
+        marginTop: 20,
+        paddingLeft: 4,
     },
-    toggleRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+
+    // Card
+    card: {
         backgroundColor: theme.card,
-        padding: 14,
-        borderRadius: 10,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: theme.border,
+        overflow: 'hidden',
+    },
+
+    // Field rows
+    fieldRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 4,
+        minHeight: 52,
+    },
+    fieldRowBorder: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.border,
+    },
+    fieldLabel: {
+        width: 100,
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.textSecondary,
+        flexShrink: 0,
+    },
+    fieldInput: {
+        flex: 1,
+        fontSize: 15,
+        paddingVertical: 10,
+        textAlign: 'right',
+    },
+    fieldInputDisabled: {
+        opacity: 0.5,
+    },
+    fieldInputMulti: {
+        textAlign: 'left',
+        minHeight: 60,
+        textAlignVertical: 'top',
+    },
+
+    // Bio
+    bioInput: {
+        padding: 16,
+        fontSize: 15,
+        minHeight: 100,
+        textAlignVertical: 'top',
+    },
+
+    // Save button
+    saveBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 24,
+        paddingVertical: 15,
+        borderRadius: 14,
+    },
+    saveBtnDisabled: {
+        opacity: 0.6,
+    },
+    saveBtnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+
+    // Toggle row
+    toggleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+    },
+    toggleInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     toggleLabel: {
-        fontSize: 16,
+        fontSize: 15,
         color: theme.text,
         fontWeight: '500',
+    },
+
+    // Logout
+    logoutBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 15,
+        borderRadius: 14,
+        backgroundColor: '#ef444418',
+        borderWidth: 1,
+        borderColor: '#ef444430',
+    },
+    logoutBtnText: {
+        color: '#ef4444',
+        fontSize: 15,
+        fontWeight: '700',
     },
 });
 
