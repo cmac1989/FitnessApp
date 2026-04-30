@@ -63,8 +63,8 @@ The goal is to create a scalable platform for **online coaching**, with a focus 
 
 ## Work In Progress
 
-- 💳 Stripe payment integration (finalizing configuration)
-- 🔔 Push notifications
-- ☁️ Backend hosting (currently not deployed)
-- 📈 Enhanced analytics & progress tracking
-- 🎯 UI/UX refinements
+- Stripe payment integration (finalizing configuration)
+- Push notifications
+- Backend hosting (currently not deployed)
+- Enhanced analytics & progress tracking
+- UI/UX refinements
